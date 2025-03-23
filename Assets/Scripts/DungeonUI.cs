@@ -26,7 +26,7 @@ public class DungeonUI : MonoBehaviour
     private Vector2 enemyHiddenPos;
     private Vector2 enemyVisiblePos;
     private bool isOpen = false;
-    private bool isEnemyPanelOpen = false;
+    public bool isEnemyPanelOpen = false;
 
     // 현재 열린 패널을 추적하는 static 변수
     private static DungeonUI currentOpenDrawer = null;
@@ -110,11 +110,13 @@ public class DungeonUI : MonoBehaviour
     {
         enemyPanel.DOAnchorPos(enemyVisiblePos, 0.7f).SetEase(Ease.InOutSine).SetUpdate(true);
         isEnemyPanelOpen = true;
+        BattleCamera.instance.SwitchToEnemy();
     }
 
     void CloseEnemyPanel()
     {
         enemyPanel.DOAnchorPos(enemyHiddenPos, duration).SetEase(Ease.OutCubic).SetUpdate(true);
         isEnemyPanelOpen = false;
+        BattleCamera.instance.SwitchToDefault();
     }
 }
