@@ -4,6 +4,7 @@ using Cinemachine;
 using DG.Tweening;
 using UnityEngine;
 
+// MainCamera 스크립트
 public class BattleCamera : MonoBehaviour
 {
     public static BattleCamera instance = null;
@@ -18,15 +19,23 @@ public class BattleCamera : MonoBehaviour
 
     public CinemachineVirtualCamera battleCam;
     public CinemachineVirtualCamera enemyCam;
+    public CinemachineVirtualCamera partyCam;
 
     public void SwitchToEnemy(){
         battleCam.Priority = 0;
         enemyCam.Priority = 10;
-
+        partyCam.Priority = 0;
     }
 
     public void SwitchToDefault(){
         battleCam.Priority = 10;
         enemyCam.Priority = 0;
+        partyCam.Priority = 0;
+    }
+
+    public void SwitchToParty(){
+        battleCam.Priority = 0;
+        enemyCam.Priority = 0;
+        partyCam.Priority = 10;
     }
 }

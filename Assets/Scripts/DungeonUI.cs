@@ -15,6 +15,8 @@ public class DungeonUI : MonoBehaviour
     private TMP_Text skillTarget;
     [SerializeField]
     private RectTransform enemyPanel;
+    [SerializeField]
+    private RectTransform partyPanel;
 
 
     //private Vector3 originalPosition;
@@ -27,6 +29,7 @@ public class DungeonUI : MonoBehaviour
     private Vector2 enemyVisiblePos;
     private bool isOpen = false;
     public bool isEnemyPanelOpen = false;
+    public bool isPartyPanelOpen = false;
 
     // 현재 열린 패널을 추적하는 static 변수
     private static DungeonUI currentOpenDrawer = null;
@@ -73,8 +76,10 @@ public class DungeonUI : MonoBehaviour
             Debug.Log("적 입니다");
             OpenEnemyPanel();
         }else if(skillTarget.text.ToString() == "대상: 아군"){
+            OpenPartyPanel();
             Debug.Log("아군 대상입니다");
         }else{
+            OpenPartyPanel();
             Debug.Log("자신 대상입니다");
         }
     }
@@ -92,17 +97,8 @@ public class DungeonUI : MonoBehaviour
         if(isEnemyPanelOpen){
             CloseEnemyPanel();
         }
-    }
-
-    void ToggleEnemyPanel()
-    {
-        if (isEnemyPanelOpen)
-        {
-            CloseEnemyPanel();
-        }
-        else
-        {
-            OpenEnemyPanel();
+        if(isPartyPanelOpen){
+            ClosePartyPanel();
         }
     }
 
@@ -110,6 +106,7 @@ public class DungeonUI : MonoBehaviour
     {
         enemyPanel.DOAnchorPos(enemyVisiblePos, 0.7f).SetEase(Ease.InOutSine).SetUpdate(true);
         isEnemyPanelOpen = true;
+        //Enemypanel이 열릴 때 카메라 이동
         BattleCamera.instance.SwitchToEnemy();
     }
 
@@ -117,6 +114,21 @@ public class DungeonUI : MonoBehaviour
     {
         enemyPanel.DOAnchorPos(enemyHiddenPos, duration).SetEase(Ease.OutCubic).SetUpdate(true);
         isEnemyPanelOpen = false;
+        BattleCamera.instance.SwitchToDefault();
+    }
+
+    void OpenPartyPanel()
+    {
+        partyPanel.DOAnchorPos(enemyVisiblePos, 0.7f).SetEase(Ease.InOutSine).SetUpdate(true);
+        isPartyPanelOpen = true;
+        //Enemypanel이 열릴 때 카메라 이동
+        BattleCamera.instance.SwitchToParty();
+    }
+
+    void ClosePartyPanel()
+    {
+        partyPanel.DOAnchorPos(enemyHiddenPos, duration).SetEase(Ease.OutCubic).SetUpdate(true);
+        isPartyPanelOpen = false;
         BattleCamera.instance.SwitchToDefault();
     }
 }
