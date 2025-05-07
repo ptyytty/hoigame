@@ -4,5 +4,14 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/Dungeon_Gratia.unity
+    guid: 57dc2b7627adfa24b9676161556b4466
+  - enabled: 1
+    path: Assets/Scenes/Dungeon_Oratio.unity
+    guid: 9fc0d4010bbf28b4594072e72b8655ab
+  - enabled: 1
+    path: Assets/Scenes/MainScene.unity
+    guid: f6489d551725c28489f7444167e28c2e
   m_configObjects: {}
