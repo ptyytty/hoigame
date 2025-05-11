@@ -34,6 +34,8 @@ public class DungeonUI : MonoBehaviour
     // 현재 열린 패널을 추적하는 static 변수
     private static DungeonUI currentOpenDrawer = null;
 
+    private Skill currentSkill;
+
     void Start()
     {
         hiddenPos = skillPanel.anchoredPosition;
@@ -43,6 +45,7 @@ public class DungeonUI : MonoBehaviour
         enemyVisiblePos = enemyHiddenPos + new Vector2(120f, 0);
 
         skillButton.onClick.AddListener(ToggleUI);
+
 
     }
 
@@ -71,16 +74,30 @@ public class DungeonUI : MonoBehaviour
         isOpen = true;
         currentOpenDrawer = this; // 현재 열린 패널 저장
 
+        if(currentSkill == null){
+            Debug.LogWarning("현재 스킬이 설정되지 않았습니다.");
+            return;
+        }
+
+        SkillTargetType type = (SkillTargetType)currentSkill.target;
+
         //스킬 대상 확인
-        if(skillTarget.text.ToString() == "대상: 적"){
-            Debug.Log("적 입니다");
-            OpenEnemyPanel();
-        }else if(skillTarget.text.ToString() == "대상: 아군"){
-            OpenPartyPanel();
-            Debug.Log("아군 대상입니다");
-        }else{
-            OpenPartyPanel();
-            Debug.Log("자신 대상입니다");
+        switch(type){
+            case SkillTargetType.Enemy:
+                Debug.Log("대상: 적");
+                OpenEnemyPanel();
+                break;
+            case SkillTargetType.Ally:
+                Debug.Log("대상: 아군");
+                OpenPartyPanel();
+                break;
+            case SkillTargetType.Self:
+                Debug.Log("대상: 자신");
+                OpenPartyPanel();
+                break;
+            default:
+                Debug.LogWarning("알 수 없는 대상 타입: " + currentSkill.target);
+                break;
         }
     }
 

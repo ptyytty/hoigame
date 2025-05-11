@@ -31,6 +31,7 @@ public class BattleManager : MonoBehaviour
 
     void Start()
     {
+        //데이터 호출
         if(DBManager.instance != null)
             skillList = DBManager.instance.skillData;
 
