@@ -33,14 +33,8 @@ public class DBManager : MonoBehaviour
         RequestSkillData();
     }
 
-    void Start()
-    {
-        
-
-    }
-
     public void RequestJobStat(){
-         StartCoroutine(GetJobDataFromeDatabase());
+         StartCoroutine(GetJobDataFromDatabase());
      }
 
     public void RequestSkillData()
@@ -49,7 +43,7 @@ public class DBManager : MonoBehaviour
     }
 
     //job 테이블 호출 코루틴
-     public IEnumerator GetJobDataFromeDatabase(){
+     public IEnumerator GetJobDataFromDatabase(){
         UnityWebRequest request = UnityWebRequest.Get(url + "jobs");
 
         // 요청을 보내고 기다리기

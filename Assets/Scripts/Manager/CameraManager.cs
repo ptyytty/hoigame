@@ -6,7 +6,7 @@ using UnityEngine;
 public class CameraManager : MonoBehaviour
 {
     [SerializeField] private CinemachineVirtualCamera dungeonCam;
-    public float speed = 1f;
+    public float speed = 3f;
 
     void Start()
     {
@@ -22,8 +22,6 @@ public class CameraManager : MonoBehaviour
     {
         if (DungeonManager.instance.partyTransform == null) return;
 
-        float movementX = DungeonManager.instance.partyTransform.position.z;
-        float desiredZ = DungeonManager.instance.partyTransform.position.z;
         float zoffset = 10f;
 
 
