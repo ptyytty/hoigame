@@ -6,22 +6,21 @@ using UnityEngine.EventSystems;
 public class InteractionScanner : MonoBehaviour
 {
     public float detectionDistance = 30f;
-    public LayerMask interactableLayer;
     public GameObject interactionUI;
+    [SerializeField] private Transform partyTransform;
     private Interactable currentTarget;
-    private DungeonManager dungeonManager;
+
 
     void Update()
     {
-        MoveDirection currentMoveDirection = dungeonManager.currentDir;
         ScanForInteractable();
     }
 
     void ScanForInteractable(){
         Vector3 origin = transform.position + Vector3.up * 1.2f;
-        Vector3 rayDirection = GetDiagonalDirection();
+        Vector3 rayDirection = GetDiagonalDirection(DungeonManager.instance.currentDir);
         Ray ray = new Ray(origin, rayDirection * detectionDistance);
-        Debug.DrawRay(origin, rayDirection * detectionDistance, Color.green); // 시각 디버그
+        Debug.DrawRay(origin, rayDirection * detectionDistance, Color.blue); // 시각 디버그
 
         RaycastHit hit;
 
@@ -40,14 +39,12 @@ public class InteractionScanner : MonoBehaviour
         }
     }
 
-    Vector3 GetDiagonalDirection(){
-        Vector3 forward = transform.forward;
-        Vector3 right = transform.right;
+    Vector3 GetDiagonalDirection(MoveDirection dir){
 
-        if(currentMoveDirection == MoveDirection.Left){
-            return (Quaternion.AngleAxis(-30f, Vector3.up) * forward).normalized;
+        if(dir == MoveDirection.Left){
+            return (Quaternion.AngleAxis(-120f, Vector3.up) * partyTransform.forward).normalized;
         }else{
-            return (Quaternion.AngleAxis(30f, Vector3.up) * forward).normalized;
+            return (Quaternion.AngleAxis(120f, Vector3.up) * partyTransform.forward).normalized;
         }
     }
 

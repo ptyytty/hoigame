@@ -123,29 +123,23 @@ public class DungeonUI : MonoBehaviour
     {
         enemyPanel.DOAnchorPos(enemyVisiblePos, 0.7f).SetEase(Ease.InOutSine).SetUpdate(true);
         isEnemyPanelOpen = true;
-        //Enemypanel이 열릴 때 카메라 이동
-        BattleCamera.instance.SwitchToEnemy();
     }
 
     void CloseEnemyPanel()
     {
         enemyPanel.DOAnchorPos(enemyHiddenPos, duration).SetEase(Ease.OutCubic).SetUpdate(true);
         isEnemyPanelOpen = false;
-        BattleCamera.instance.SwitchToDefault();
     }
 
     void OpenPartyPanel()
     {
         partyPanel.DOAnchorPos(enemyVisiblePos, 0.7f).SetEase(Ease.InOutSine).SetUpdate(true);
         isPartyPanelOpen = true;
-        //Enemypanel이 열릴 때 카메라 이동
-        BattleCamera.instance.SwitchToParty();
     }
 
     void ClosePartyPanel()
     {
         partyPanel.DOAnchorPos(enemyHiddenPos, duration).SetEase(Ease.OutCubic).SetUpdate(true);
         isPartyPanelOpen = false;
-        BattleCamera.instance.SwitchToDefault();
     }
 }

@@ -5,6 +5,8 @@ TagManager:
   serializedVersion: 2
   tags:
   - Party
+  - Upstair
+  - Downstair
   layers:
   - Default
   - TransparentFX
