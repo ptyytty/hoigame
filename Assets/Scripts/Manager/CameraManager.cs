@@ -22,7 +22,7 @@ public class CameraManager : MonoBehaviour
     {
         if (DungeonManager.instance.partyTransform == null) return;
 
-        float zoffset = 10f;
+        float zoffset = 10f;    // 기본 카메라 위치 값
 
 
         if(DungeonManager.instance.currentDir == MoveDirection.Left)
@@ -30,7 +30,7 @@ public class CameraManager : MonoBehaviour
             zoffset = 0f;
         }else if (DungeonManager.instance.currentDir == MoveDirection.Right)
         {
-            zoffset = 40f;
+            zoffset = 45f;
         }
 
         float targetZ = Mathf.Lerp(transform.position.z, DungeonManager.instance.partyTransform.position.z

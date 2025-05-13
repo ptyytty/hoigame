@@ -5,7 +5,7 @@ using UnityEngine.EventSystems;
 
 public class InteractionScanner : MonoBehaviour
 {
-    public float detectionDistance = 30f;
+    public float detectionDistance = 40f;   // 탐지 거리
     public GameObject interactionUI;
     [SerializeField] private Transform partyTransform;
     private Interactable currentTarget;
