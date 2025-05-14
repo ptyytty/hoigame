@@ -7,8 +7,8 @@ public class InteractableReplacer : MonoBehaviour
     [MenuItem("Tool/Replace Interactable Prefab")]
     static void ReplaceWithPrefab(){
         //교체할 프리팹 경로
-        //string prefabPath = "Assets/Prefabs_Object/Interactables/water purifier.prefab";
-        string prefabPath = "Assets/Prefabs_Map/DownStairs.prefab";
+        string prefabPath = "Assets/Prefabs_Object/Interactables/water purifier.prefab";
+        //string prefabPath = "Assets/Prefabs_Map/DownStairs.prefab";
     
         GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
 
