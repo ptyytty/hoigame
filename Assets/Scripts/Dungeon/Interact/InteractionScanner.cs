@@ -17,7 +17,7 @@ public class InteractionScanner : MonoBehaviour
     }
 
     void ScanForInteractable(){
-        Vector3 origin = transform.position + Vector3.up * 1.2f;
+        Vector3 origin = transform.position + Vector3.up * 1.2f;    // Party 위치에서 Y 값 올리기
         Vector3 rayDirection = GetDiagonalDirection(DungeonManager.instance.currentDir);
         Ray ray = new Ray(origin, rayDirection * detectionDistance);
         Debug.DrawRay(origin, rayDirection * detectionDistance, Color.blue); // 시각 디버그
@@ -32,7 +32,7 @@ public class InteractionScanner : MonoBehaviour
                 ShowInteractionUI(true);
             }
         }else{
-            if(currentTarget != null){
+            if (currentTarget != null){
                 currentTarget = null;
                 ShowInteractionUI(false);
             }
