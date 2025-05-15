@@ -7,9 +7,22 @@ using UnityEngine;
 
 public class InteractableManager : MonoBehaviour
 {
+    public static InteractableManager instance;
+
+    void Awake()
+    {
+        if(instance == null){
+            instance = this;
+        }else{
+            Destroy(this.gameObject);
+        }
+    }
+    
     [SerializeField] private List<GameObject> candidates; // 상호작용 가능 오브젝트 목록
     [SerializeField] private List<GameObject> stairs;   // 계단 목록
     [SerializeField] private float interactionChance = 0.1f;    // 상호작용 적용 확률
+    
+    public GameObject interactionUI;
     void Start()
     {
         AssingInteractables();

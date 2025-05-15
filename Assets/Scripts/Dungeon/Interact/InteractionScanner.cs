@@ -6,10 +6,8 @@ using UnityEngine.EventSystems;
 public class InteractionScanner : MonoBehaviour
 {
     public float detectionDistance = 40f;   // 탐지 거리
-    public GameObject interactionUI;
     [SerializeField] private Transform partyTransform;
     private Interactable currentTarget;
-
 
     void Update()
     {
@@ -29,12 +27,12 @@ public class InteractionScanner : MonoBehaviour
 
             if (interactable != null && interactable != currentTarget){
                 currentTarget = interactable;
-                ShowInteractionUI(true);
+                currentTarget.ShowUI(true);
             }
         }else{
             if (currentTarget != null){
+                currentTarget.ShowUI(false);
                 currentTarget = null;
-                ShowInteractionUI(false);
             }
         }
     }
@@ -48,8 +46,4 @@ public class InteractionScanner : MonoBehaviour
         }
     }
 
-    void ShowInteractionUI(bool show){
-        if(interactionUI != null)
-            interactionUI.SetActive(show);
-    }
 }
