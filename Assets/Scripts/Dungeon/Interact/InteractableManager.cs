@@ -21,13 +21,22 @@ public class InteractableManager : MonoBehaviour
     [SerializeField] private List<GameObject> candidates; // 상호작용 가능 오브젝트 목록
     [SerializeField] private List<GameObject> stairs;   // 계단 목록
     [SerializeField] private float interactionChance = 0.1f;    // 상호작용 적용 확률
+
+    
+    [SerializeField] private string[] nameFilters = { "Cabinet", "vending machine V2", "water purifier" };
+    [SerializeField] private string[] stairFilters = {"UpStairs", "DownStairs"};
+
     
     public GameObject interactionUI;
     void Start()
     {
+        AutoFindFloorAndScan();
         AssingInteractables();
     }
 
+    /// <summary>
+    /// candidates 리스트에 있는 오브젝트 중 확률에 따라 Interactable 컴포넌트 부여
+    /// </summary>
     // 상호작용 랜덤 배정
     void AssingInteractables(){
         foreach(GameObject obj in candidates){
@@ -39,91 +48,50 @@ public class InteractableManager : MonoBehaviour
             }
         }
     }
-
-    [SerializeField] private Transform parentObject; // 상호작용 오브젝트 그룹의 부모
-    [SerializeField] private string[] nameFilters = { "Cabinet", "vending machine V2", "water purifier" };
-    [SerializeField] private string[] stairFilters = {"UpStairs", "DownStairs"};
-
-    [ContextMenu("Scan Children by Name and Add to Candidates")]
-    public void ScanChildrenByNameAndAddToCandidates()
+    /// <summary>
+    /// "Floor" 태그를 가진 오브젝트를 찾아 그 하위 오브젝트들을 대상으로 candidates와 stairs 자동 등록
+    /// </summary>
+    void AutoFindFloorAndScan()
     {
-#if UNITY_EDITOR
-        if (parentObject == null)
+        GameObject[] floorObject = GameObject.FindGameObjectsWithTag("Floor");
+
+        if (floorObject == null || floorObject.Length == 0)
         {
-            Debug.LogError("❌ parentObject가 설정되지 않았습니다.");
+            Debug.LogError("❌ 'Floor' 태그를 가진 오브젝트를 찾을 수 없습니다.");
             return;
         }
 
         int objCount = 0;
         int stairCount = 0;
 
-        foreach (Transform child in parentObject)
+        foreach (GameObject floor in floorObject)
         {
-            string objName = child.name.ToLower();
-
-            // 오브젝트 추가
-            foreach (string keyword in nameFilters)
+             foreach (Transform child in floor.transform)
             {
-                if (objName.Contains(keyword.ToLower()))
-                {
-                    GameObject obj = child.gameObject;
+                string objName = child.name.ToLower();
 
-                    // 중복 방지
-                    if (!candidates.Contains(obj))
+                foreach (string keyword in nameFilters)
+                {
+                    if (objName.Contains(keyword.ToLower()) && !candidates.Contains(child.gameObject))
                     {
-                        candidates.Add(obj);
-                        Debug.Log($"✔️ 추가됨: {obj.name}");
+                        candidates.Add(child.gameObject);
                         objCount++;
+                        break;
                     }
-
-                    break;
                 }
-            }
 
-            // 계단 추가
-            foreach(string keyword in stairFilters)
-            {
-                if(objName.Contains(keyword.ToLower()))
+                foreach (string keyword in stairFilters)
                 {
-                    GameObject obj = child.gameObject;
-
-                    if (!stairs.Contains(obj))
+                    if (objName.Contains(keyword.ToLower()) && !stairs.Contains(child.gameObject))
                     {
-                        stairs.Add(obj);
-                        Debug.Log($"✔️ 추가됨: {obj.name}");
+                        stairs.Add(child.gameObject);
                         stairCount++;
+                        break;
                     }
-
-                    break;
                 }
             }
         }
-        EditorUtility.SetDirty(this);   // 추가 후 저장
-        Debug.Log($"✅ 누적 등록 완료 (새로 추가된 오브젝트 항목: {objCount}개)");
-        Debug.Log($"✅ 누적 등록 완료 (새로 추가된 계단 항목: {stairCount}개)");
-#endif
-    }
-
-    [ContextMenu("🧹 Clear Candidates List")]
-    public void ClearCandidatesList()
-    {
-#if UNITY_EDITOR
-        int previousCount = candidates.Count;
-        candidates.Clear();
-        UnityEditor.EditorUtility.SetDirty(this);
-        Debug.Log($"🧹 candidates 리스트 초기화 완료 (기존 항목 {previousCount}개 삭제)");
-#endif
-    }
-
-    [ContextMenu("🧹 Clear Stairs List")]
-    public void ClearStairsList()
-    {
-#if UNITY_EDITOR
-        int previousCount = candidates.Count;
-        stairs.Clear();
-        UnityEditor.EditorUtility.SetDirty(this);
-        Debug.Log($"🧹 stairs 리스트 초기화 완료 (기존 항목 {previousCount}개 삭제)");
-#endif
+        Debug.Log($"✅ 자동 등록 완료: 상호작용 오브젝트 {objCount}개, 계단 {stairCount}개");
     }
 }
 
