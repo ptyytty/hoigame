@@ -5,6 +5,7 @@ using UnityEngine.SceneManagement;
 
 public class LobbyManager : MonoBehaviour
 {
+    public GameObject lobbyContent;
     public GameObject dungeonListPanel;
     public GameObject dungeonPartyPanel;
     public GameObject dungeonItemPanel;
@@ -21,8 +22,14 @@ public class LobbyManager : MonoBehaviour
         
     }
 
+    public void btnShowLobbyContent()
+    {
+        lobbyContent.SetActive(true);
+    }
 
-    public void btnDungeonList(){
+
+    public void btnDungeonList()
+    {
         dungeonListPanel.SetActive(true);
         dungeonPartyPanel.SetActive(false);
         dungeonItemPanel.SetActive(false);
