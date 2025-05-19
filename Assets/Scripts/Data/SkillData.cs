@@ -14,19 +14,19 @@ public class SkillList{
     public Skill[] skills;
 }
 
-public enum SkillTarget{
+public enum Target{
     Enemy = 0,
     Ally = 1,
     Self = 2
 }
 
-public enum SkillLoc{
+public enum Loc{
     None = 0,
     Front = 1,
     Back = 2
 }
 
-public enum SkillArea{
+public enum Area{
     Single = 0,
     Row = 1,
     Entire = 2

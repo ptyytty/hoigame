@@ -12,6 +12,15 @@ public class Job{
 }
 
 [System.Serializable]
-public class JobList{
+public class JobList
+{
     public Job[] jobs;
+}
+
+public enum JobType
+{
+    Warrior,
+    Ranged,
+    Special,
+    Healer
 }

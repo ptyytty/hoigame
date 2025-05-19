@@ -79,19 +79,19 @@ public class DungeonUI : MonoBehaviour
             return;
         }
 
-        SkillTarget type = (SkillTarget)currentSkill.target;
+        Target type = (Target)currentSkill.target;
 
         //스킬 대상 확인
         switch(type){
-            case SkillTarget.Enemy:
+            case Target.Enemy:
                 Debug.Log("대상: 적");
                 OpenEnemyPanel();
                 break;
-            case SkillTarget.Ally:
+            case Target.Ally:
                 Debug.Log("대상: 아군");
                 OpenPartyPanel();
                 break;
-            case SkillTarget.Self:
+            case Target.Self:
                 Debug.Log("대상: 자신");
                 OpenPartyPanel();
                 break;
