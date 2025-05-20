@@ -9,6 +9,7 @@ public class LobbyManager : MonoBehaviour
     public GameObject dungeonListPanel;
     public GameObject dungeonPartyPanel;
     public GameObject dungeonItemPanel;
+    public GameObject undoBtn;
 
     // Start is called before the first frame update
     void Start()
@@ -25,6 +26,10 @@ public class LobbyManager : MonoBehaviour
     public void btnShowLobbyContent()
     {
         lobbyContent.SetActive(true);
+    }
+    public void OnClickUndo()
+    {
+        lobbyContent.SetActive(false);
     }
 
 
