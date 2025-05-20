@@ -432,7 +432,7 @@ GameObject:
   - component: {fileID: 1280397390336365314}
   - component: {fileID: 5997836532259895991}
   m_Layer: 5
-  m_Name: Btn_StoreSpecial
+  m_Name: Btn_SpecialItem
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

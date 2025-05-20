@@ -431,8 +431,9 @@ GameObject:
   - component: {fileID: 3080426066240899465}
   - component: {fileID: 7902604463797162364}
   - component: {fileID: 943833791056483134}
+  - component: {fileID: -1707516846934151682}
   m_Layer: 5
-  m_Name: Btn_StoreGeneral
+  m_Name: Btn_GeneralItem
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -458,7 +459,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: -884.78687, y: -132.52838}
   m_SizeDelta: {x: 495, y: 91.8242}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3080426066240899465
@@ -543,6 +544,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &-1707516846934151682
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8285347193842501944}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a55c42f49b547846b27d0a1b1672b2d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  productName: {fileID: 8057066550115345636}
+  productPrice: {fileID: 1048319794396975105}
+  productImage: {fileID: 6693651289939563316}
 --- !u!1 &8544619934076159729
 GameObject:
   m_ObjectHideFlags: 0

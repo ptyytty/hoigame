@@ -5,18 +5,15 @@ using UnityEngine;
 
 public class StoreManager : MonoBehaviour
 {
-    List<ConsumeItem> allconsumeitem = ItemDatabase.consumeItems;
-    List<EquipItem> allequipitem = ItemDatabase.equipItems;
+    List<ConsumeItem> showConsumeItem;
+    List<EquipItem> showEquipItem;
+
+    public GameObject itemSlotPrefabs;
+    public Transform itemGridParent;
+
     void Start()
     {
-        GetRandomEquipItems();
-        GetRandomConsumeItems(2);
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
+        DisplayRandomItemsInShop();
     }
 
     public List<ConsumeItem> GetRandomConsumeItems(int count)
@@ -35,14 +32,19 @@ public class StoreManager : MonoBehaviour
         return result;
     }
 
-    public List<EquipItem> GetRandomEquipItems()
+    public List<EquipItem> GetRandomEquipItems(int count = 1)
     {
         List<EquipItem> copy = new List<EquipItem>(ItemDatabase.equipItems);
         List<EquipItem> result = new List<EquipItem>();
 
-        int rand = Random.Range(0, copy.Count);
-        result.Add(copy[rand]);
-        copy.RemoveAt(rand);
+        int iterations = Mathf.Min(count, copy.Count);
+
+        for (int i = 0; i < iterations; i++)
+        {
+            int rand = Random.Range(0, copy.Count);
+            result.Add(copy[rand]);
+            copy.RemoveAt(rand);
+        }
 
 
         return result;
@@ -50,21 +52,22 @@ public class StoreManager : MonoBehaviour
 
     void DisplayRandomItemsInShop()
     {
-        List<EquipItem> equipItems = GetRandomEquipItems();
-        List<ConsumeItem> consumeItems = GetRandomConsumeItems(2);
+        showEquipItem = GetRandomEquipItems(1);
+        showConsumeItem = GetRandomConsumeItems(2);
 
+        foreach (ConsumeItem item in showConsumeItem)
+        {
+            GameObject slotGO = Instantiate(itemSlotPrefabs, itemGridParent);
+            Product slotUI = slotGO.GetComponent<Product>();
+            slotUI.SetConsumeItemData(item);
+        }
 
-        foreach (ConsumeItem item in consumeItems)
+        foreach (EquipItem item in showEquipItem)
         {
-            Debug.Log(item.name_item + " - " + item.price + "골드");
-            // 여기서 itemUI 오브젝트에 연결 가능
+            GameObject slotGO = Instantiate(itemSlotPrefabs, itemGridParent);
+            Product slotUI = slotGO.GetComponent<Product>();
+            slotUI.SetEquipItemData(item);
         }
-         foreach (EquipItem item in equipItems)
-        {
-            Debug.Log(item.name_item + " - " + item.price + "골드");
-            // 여기서 itemUI 오브젝트에 연결 가능
-        }
+
     }
-
-
 }

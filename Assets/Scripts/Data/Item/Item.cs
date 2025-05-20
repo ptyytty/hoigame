@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 public enum JobCategory
 {
@@ -26,6 +27,8 @@ public class ConsumeItem
     public int id_item;
     public string name_item;
     public int price;
+    public string iconName;
+    public Sprite icon => Resources.Load<Sprite>($"Icons/Item/Consume/{iconName}");
     public ItemType itemType;
     public int value;
     public List<ConsumeBuffType> buffTypes;
@@ -40,6 +43,8 @@ public class EquipItem
     public int id_item;
     public string name_item;
     public int price;
+    public string iconName;
+    public Sprite icon => Resources.Load<Sprite>($"Icons/Item/Equipment/{iconName}");
     public JobCategory jobCategory;
     public ItemType itemType;
     public int value;
