@@ -125,6 +125,7 @@ public static class ItemDatabase
             name_item = "신속 신발",
             price = 2100,
             iconName = "Quick Shoes",
+            jobCategory = JobCategory.Ranged,
             itemType = ItemType.Equipment,
             value = 5,
             description = "착용감 좋은 신발."
@@ -135,9 +136,10 @@ public static class ItemDatabase
             name_item = "가죽 장갑",
             price = 2550,
             iconName = "Leather Gloves",
+            jobCategory = JobCategory.Ranged,
             itemType = ItemType.Equipment,
             value = 5,
-            description = "가죽으로 만든 장갑이다. 손 조심!"
+            description = "가죽으로 만든 장갑이다."
         },
 
         new EquipItem{
@@ -145,6 +147,7 @@ public static class ItemDatabase
             name_item = "건틀릿",
             price = 1800,
             iconName = "Plate Gloves",
+            jobCategory = JobCategory.Warrior,
             itemType = ItemType.Equipment,
             value = 5,
             description = "튼튼한 건틀릿. 때리기에 좋지만 막기엔 더 좋다."

@@ -1,73 +1,135 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
-
+using UnityEngine.UI;
 
 public class StoreManager : MonoBehaviour
 {
-    List<ConsumeItem> showConsumeItem;
-    List<EquipItem> showEquipItem;
 
-    public GameObject itemSlotPrefabs;
-    public Transform itemGridParent;
+    [System.Serializable]
+    public class ToggleImagepair    // 토글 버튼 정보
+    {
+        public Toggle toggle;
+        public Image image;
+        public Sprite selectedSprite;
+        public Sprite defaultSprite;
+        public Text labelText;
+        public Color selectedTextColor = new Color(238f / 255f, 190f / 255f, 20f / 255f);
+        public Color defaultTextcolor = new Color(1, 1, 1);
+    }
+
+    public List<ToggleImagepair> itemTypeToggleImagePairs;  // 아이템 종류 토글
+    public List<ToggleImagepair> storeTypeToggleImagePairs; // 상점 토글
+    public GameObject localStore, onlineStore;
+    public GameObject itemToggleGroup;
+    public GameObject onlineBackground;
+    public GameObject onlineToggleGroup, onlineSell, onlineBuy;
+
+    private Toggle lastSelectedItemType = null;
+    private Toggle lastSelectedStoreType = null;
 
     void Start()
     {
-        DisplayRandomItemsInShop();
+        for (int i = 0; i < itemTypeToggleImagePairs.Count; i++)
+        {
+            int index = i;
+
+            itemTypeToggleImagePairs[i].toggle.onValueChanged.AddListener((isOn) =>
+            {
+                if (isOn)
+                {
+                    OnToggleChanged(itemTypeToggleImagePairs[index].toggle, itemTypeToggleImagePairs, ref lastSelectedItemType);
+                }
+            });
+        }
+
+        for (int i = 0; i < storeTypeToggleImagePairs.Count; i++)
+        {
+            int index = i;
+
+            storeTypeToggleImagePairs[i].toggle.onValueChanged.AddListener((isOn) =>
+            {
+                if (isOn)
+                {
+                    OnToggleChanged(storeTypeToggleImagePairs[index].toggle, storeTypeToggleImagePairs, ref lastSelectedStoreType);
+                    ShowPannelByIndex(index);
+                }
+            });
+        }
+
+        if (itemTypeToggleImagePairs.Count > 0)
+        {
+            itemTypeToggleImagePairs[0].toggle.isOn = true;
+            lastSelectedItemType = itemTypeToggleImagePairs[0].toggle;
+        }
+
+        if (storeTypeToggleImagePairs.Count > 0)
+        {
+            storeTypeToggleImagePairs[0].toggle.isOn = true;
+            lastSelectedStoreType = storeTypeToggleImagePairs[0].toggle;
+        }
+
+        UpdateToggle(itemTypeToggleImagePairs);
+        UpdateToggle(storeTypeToggleImagePairs);
     }
 
-    public List<ConsumeItem> GetRandomConsumeItems(int count)
+    // 토글 전환에 따른 패널 변경
+    public void ShowPannelByIndex(int index)
     {
-        List<ConsumeItem> copy = new List<ConsumeItem>(ItemDatabase.consumeItems);
-        List<ConsumeItem> result = new List<ConsumeItem>();
-        Debug.Log(copy);
+        bool islocal = index == 0;
+        bool isonline = index == 1;
 
-        for (int i = 0; i < count && copy.Count > 0; i++)   // copy.Count copy 리스트의 요소 개수
+        // 로컬 상점
+        localStore.SetActive(islocal);
+        if (islocal) // 로컬 상점 전환 시 전체 토글로 초기화 / 로비 갔다와도 초기화
         {
-            int rand = Random.Range(0, copy.Count);
-            result.Add(copy[rand]);
-            copy.RemoveAt(rand);
+            itemTypeToggleImagePairs[0].toggle.isOn = true;
+            lastSelectedItemType = itemTypeToggleImagePairs[0].toggle;
+
+            storeTypeToggleImagePairs[0].toggle.isOn = true;
+            lastSelectedStoreType = storeTypeToggleImagePairs[0].toggle;
         }
 
-        return result;
+        // 온라인 상점
+        onlineToggleGroup.SetActive(isonline);
+        onlineStore.SetActive(isonline);
+        onlineBackground.SetActive(isonline);
+        itemToggleGroup.SetActive(isonline);
+
     }
 
-    public List<EquipItem> GetRandomEquipItems(int count = 1)
+
+    // 토글 전환
+    void OnToggleChanged(Toggle changedToggle, List<ToggleImagepair> toggleGroup, ref Toggle lastSelectedToggle)    //ref: lastSelectedToggle 참조 호출
     {
-        List<EquipItem> copy = new List<EquipItem>(ItemDatabase.equipItems);
-        List<EquipItem> result = new List<EquipItem>();
-
-        int iterations = Mathf.Min(count, copy.Count);
-
-        for (int i = 0; i < iterations; i++)
+        if (changedToggle.isOn)
         {
-            int rand = Random.Range(0, copy.Count);
-            result.Add(copy[rand]);
-            copy.RemoveAt(rand);
+            if (changedToggle != lastSelectedToggle)
+            {
+                lastSelectedToggle = changedToggle;
+                UpdateToggle(toggleGroup);
+            }
+            else
+            {
+                changedToggle.isOn = true;
+            }
         }
-
-
-        return result;
     }
 
-    void DisplayRandomItemsInShop()
+    // 토글 버튼 이미지 변경
+    void UpdateToggle(List<ToggleImagepair> toggleGroup)
     {
-        showEquipItem = GetRandomEquipItems(1);
-        showConsumeItem = GetRandomConsumeItems(2);
-
-        foreach (ConsumeItem item in showConsumeItem)
+        foreach (var pair in toggleGroup)
         {
-            GameObject slotGO = Instantiate(itemSlotPrefabs, itemGridParent);
-            Product slotUI = slotGO.GetComponent<Product>();
-            slotUI.SetConsumeItemData(item);
-        }
+            bool isOn = pair.toggle.isOn;
 
-        foreach (EquipItem item in showEquipItem)
-        {
-            GameObject slotGO = Instantiate(itemSlotPrefabs, itemGridParent);
-            Product slotUI = slotGO.GetComponent<Product>();
-            slotUI.SetEquipItemData(item);
-        }
+            pair.image.sprite = pair.toggle.isOn ? pair.selectedSprite : pair.defaultSprite;
 
+            if (pair.labelText != null) // labelText 여부에 따른 텍스트 색상 변경
+            {
+                pair.labelText.color = isOn ? pair.selectedTextColor : pair.defaultTextcolor;
+            }
+        }
     }
 }

@@ -5,31 +5,19 @@ using UnityEngine.SceneManagement;
 
 public class LobbyManager : MonoBehaviour
 {
-    public GameObject lobbyContent;
+    public GameObject menuContainer;
     public GameObject dungeonListPanel;
     public GameObject dungeonPartyPanel;
     public GameObject dungeonItemPanel;
     public GameObject undoBtn;
 
-    // Start is called before the first frame update
-    void Start()
+    public void btnShowStore()
     {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
-    public void btnShowLobbyContent()
-    {
-        lobbyContent.SetActive(true);
+        menuContainer.SetActive(true);
     }
     public void OnClickUndo()
     {
-        lobbyContent.SetActive(false);
+        menuContainer.SetActive(false);
     }
 
 

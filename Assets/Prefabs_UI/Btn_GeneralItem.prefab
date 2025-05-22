@@ -559,6 +559,15 @@ MonoBehaviour:
   productName: {fileID: 8057066550115345636}
   productPrice: {fileID: 1048319794396975105}
   productImage: {fileID: 6693651289939563316}
+  jobSpritePairs:
+  - category: 0
+    sprite: {fileID: 21300000, guid: bae8d4d2199cb3844b763b1a7807f745, type: 3}
+  - category: 1
+    sprite: {fileID: 21300000, guid: bae8d4d2199cb3844b763b1a7807f745, type: 3}
+  - category: 2
+    sprite: {fileID: 21300000, guid: bae8d4d2199cb3844b763b1a7807f745, type: 3}
+  - category: 3
+    sprite: {fileID: 21300000, guid: bae8d4d2199cb3844b763b1a7807f745, type: 3}
 --- !u!1 &8544619934076159729
 GameObject:
   m_ObjectHideFlags: 0

@@ -9,6 +9,13 @@ public enum JobCategory
     Healer
 }
 
+[System.Serializable]
+public class JobSpritePair
+{
+    public JobCategory category;
+    public Sprite sprite;
+}
+
 public enum ItemType
 {
     Equipment,
