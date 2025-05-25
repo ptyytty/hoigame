@@ -16,6 +16,7 @@ public class Product : MonoBehaviour
 
     private Dictionary<JobCategory, Sprite> spriteDict;
     private Image slotImage;
+    private string effect;
 
     void Awake()
     {
@@ -36,6 +37,12 @@ public class Product : MonoBehaviour
         productName.text = item.name_item;
         productPrice.text = $"{item.price}";
         productImage.sprite = item.icon;
+
+        GetComponent<Button>().onClick.RemoveAllListeners();
+        GetComponent<Button>().onClick.AddListener(() =>
+        {
+            ItemInfoPanel.instance.ShowItemInfo(item.name_item, item.description, item.buffTypes, null, item.value, item.price, item.icon);
+        });
     }
 
     public void SetEquipItemData(EquipItem item)
@@ -43,6 +50,12 @@ public class Product : MonoBehaviour
         productName.text = item.name_item;
         productPrice.text = $"{item.price}";
         productImage.sprite = item.icon;
+
+        GetComponent<Button>().onClick.RemoveAllListeners();
+        GetComponent<Button>().onClick.AddListener(() =>
+        {
+            ItemInfoPanel.instance.ShowItemInfo(item.name_item, item.description, null, item.effectText, item.value, item.price, item.icon);
+        });
 
     }
 }

@@ -127,6 +127,7 @@ public static class ItemDatabase
             iconName = "Quick Shoes",
             jobCategory = JobCategory.Ranged,
             itemType = ItemType.Equipment,
+            effectText = "민첩",
             value = 5,
             description = "착용감 좋은 신발."
         },
@@ -138,6 +139,7 @@ public static class ItemDatabase
             iconName = "Leather Gloves",
             jobCategory = JobCategory.Ranged,
             itemType = ItemType.Equipment,
+            effectText = "명중",
             value = 5,
             description = "가죽으로 만든 장갑이다."
         },
@@ -149,6 +151,7 @@ public static class ItemDatabase
             iconName = "Plate Gloves",
             jobCategory = JobCategory.Warrior,
             itemType = ItemType.Equipment,
+            effectText = "방어",
             value = 5,
             description = "튼튼한 건틀릿. 때리기에 좋지만 막기엔 더 좋다."
         },
@@ -160,6 +163,7 @@ public static class ItemDatabase
             iconName = "Mage Staff",
             jobCategory = JobCategory.Special,
             itemType = ItemType.Equipment,
+            effectText = "스킬 피해",
             value = 5,
             description = "마법사의 스테프. 휘두르기 좋다."
         },
@@ -171,6 +175,7 @@ public static class ItemDatabase
             iconName = "Priest Staff",
             jobCategory = JobCategory.Healer,
             itemType = ItemType.Equipment,
+            effectText = "회복량",
             value = 5,
             description = "장난감 요술봉. 신비한 힘이 깃들어져 있다."
         },
@@ -182,8 +187,9 @@ public static class ItemDatabase
             iconName = "Cloak",
             jobCategory = JobCategory.Ranged,
             itemType = ItemType.Equipment,
+            effectText = "민첩",
             value = 5,
-            description = "입으면 멋져보인다."
+            description = "오버핏."
         },
 
         new EquipItem{

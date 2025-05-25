@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 public enum JobCategory
 {
@@ -42,6 +43,15 @@ public class ConsumeItem
     public ItemTarget itemTarget;
     public Area area;
     public string description;
+
+    public string ToBuffDescription()
+    {
+        if (buffTypes == null || buffTypes.Count == 0)
+            return "효과 없음";
+
+        return string.Join(", ", buffTypes.Select(bt => bt.ToKorean()));
+    }
+
 }
 
 [System.Serializable]
@@ -54,6 +64,7 @@ public class EquipItem
     public Sprite icon => Resources.Load<Sprite>($"Icons/Item/Equipment/{iconName}");
     public JobCategory jobCategory;
     public ItemType itemType;
+    public string effectText;
     public int value;
     public string description;
 }

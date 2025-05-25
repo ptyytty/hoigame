@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae9f1741fe3dc784d9cb6a9758b422fb, type: 3}
+  m_Name: dungeon_Oratio
+  m_EditorClassIdentifier: 
+  dungeonId: dungeon_Oraito
+  dungeonName: "\uAE30\uB3C4\uAD00"
+  thumbnail: {fileID: 21300000, guid: d8a0e70479f984a42bb14cc4306beb79, type: 3}
+  questId:
+  - exploration_of_dungeon_80per

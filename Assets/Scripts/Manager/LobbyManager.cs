@@ -5,11 +5,11 @@ using UnityEngine.SceneManagement;
 
 public class LobbyManager : MonoBehaviour
 {
-    public GameObject menuContainer;
-    public GameObject dungeonListPanel;
-    public GameObject dungeonPartyPanel;
-    public GameObject dungeonItemPanel;
-    public GameObject undoBtn;
+    [SerializeField] private GameObject menuContainer;
+    [SerializeField] private GameObject panelSelectDungeon;
+    [SerializeField] private GameObject dungeonListPanel;
+    [SerializeField] private GameObject undoBtnInStore;
+    [SerializeField] private GameObject undoBtnInSelectDungeon;
 
     public void btnShowStore()
     {
@@ -18,25 +18,13 @@ public class LobbyManager : MonoBehaviour
     public void OnClickUndo()
     {
         menuContainer.SetActive(false);
+        panelSelectDungeon.SetActive(false);
     }
 
 
     public void btnDungeonList()
     {
         dungeonListPanel.SetActive(true);
-        dungeonPartyPanel.SetActive(false);
-        dungeonItemPanel.SetActive(false);
-    }
-
-    public void btnDungeonParty(){
-        dungeonListPanel.SetActive(false);
-        dungeonPartyPanel.SetActive(true);
-        dungeonItemPanel.SetActive(false);
-    }
-    public void btnDungeonItem(){
-        dungeonListPanel.SetActive(false);
-        dungeonPartyPanel.SetActive(false);
-        dungeonItemPanel.SetActive(true);
     }
 
     public void OnclickStartDungeon(){

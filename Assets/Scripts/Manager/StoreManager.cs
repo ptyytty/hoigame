@@ -21,16 +21,18 @@ public class StoreManager : MonoBehaviour
 
     public List<ToggleImagepair> itemTypeToggleImagePairs;  // 아이템 종류 토글
     public List<ToggleImagepair> storeTypeToggleImagePairs; // 상점 토글
-    public GameObject localStore, onlineStore;
-    public GameObject itemToggleGroup;
-    public GameObject onlineBackground;
-    public GameObject onlineToggleGroup, onlineSell, onlineBuy;
+
+    [SerializeField] private GameObject localStore, onlineStore;
+    [SerializeField] private GameObject itemToggleGroup;
+    [SerializeField] private GameObject onlineBackground;
+    [SerializeField] GameObject onlineToggleGroup, onlineSell, onlineBuy;
 
     private Toggle lastSelectedItemType = null;
     private Toggle lastSelectedStoreType = null;
 
     void Start()
     {
+        // 아이템 타입 토글 (전체, 장비, 소모)
         for (int i = 0; i < itemTypeToggleImagePairs.Count; i++)
         {
             int index = i;
@@ -44,6 +46,7 @@ public class StoreManager : MonoBehaviour
             });
         }
 
+        // 상점 타입 토글 (로컬, 온라인)
         for (int i = 0; i < storeTypeToggleImagePairs.Count; i++)
         {
             int index = i;
@@ -58,6 +61,7 @@ public class StoreManager : MonoBehaviour
             });
         }
 
+        // 기본값 초기화
         if (itemTypeToggleImagePairs.Count > 0)
         {
             itemTypeToggleImagePairs[0].toggle.isOn = true;
@@ -96,6 +100,7 @@ public class StoreManager : MonoBehaviour
         onlineStore.SetActive(isonline);
         onlineBackground.SetActive(isonline);
         itemToggleGroup.SetActive(isonline);
+        ItemInfoPanel.instance.Hide();
 
     }
 
