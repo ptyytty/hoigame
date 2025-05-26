@@ -9,6 +9,10 @@ public class PartySelector : MonoBehaviour
     [SerializeField] private HeroListUp heroListUp;
     [SerializeField] private HeroListUp.ChangedImage changedImage;
 
+    [Header("Interact Panels")]
+    [SerializeField] private GameObject partyPanel;
+    [SerializeField] private GameObject heroListPanel;
+
     [Header("Party Slots")]
     [SerializeField] private List<GameObject> partySlots;
 
@@ -30,6 +34,25 @@ public class PartySelector : MonoBehaviour
 
     public Button currentSlot;
 
+    void Update()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            if (!heroListUp.IsPointerOverUI(partyPanel) && !heroListUp.IsPointerOverUI(heroListPanel))
+            {
+                for (int i = 0; i < assignedHeroes.Length; i++)
+                {
+                    if (assignedHeroes[i] != null)
+                        slotImages[i].sprite = changedImage.defaultImage;
+                }
+
+                //currentSlot = null;
+                selectedSlotIndex = null;
+                selectedHero = null;
+            }
+        }
+    }
+
     void OnEnable()
     {
         // ✅ 이벤트 구독 (등록)
@@ -42,6 +65,7 @@ public class PartySelector : MonoBehaviour
     {
         // 🧹 이벤트 해제 (필수)
         heroListUp.OnHeroSelected -= UpdatePartySlot;
+        heroListUp.OnHeroSelected -= OnHeroSelectedFromList;
     }
 
     // Party 슬롯 설정
@@ -85,20 +109,32 @@ public class PartySelector : MonoBehaviour
 
         Button capturedButton = slotButtons[index];
 
+        // 영웅 리스트 클릭 후 슬롯 선택
         if (selectedHero != null)
         {
             AssignHeroToSlot(index, selectedHero);
             ResetSelection(selectedSlotIndex.Value);
-        }
-        else if (currentSlot == capturedButton)
-        {
             return;
         }
+        else if (currentSlot == null)
+        {
+            heroListUp.ShowHeroInfo(assignedHeroes[index]);
+        }
+        // 슬롯 우선 선택
         else if (currentSlot != null)
         {
+            Debug.Log($"{index}, 영웅 있음 여부 {assignedHeroes[index] != null}");
             Image prevImage = currentSlot.GetComponent<Image>();
             prevImage.sprite = changedImage.defaultImage;
+            heroListUp.ShowHeroInfo(assignedHeroes[index]);
         }
+        // 동일 슬롯 선택
+        else if (currentSlot == capturedButton)
+        {
+            slotImages[index].sprite = changedImage.selectedImage;
+            return;
+        }
+        
         slotImages[index].sprite = changedImage.selectedImage;
         currentSlot = capturedButton;
     }
@@ -159,7 +195,7 @@ public class PartySelector : MonoBehaviour
         }
     }
 
-    void ResetPartySlotInteractable()
+    public void ResetPartySlotInteractable()
     {
         for (int i = 0; i < assignedHeroes.Length; i++)
         {

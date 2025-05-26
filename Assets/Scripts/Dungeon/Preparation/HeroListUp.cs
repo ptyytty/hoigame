@@ -4,12 +4,19 @@ using System.Reflection.Emit;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
+
 
 public class HeroListUp : MonoBehaviour
 {
     [Header("List Panel")]
     [SerializeField] private Transform contentParent;
+    [Header("Interact Panels")]
+    [SerializeField] private PartySelector partySelector;
+    [SerializeField] private GameObject partyPanel;
+    [SerializeField] private GameObject heroListPanel;
+    
 
     [Header("Party List")]
     [SerializeField] private Image leftFront;
@@ -49,10 +56,24 @@ public class HeroListUp : MonoBehaviour
     // event 선언
     public event HeroSelectedHandler OnHeroSelected;
 
+
     void Start()
     {
         LoadHeroList();
 
+    }
+
+    void Update()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            if (!IsPointerOverUI(heroListPanel) && !IsPointerOverUI(partyPanel))
+            {
+                ResetButtonImage();
+                partySelector.ResetPartySlotInteractable();
+                currentSelect = null;
+            }
+        }
     }
 
     void LoadHeroList()
@@ -99,12 +120,14 @@ public class HeroListUp : MonoBehaviour
 
     public void ResetButtonImage()
     {
+        if (currentSelect == null)
+            return;
         Image prevImage = currentSelect.GetComponent<Image>();
         prevImage.sprite = changedImage.defaultImage;
     }
 
 
-    void ShowHeroInfo(Job hero)
+    public void ShowHeroInfo(Job hero)
     {
         heroName.text = $"{hero.name_job}";
         heroHp.text = $"{hero.hp}";
@@ -114,5 +137,21 @@ public class HeroListUp : MonoBehaviour
         heroHit.text = $"{hero.hit}";
     }
 
+    public bool IsPointerOverUI(GameObject target)
+    {
+        PointerEventData eventData = new PointerEventData(EventSystem.current);
+        eventData.position = Input.mousePosition;
 
+        List<RaycastResult> results = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(eventData, results);
+
+        foreach (var result in results)
+        {
+            if (result.gameObject == target || result.gameObject.transform.IsChildOf(target.transform))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 }
