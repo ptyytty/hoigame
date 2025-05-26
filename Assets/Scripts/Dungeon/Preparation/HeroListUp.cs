@@ -42,7 +42,12 @@ public class HeroListUp : MonoBehaviour
         public Sprite deactivationImage;
     }
 
-    private Button currentSelect;
+    public Button currentSelect;
+
+    // delegate 정의 (형식 선언)
+    public delegate void HeroSelectedHandler(Job selectedHero);
+    // event 선언
+    public event HeroSelectedHandler OnHeroSelected;
 
     void Start()
     {
@@ -61,8 +66,8 @@ public class HeroListUp : MonoBehaviour
             heroName.text = hero.name_job;
 
             // 버튼이 클릭되었을 때 어떤 Sprite를 조작할지를 보존하기 위해 로컬 변수로 캡처
-            Button capturedButton = heroButton;
-            Image capturedImage = buttonImage;
+            Button capturedButton = heroButton; //영웅 버튼
+            Image capturedImage = buttonImage;  //선택 버튼 이미지
 
             // 초기 이미지 설정
             capturedImage.sprite = changedImage.defaultImage;
@@ -76,48 +81,28 @@ public class HeroListUp : MonoBehaviour
                 // 기존 선택된 버튼이 있으면 이미지 복원
                 if (currentSelect != null)
                 {
-                    Image prevImage = currentSelect.GetComponent<Image>();
-                    prevImage.sprite = changedImage.defaultImage;
+                    ResetButtonImage();
                 }
 
                 // 새로운 선택
                 capturedImage.sprite = changedImage.selectedImage;
                 currentSelect = capturedButton;
 
+                OnHeroSelected?.Invoke(hero);
+
                 // 여기서 PartySlot 등 UI 연동하면 됨
-                UpdatePartySlot((Loc)hero.loc);
+                //UpdatePartySlot((Loc)hero.loc);   event로 변경
                 ShowHeroInfo(hero);
             });
         }
     }
 
-    void UpdatePartySlot(Loc loc)
+    public void ResetButtonImage()
     {
-        if (loc == (Loc)Loc.Front)
-        {
-            leftFront.sprite = changedImage.defaultImage;
-            rightFront.sprite = changedImage.defaultImage;
-
-            leftBack.sprite = changedImage.deactivationImage;
-            rightBack.sprite = changedImage.deactivationImage;
-        }
-        else if (loc == (Loc)Loc.Back)
-        {
-            leftBack.sprite = changedImage.defaultImage;
-            rightBack.sprite = changedImage.defaultImage;
-
-            leftFront.sprite = changedImage.deactivationImage;
-            rightFront.sprite = changedImage.deactivationImage;
-        }
-        else
-        {
-            leftFront.sprite = changedImage.defaultImage;
-            rightFront.sprite = changedImage.defaultImage;
-
-            leftBack.sprite = changedImage.defaultImage;
-            rightBack.sprite = changedImage.defaultImage;
-        }
+        Image prevImage = currentSelect.GetComponent<Image>();
+        prevImage.sprite = changedImage.defaultImage;
     }
+
 
     void ShowHeroInfo(Job hero)
     {

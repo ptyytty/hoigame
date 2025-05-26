@@ -5,26 +5,46 @@ using UnityEngine.SceneManagement;
 
 public class LobbyManager : MonoBehaviour
 {
-    [SerializeField] private GameObject menuContainer;
+    [Header("Panel")]
+    [SerializeField] private GameObject panelStore;
     [SerializeField] private GameObject panelSelectDungeon;
-    [SerializeField] private GameObject dungeonListPanel;
-    [SerializeField] private GameObject undoBtnInStore;
-    [SerializeField] private GameObject undoBtnInSelectDungeon;
+    [SerializeField] private GameObject panelDungeonPreparation;
 
-    public void btnShowStore()
+    [Header("Undo Button")]
+    [SerializeField] private GameObject undoBtn;
+    
+
+    public void OnclickShowStore()
     {
-        menuContainer.SetActive(true);
+        panelStore.SetActive(true);
+        undoBtn.SetActive(true);
     }
+
+    public void OnClickDungeonList()
+    {
+        panelSelectDungeon.SetActive(true);
+        undoBtn.SetActive(true);
+    }
+
     public void OnClickUndo()
     {
-        menuContainer.SetActive(false);
-        panelSelectDungeon.SetActive(false);
-    }
-
-
-    public void btnDungeonList()
-    {
-        dungeonListPanel.SetActive(true);
+        if (panelStore.activeSelf)
+        {
+            panelStore.SetActive(false);
+            undoBtn.SetActive(false);
+        }
+            
+        if (panelStore.activeSelf)
+            panelStore.SetActive(false);
+        else if (panelDungeonPreparation.activeSelf)
+        {
+            panelDungeonPreparation.SetActive(false);
+        }
+        else if (panelSelectDungeon.activeSelf)
+        {
+            panelSelectDungeon.SetActive(false);
+            undoBtn.SetActive(false);
+        }
     }
 
     public void OnclickStartDungeon(){
