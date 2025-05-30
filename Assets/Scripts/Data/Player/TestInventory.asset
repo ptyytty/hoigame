@@ -1,0 +1,213 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 786b59a2c1491fa42b9a0d0526c403c9, type: 3}
+  m_Name: TestInventory
+  m_EditorClassIdentifier: 
+  startingConsumeItems:
+  - itemData:
+      id_item: 1
+      name_item: "\uB3C8\uAE4C\uC2A4 \uAE40\uBC25"
+      price: 500
+      iconName: 
+      itemType: 1
+      value: 10
+      buffTypes: 01000000
+      itemTarget: 0
+      area: 0
+      description: "\uC2DD\uB2F9\uC5D0\uC11C \uD30C\uB294 \uAE40\uBC25\uC774\uB2E4.
+        \uC2F8\uACE0 \uB9DB\uC788\uB2E4."
+    count: 50
+  - itemData:
+      id_item: 2
+      name_item: "\uBCA0\uC774\uCEE8"
+      price: 800
+      iconName: Bacon
+      itemType: 1
+      value: 15
+      buffTypes: 010000000a000000
+      itemTarget: 0
+      area: 0
+      description: "\uC9ED\uC9E4\uD55C \uBCA0\uC774\uCEE8. \uD558\uB098\uC529 \uAEBC\uB0B4
+        \uBA39\uAE30 \uC88B\uB2E4."
+    count: 50
+  - itemData:
+      id_item: 3
+      name_item: "\uD584 \uB369\uC5B4\uB9AC"
+      price: 1100
+      iconName: Ham
+      itemType: 1
+      value: 20
+      buffTypes: 010000000a000000
+      itemTarget: 0
+      area: 0
+      description: "\uCEE4\uB2E4\uB780 \uD584 \uB369\uC5B4\uB9AC\uB2E4. \uBB34\uAC81\uACE0
+        \uC591\uB3C4 \uB9CE\uB2E4."
+    count: 50
+  - itemData:
+      id_item: 4
+      name_item: "\uC870\uC7A1\uD55C \uD3ED\uD0C4"
+      price: 700
+      iconName: 
+      itemType: 1
+      value: 15
+      buffTypes: 00000000
+      itemTarget: 1
+      area: 0
+      description: "\uC9C1\uC811 \uB9CC\uB4E0 \uD3ED\uD0C4\uC774\uB2E4. \uC704\uD5D8\uD558\uB2C8
+        \uC870\uC2EC\uD558\uC790."
+    count: 50
+  - itemData:
+      id_item: 5
+      name_item: "\uD22C\uCC99\uC6A9 \uC18C\uD654\uAE30"
+      price: 550
+      iconName: 
+      itemType: 1
+      value: 0
+      buffTypes: 02000000
+      itemTarget: 0
+      area: 0
+      description: "\uB358\uC9C8 \uC218 \uC788\uB294 \uC18C\uD654\uAE30. \uC791\uC740
+        \uBD88\uC744 \uBC14\uB85C \uB04C \uC218 \uC788\uB2E4."
+    count: 50
+  - itemData:
+      id_item: 6
+      name_item: "\uD574\uB3C5\uC81C"
+      price: 650
+      iconName: Detoxicant
+      itemType: 1
+      value: 0
+      buffTypes: 02000000
+      itemTarget: 0
+      area: 0
+      description: "\uB054\uCC0D\uD55C \uB9DB\uC774\uB2E4. \uC0B4\uB824\uBA74 \uBA39\uC5B4\uC57C
+        \uD55C\uB2E4."
+    count: 50
+  - itemData:
+      id_item: 7
+      name_item: "\uBC1C\uD654\uAF43"
+      price: 1100
+      iconName: Fire Flower
+      itemType: 1
+      value: 0
+      buffTypes: 0b000000
+      itemTarget: 0
+      area: 0
+      description: "\uC78E\uC774 \uD0C0\uC624\uB974\uB294 \uAF43. \uC904\uAE30\uB294
+        \uD0DC\uC6B0\uC9C0 \uC54A\uB294\uB2E4."
+    count: 0
+  - itemData:
+      id_item: 8
+      name_item: "\uBC29\uD654\uD3EC"
+      price: 1050
+      iconName: 
+      itemType: 1
+      value: 0
+      buffTypes: 0b000000
+      itemTarget: 0
+      area: 0
+      description: "\uBD88\uC744 \uB9C9\uC544\uC8FC\uB294 \uCC9C\uC774\uB2E4. \uBCF4\uC628
+        \uD6A8\uACFC\uB294 \uC5C6\uB2E4."
+    count: 50
+  - itemData:
+      id_item: 9
+      name_item: "\uBD88 \uBA38\uAE08 \uD56D\uC544\uB9AC"
+      price: 1700
+      iconName: Fire Filled Jar
+      itemType: 1
+      value: 0
+      buffTypes: 020000000b000000
+      itemTarget: 0
+      area: 2
+      description: "\uBD88\uC774 \uB2F4\uACA8\uC788\uB294 \uD56D\uC544\uB9AC. \uBD88\uC774
+        \uC0B4\uC544\uC788\uB294 \uB4EF \uD558\uB2E4."
+    count: 50
+  startingEquipItems:
+  - itemData:
+      id_item: 101
+      name_item: "\uC2E0\uC18D \uC2E0\uBC1C"
+      price: 2100
+      iconName: Quick Shoes
+      jobCategory: 1
+      itemType: 0
+      effectText: "\uBBFC\uCCA9"
+      value: 5
+      description: "\uCC29\uC6A9\uAC10 \uC88B\uC740 \uC2E0\uBC1C."
+    count: 1
+  - itemData:
+      id_item: 102
+      name_item: "\uAC00\uC8FD \uC7A5\uAC11"
+      price: 2550
+      iconName: Leather Gloves
+      jobCategory: 1
+      itemType: 0
+      effectText: "\uBA85\uC911"
+      value: 5
+      description: "\uAC00\uC8FD\uC73C\uB85C \uB9CC\uB4E0 \uC7A5\uAC11\uC774\uB2E4."
+    count: 1
+  - itemData:
+      id_item: 103
+      name_item: "\uAC74\uD2C0\uB9BF"
+      price: 1800
+      iconName: Plate Gloves
+      jobCategory: 0
+      itemType: 0
+      effectText: "\uBC29\uC5B4"
+      value: 5
+      description: "\uD2BC\uD2BC\uD55C \uAC74\uD2C0\uB9BF. \uB54C\uB9AC\uAE30\uC5D0
+        \uC88B\uC9C0\uB9CC \uB9C9\uAE30\uC5D4 \uB354 \uC88B\uB2E4."
+    count: 1
+  - itemData:
+      id_item: 104
+      name_item: "\uB9C8\uBC95\uC0AC \uC2A4\uD14C\uD504"
+      price: 2600
+      iconName: Mage Staff
+      jobCategory: 2
+      itemType: 0
+      effectText: "\uC2A4\uD0AC \uD53C\uD574"
+      value: 5
+      description: "\uB9C8\uBC95\uC0AC\uC758 \uC2A4\uD14C\uD504. \uD718\uB450\uB974\uAE30
+        \uC88B\uB2E4."
+    count: 1
+  - itemData:
+      id_item: 105
+      name_item: "\uC694\uC220\uBD09"
+      price: 2300
+      iconName: Priest Staff
+      jobCategory: 3
+      itemType: 0
+      effectText: "\uD68C\uBCF5\uB7C9"
+      value: 5
+      description: "\uC7A5\uB09C\uAC10 \uC694\uC220\uBD09. \uC2E0\uBE44\uD55C \uD798\uC774
+        \uAE43\uB4E4\uC5B4\uC838 \uC788\uB2E4."
+    count: 1
+  - itemData:
+      id_item: 106
+      name_item: "\uB9DD\uD1A0"
+      price: 1900
+      iconName: Cloak
+      jobCategory: 1
+      itemType: 0
+      effectText: "\uBBFC\uCCA9"
+      value: 5
+      description: "\uC5B4\uAE68\uC5D0 \uAC78\uCCD0\uC9C0\uB294 \uB9DD\uD1A0. \uC624\uBC84\uD54F\uC774\uB2E4."
+    count: 2
+  - itemData:
+      id_item: 0
+      name_item: 
+      price: 0
+      iconName: 
+      jobCategory: 0
+      itemType: 0
+      effectText: 
+      value: 0
+      description: 
+    count: 0

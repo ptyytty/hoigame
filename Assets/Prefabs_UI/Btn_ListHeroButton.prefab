@@ -146,7 +146,6 @@ GameObject:
   - component: {fileID: 4402353268580392896}
   - component: {fileID: 135240430367610866}
   - component: {fileID: 888865974871720240}
-  - component: {fileID: -3258270230076099017}
   m_Layer: 5
   m_Name: Btn_ListHeroButton
   m_TagString: Untagged
@@ -257,21 +256,6 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &-3258270230076099017
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4434194191316211557}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fbd479873e1aef444bf4a95ef6cf2685, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  heroName: {fileID: 6196930525979987033}
-  defaultButtonImage: {fileID: 21300000, guid: 8efd03668be3e464f9689f54cba3c158, type: 3}
-  selectButtonImage: {fileID: 21300000, guid: 921505e588807da478f56acafb8ab0cf, type: 3}
 --- !u!1 &5963689277111418762
 GameObject:
   m_ObjectHideFlags: 0

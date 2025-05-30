@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -87,17 +88,6 @@ public class PartySelector : MonoBehaviour
             btn.onClick.RemoveAllListeners();
             btn.onClick.AddListener(() =>
             {
-                // Debug.Log(capturedSlot);
-                // if (currentSlot == capturedSlot)
-                //     return;
-
-                // if (currentSlot != null)
-                // {
-                //     Image prevImage = currentSlot.GetComponent<Image>();
-                //     prevImage.sprite = changedImage.defaultImage;
-                // }
-                // slotImage.sprite = changedImage.selectedImage;
-                // currentSlot = capturedSlot;
                 OnSlotClicked(index);
             });
         }
@@ -134,7 +124,7 @@ public class PartySelector : MonoBehaviour
             slotImages[index].sprite = changedImage.selectedImage;
             return;
         }
-        
+
         slotImages[index].sprite = changedImage.selectedImage;
         currentSlot = capturedButton;
     }
@@ -204,5 +194,17 @@ public class PartySelector : MonoBehaviour
             else
                 slotButtons[i].interactable = true;
         }
+    }
+
+    public void ResetAssignParty()
+    {
+        for (int i = 0; i < assignedHeroes.Length; i++)
+        {
+            assignedHeroes[i] = null;
+            Debug.Log($"{assignedHeroes[i]} 제거");
+            heroImages[i].SetActive(false);
+        }
+
+        ResetPartySlotInteractable();
     }
 }

@@ -2,13 +2,20 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerOwnItemManager : MonoBehaviour
+public class PlayerItemManager : MonoBehaviour
 {
-    public static PlayerOwnItemManager instance;
+    public static PlayerItemManager instance;
 
     // 게임 내에서 실제 변경되는 아이템 데이터
     public List<OwnedItem<ConsumeItem>> ownedConsumeItem = new();
+    public List<OwnedItem<ConsumeItem>> GetOwnedConsumeItems()
+    {
+        return ownedConsumeItem;
+    }
     public List<OwnedItem<EquipItem>> ownedEquipItem = new();
+
+    [Header("테스트 데이터")]
+    public TestInventory testInventory;
 
     // 보유한 아이템 데이터 복사본
     [System.Serializable]
@@ -26,7 +33,8 @@ public class PlayerOwnItemManager : MonoBehaviour
             Destroy(this.gameObject);
 
         DontDestroyOnLoad(this);
-        LoadInventory();    // 인벤토리 정보 호출출
+        LoadTestInventory();
+        //LoadInventory();    // 인벤토리 정보 호출
     }
 
     // 보유 중인 아이템은 개수 늘리기
@@ -100,5 +108,12 @@ public class PlayerOwnItemManager : MonoBehaviour
 
             Debug.Log("✅ 인벤토리 로드됨");
         }
+    }
+
+    // 테스트/초기 아이템 데이터 호출
+    void LoadTestInventory()
+    {
+        ownedConsumeItem = new List<OwnedItem<ConsumeItem>>(testInventory.startingConsumeItems);
+        ownedEquipItem = new List<OwnedItem<EquipItem>>(testInventory.startingEquipItems);
     }
 }

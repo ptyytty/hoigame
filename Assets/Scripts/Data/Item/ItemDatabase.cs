@@ -78,7 +78,7 @@ public static class ItemDatabase
             buffTypes = new List<ConsumeBuffType> { ConsumeBuffType.Remove },
             itemTarget = ItemTarget.Ally,
             area = Area.Single,
-            description = "직접 만든 폭탄이다. 위험하니 조심하자."
+            description = "끔찍한 맛이다. 살려면 먹어야 한다."
         },
 
         new ConsumeItem{
@@ -189,7 +189,7 @@ public static class ItemDatabase
             itemType = ItemType.Equipment,
             effectText = "민첩",
             value = 5,
-            description = "오버핏."
+            description = "어깨에 걸쳐지는 망토. 오버핏이다."
         },
 
         new EquipItem{
