@@ -84,6 +84,7 @@ public class DungeonSelector : MonoBehaviour
     void SelectDungeon()
     {
         dungeonPreparationPanel.SetActive(true);
+        dungeonSelectPanel.SetActive(false);
         InventoryUIManager.instance.OpenInventoryPanel();
         currentPanel = dungeonPreparationPanel;
     }

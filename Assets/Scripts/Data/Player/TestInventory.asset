@@ -38,7 +38,7 @@ MonoBehaviour:
       area: 0
       description: "\uC9ED\uC9E4\uD55C \uBCA0\uC774\uCEE8. \uD558\uB098\uC529 \uAEBC\uB0B4
         \uBA39\uAE30 \uC88B\uB2E4."
-    count: 50
+    count: 48
   - itemData:
       id_item: 3
       name_item: "\uD584 \uB369\uC5B4\uB9AC"
@@ -140,7 +140,9 @@ MonoBehaviour:
       itemType: 0
       effectText: "\uBBFC\uCCA9"
       value: 5
+      statType: 3
       description: "\uCC29\uC6A9\uAC10 \uC88B\uC740 \uC2E0\uBC1C."
+      specialBuffTypes: 
     count: 1
   - itemData:
       id_item: 102
@@ -151,7 +153,9 @@ MonoBehaviour:
       itemType: 0
       effectText: "\uBA85\uC911"
       value: 5
+      statType: 4
       description: "\uAC00\uC8FD\uC73C\uB85C \uB9CC\uB4E0 \uC7A5\uAC11\uC774\uB2E4."
+      specialBuffTypes: 
     count: 1
   - itemData:
       id_item: 103
@@ -162,8 +166,10 @@ MonoBehaviour:
       itemType: 0
       effectText: "\uBC29\uC5B4"
       value: 5
+      statType: 1
       description: "\uD2BC\uD2BC\uD55C \uAC74\uD2C0\uB9BF. \uB54C\uB9AC\uAE30\uC5D0
         \uC88B\uC9C0\uB9CC \uB9C9\uAE30\uC5D4 \uB354 \uC88B\uB2E4."
+      specialBuffTypes: 
     count: 1
   - itemData:
       id_item: 104
@@ -174,8 +180,10 @@ MonoBehaviour:
       itemType: 0
       effectText: "\uC2A4\uD0AC \uD53C\uD574"
       value: 5
+      statType: 5
       description: "\uB9C8\uBC95\uC0AC\uC758 \uC2A4\uD14C\uD504. \uD718\uB450\uB974\uAE30
         \uC88B\uB2E4."
+      specialBuffTypes: 
     count: 1
   - itemData:
       id_item: 105
@@ -186,8 +194,10 @@ MonoBehaviour:
       itemType: 0
       effectText: "\uD68C\uBCF5\uB7C9"
       value: 5
+      statType: 6
       description: "\uC7A5\uB09C\uAC10 \uC694\uC220\uBD09. \uC2E0\uBE44\uD55C \uD798\uC774
         \uAE43\uB4E4\uC5B4\uC838 \uC788\uB2E4."
+      specialBuffTypes: 
     count: 1
   - itemData:
       id_item: 106
@@ -198,7 +208,9 @@ MonoBehaviour:
       itemType: 0
       effectText: "\uBBFC\uCCA9"
       value: 5
+      statType: 3
       description: "\uC5B4\uAE68\uC5D0 \uAC78\uCCD0\uC9C0\uB294 \uB9DD\uD1A0. \uC624\uBC84\uD54F\uC774\uB2E4."
+      specialBuffTypes: 
     count: 2
   - itemData:
       id_item: 0
@@ -209,5 +221,7 @@ MonoBehaviour:
       itemType: 0
       effectText: 
       value: 0
+      statType: 0
       description: 
+      specialBuffTypes: 
     count: 0

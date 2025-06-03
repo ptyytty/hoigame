@@ -129,6 +129,7 @@ public static class ItemDatabase
             itemType = ItemType.Equipment,
             effectText = "민첩",
             value = 5,
+            statType = StatType.Spd,
             description = "착용감 좋은 신발."
         },
 
@@ -141,6 +142,7 @@ public static class ItemDatabase
             itemType = ItemType.Equipment,
             effectText = "명중",
             value = 5,
+            statType = StatType.Hit,
             description = "가죽으로 만든 장갑이다."
         },
 
@@ -153,6 +155,7 @@ public static class ItemDatabase
             itemType = ItemType.Equipment,
             effectText = "방어",
             value = 5,
+            statType = StatType.Def,
             description = "튼튼한 건틀릿. 때리기에 좋지만 막기엔 더 좋다."
         },
 
@@ -165,6 +168,7 @@ public static class ItemDatabase
             itemType = ItemType.Equipment,
             effectText = "스킬 피해",
             value = 5,
+            statType = StatType.Dmg,
             description = "마법사의 스테프. 휘두르기 좋다."
         },
 
@@ -177,6 +181,7 @@ public static class ItemDatabase
             itemType = ItemType.Equipment,
             effectText = "회복량",
             value = 5,
+            statType = StatType.Heal,
             description = "장난감 요술봉. 신비한 힘이 깃들어져 있다."
         },
 
@@ -189,6 +194,7 @@ public static class ItemDatabase
             itemType = ItemType.Equipment,
             effectText = "민첩",
             value = 5,
+            statType = StatType.Spd,
             description = "어깨에 걸쳐지는 망토. 오버핏이다."
         },
 
@@ -199,7 +205,8 @@ public static class ItemDatabase
             iconName = "Helmet",
             jobCategory = JobCategory.Warrior,
             itemType = ItemType.Equipment,
-            description = "무거운 투구. 쓰고 다니기 힘들 정도다."
+            description = "무거운 투구. 쓰고 다니기 힘들 정도다.",
+            specialBuffTypes = new List<SpecialBuffType> {SpecialBuffType.FaintImmune}
         }
     };
 }

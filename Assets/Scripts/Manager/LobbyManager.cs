@@ -7,6 +7,8 @@ using UnityEngine.UI;
 public class LobbyManager : MonoBehaviour
 {
     [Header("Panel")]
+    [SerializeField] private GameObject panelMenu;
+    [SerializeField] private GameObject panelGoods;
     [SerializeField] private GameObject panelStore;
     [SerializeField] private GameObject panelSelectDungeon;
     [SerializeField] private GameObject panelDungeonPreparation;
@@ -21,35 +23,41 @@ public class LobbyManager : MonoBehaviour
 
     public void OnclickShowStore()
     {
+        panelMenu.SetActive(false);
         panelStore.SetActive(true);
         undoBtn.SetActive(true);
     }
 
     public void OnClickDungeonList()
     {
+        panelMenu.SetActive(false);
+        panelGoods.SetActive(false);
         panelSelectDungeon.SetActive(true);
         undoBtn.SetActive(true);
     }
 
     public void OnClickUndo()
     {
-        if (panelStore.activeSelf)
-        {
-            panelStore.SetActive(false);
-            undoBtn.SetActive(false);
-        }
 
         if (panelStore.activeSelf)
+        {
+            panelMenu.SetActive(true);
+            panelGoods.SetActive(true);
             panelStore.SetActive(false);
+            undoBtn.SetActive(false);
+        } 
         else if (panelDungeonPreparation.activeSelf)
         {
             partySelector.ResetAssignParty();
             panelDungeonPreparation.SetActive(false);
+            panelSelectDungeon.SetActive(true);
             panelHeroList.SetActive(true);
             panelItemList.SetActive(false);
         }
         else if (panelSelectDungeon.activeSelf)
         {
+            panelMenu.SetActive(true);
+            panelGoods.SetActive(true);
             panelSelectDungeon.SetActive(false);
             undoBtn.SetActive(false);
         }
@@ -67,10 +75,5 @@ public class LobbyManager : MonoBehaviour
             panelHeroList.SetActive(true);
             panelItemList.SetActive(false);
         }
-    }
-
-    public void OnclickStartDungeon()
-    {
-        SceneManager.LoadScene("Dungeon_Oratio");
     }
 }

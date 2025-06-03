@@ -19,27 +19,49 @@ public class InventoryUIManager : MonoBehaviour
 
     void Start()
     {
+        StartCoroutine(WaitForInventoryReady());
+    }
+
+    private IEnumerator WaitForInventoryReady()
+    {
+        // DungeonInventory가 SetActive(false) 상태면 대기
+        while (!inventory.gameObject.activeInHierarchy)
+            yield return null;
+
+        // Awake() 완료까지 한 프레임 더 대기
+        yield return null;
+
+        if (inventory.GetSlots().Count == 0)
+            inventory.InitializeSlots();
+
         InitializeSlots();
         RefreshUI();
     }
 
-    void InitializeSlots()
+    private void InitializeSlots()
     {
         slotUIs.Clear();
+        var slots = inventory.GetSlots();
 
-        for (int i = 0; i < inventory.GetSlots().Count; i++)
+        for (int i = 0; i < slots.Count; i++)
         {
             var slotObj = inventoryPanel.GetChild(i).gameObject;
             var ui = slotObj.GetComponent<InventorySlotUI>();
-            ui.Setup(inventory, i);
-            slotUIs.Add(ui);
+            if (ui != null)
+            {
+                ui.Setup(inventory, i);
+                slotUIs.Add(ui);
+            }
+            else
+            {
+                Debug.LogWarning($"❗ 슬롯 오브젝트 {slotObj.name}에 InventorySlotUI가 없습니다.");
+            }
         }
     }
 
     public void RefreshUI()
     {
         var slots = inventory.GetSlots();
-        Debug.Log(slots);
 
         for (int i = 0; i < slotUIs.Count; i++)
         {

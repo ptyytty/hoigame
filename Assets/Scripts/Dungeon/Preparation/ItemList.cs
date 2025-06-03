@@ -2,24 +2,51 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public class ItemList : MonoBehaviour
 {
+    public static ItemList instance;
+
+    public delegate void EquipItemHandler(EquipItem item);
+    public event EquipItemHandler OnEquipItemSelect;
+
+    [SerializeField] private HeroListUp.ChangedImage changedImage;
+
+    [Header("Toggles")]
     [SerializeField] private Toggle toggleConsume;
     [SerializeField] private Toggle toggleEquip;
+    [SerializeField] private Sprite selectedImage;
+    [SerializeField] private Sprite unselectedImage;
 
+    [Header("List")]
     [SerializeField] private Button itemButtonPrefab;
     [SerializeField] private Transform itemListPanel;
-    [SerializeField] private DungeonInventory dungeonInventory;
 
-    public static ItemList instance;
+    [Header("Inventory")]
+    [SerializeField] private DungeonInventory dungeonInventory;
+    [Header("Panel")]
+    [SerializeField] private GameObject itemList;
+    [SerializeField] private GameObject partyPanel;
+    [SerializeField] private PartySelector partySelector;
+
+    private Button currentSelect;
+
+    private List<Button> equipItemButtons = new();
+    private List<EquipItem> equipItemDatas = new();
 
     void Awake()
     {
-        instance = this;
+        if (instance == null)
+        {
+            instance = this;
+        }
+        else if (instance != this)
+        {
+            Destroy(this.gameObject);
+        }
     }
-
     void Start()
     {
         toggleConsume.onValueChanged.AddListener(OnToggleChanged);
@@ -27,6 +54,13 @@ public class ItemList : MonoBehaviour
 
         toggleConsume.isOn = true;
         RefreshItemList();
+    }
+
+    void OnEnable()
+    {
+        var clickHandler = FindObjectOfType<UIClickResetHandler>();
+        if (clickHandler != null)
+            clickHandler.RegisterResetCallback(ResetItemButton);
     }
 
     void OnToggleChanged(bool _)
@@ -74,31 +108,54 @@ public class ItemList : MonoBehaviour
         }
     }
 
-    // void PrintEquipItems()
-    // {
-    //     var items = PlayerItemManager.instance.ownedEquipItem;
+    void PrintEquipItems()
+    {
+        var items = PlayerItemManager.instance.ownedEquipItem;
 
-    //     foreach (var ownedItem in items)
-    //     {
-    //         var button = Instantiate(itemButtonPrefab, itemListPanel);
-    //         var itemName = button.transform.Find("ItemName").GetComponent<TMP_Text>();
-    //         var itemCount = button.transform.Find("ItemAmount").GetComponent<TMP_Text>();
+        foreach (var ownedItem in items)
+        {
+            Button button = Instantiate(itemButtonPrefab, itemListPanel);
+            Image buttonImage = button.GetComponent<Image>();
+            TMP_Text itemName = button.transform.Find("ItemName").GetComponent<TMP_Text>();
+            TMP_Text itemCount = button.transform.Find("ItemAmount").GetComponent<TMP_Text>();
 
-    //         itemName.text = ownedItem.itemData.name_item;
-    //         itemCount.text = $"장비 1개";
+            itemName.text = ownedItem.itemData.name_item;
+            itemCount.text = ownedItem.count.ToString();
 
-    //         // 장비는 개별 장착 또는 처리 방식에 맞춰 로직 구성
-    //         var currentItem = ownedItem.itemData;
-    //         button.onClick.AddListener(() =>
-    //         {
-    //             Debug.Log($"장비 선택됨: {currentItem.name_item}");
-    //             // 장비 처리 로직 추가 가능
-    //         });
-    //     }
-    // }
+            Button capturedButton = button; //영웅 버튼
+            Image capturedImage = buttonImage;
+
+            // 장비는 개별 장착 또는 처리 방식에 맞춰 로직 구성
+            var currentItem = ownedItem.itemData;
+
+            equipItemButtons.Add(button);
+            equipItemDatas.Add(currentItem);
+
+            button.onClick.AddListener(() =>
+            {
+                // 이미 선택된 버튼이면 무시
+                if (currentSelect == capturedButton)
+                    return;
+
+                // 기존 선택된 버튼이 있으면 이미지 복원
+                if (currentSelect != null)
+                {
+                    ResetItemButton();
+                }
+
+                Debug.Log($"장비 선택됨: {currentItem.name_item}");
+                capturedImage.sprite = changedImage.selectedImage;
+                currentSelect = capturedButton;
+                OnEquipItemSelect?.Invoke(currentItem);
+            });
+        }
+    }
 
     public void RefreshItemList()
     {
+        equipItemButtons.Clear();
+        equipItemDatas.Clear();
+
         foreach (Transform child in itemListPanel)
         {
             Destroy(child.gameObject);
@@ -106,11 +163,52 @@ public class ItemList : MonoBehaviour
 
         if (toggleConsume.isOn)
         {
+            var toggleEquipImage = toggleEquip.GetComponentInChildren<Image>();
+            var toggleConsumeImage = toggleConsume.GetComponentInChildren<Image>();
+
+            toggleConsumeImage.sprite = selectedImage;
+            toggleEquipImage.sprite = unselectedImage;
+
             PrintConsumeItem();
         }
         else if (toggleEquip.isOn)
         {
-            //PrintEquipItems();
+            var toggleEquipImage = toggleEquip.GetComponentInChildren<Image>();
+            var toggleConsumeImage = toggleConsume.GetComponentInChildren<Image>();
+
+            toggleConsumeImage.sprite = unselectedImage;
+            toggleEquipImage.sprite = selectedImage;
+
+            PrintEquipItems();
         }
+    }
+
+    public void SetEquipItemButtonInteractableByJob(JobCategory category)
+    {
+        for (int i = 0; i < equipItemButtons.Count; i++)
+        {
+            if (equipItemButtons[i] == null) continue;
+            
+            bool canEquip = equipItemDatas[i].jobCategory == category;
+            equipItemButtons[i].interactable = canEquip;
+        }
+    }
+
+    public void SetAllEquipButtonsInteractable(bool state)
+    {
+        foreach (var btn in equipItemButtons)
+        {
+            if (btn != null)
+                btn.interactable = state;
+        }
+    }
+
+    public void ResetItemButton()
+    {
+        if (currentSelect == null) return;
+
+        Image prevImage = currentSelect.GetComponent<Image>();
+        prevImage.sprite = changedImage.defaultImage;
+        currentSelect = null;
     }
 }

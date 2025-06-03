@@ -16,13 +16,6 @@ public class HeroListUp : MonoBehaviour
     [SerializeField] private PartySelector partySelector;
     [SerializeField] private GameObject partyPanel;
     [SerializeField] private GameObject heroListPanel;
-    
-
-    [Header("Party List")]
-    [SerializeField] private Image leftFront;
-    [SerializeField] private Image rightFront;
-    [SerializeField] private Image leftBack;
-    [SerializeField] private Image rightBack;
 
     [Header("Hero Info Panel")]
     [SerializeField] private TMP_Text heroName;
@@ -49,7 +42,9 @@ public class HeroListUp : MonoBehaviour
         public Sprite deactivationImage;
     }
 
-    public Button currentSelect;
+    private Button currentSelect;
+    private List<Button> heroButtons = new();
+    private List<Job> heroDatas = new();
 
     // delegate 정의 (형식 선언)
     public delegate void HeroSelectedHandler(Job selectedHero);
@@ -63,18 +58,14 @@ public class HeroListUp : MonoBehaviour
 
     }
 
-    void Update()
+    void OnEnable()
     {
-        if (Input.GetMouseButtonDown(0))
-        {
-            if (!IsPointerOverUI(heroListPanel) && !IsPointerOverUI(partyPanel))
-            {
-                ResetButtonImage();
-                partySelector.ResetPartySlotInteractable();
-                currentSelect = null;
-            }
-        }
+        // 초기화 콜백 등록
+        var clickHandler = FindObjectOfType<UIClickResetHandler>();
+        if (clickHandler != null)
+            clickHandler.RegisterResetCallback(ResetButtonImage);
     }
+
 
     void LoadHeroList()
     {
@@ -89,6 +80,9 @@ public class HeroListUp : MonoBehaviour
             // 버튼이 클릭되었을 때 어떤 Sprite를 조작할지를 보존하기 위해 로컬 변수로 캡처
             Button capturedButton = heroButton; //영웅 버튼
             Image capturedImage = buttonImage;  //선택 버튼 이미지
+
+            heroButtons.Add(capturedButton);
+            heroDatas.Add(hero);
 
             // 초기 이미지 설정
             capturedImage.sprite = changedImage.defaultImage;
@@ -111,17 +105,37 @@ public class HeroListUp : MonoBehaviour
 
                 OnHeroSelected?.Invoke(hero);
 
-                // 여기서 PartySlot 등 UI 연동하면 됨
-                //UpdatePartySlot((Loc)hero.loc);   event로 변경
                 ShowHeroInfo(hero);
             });
         }
     }
 
+    public void SetHeroButtonInteractableByLoc(int requiredLoc)
+    {
+        for (int i = 0; i < heroButtons.Count; i++)
+        {
+            bool canUse = heroDatas[i].loc == requiredLoc || heroDatas[i].loc == (int)Loc.None;
+            heroButtons[i].interactable = canUse;
+        }
+    }
+
+    public void SetAllHeroButtonsInteractable(bool state)
+    {
+        foreach (var btn in heroButtons)
+        {
+            btn.interactable = state;
+        }
+    }
+
+    public void ResetHeroListState()
+    {
+        ResetButtonImage(); // 선택된 버튼 이미지 복구
+        SetAllHeroButtonsInteractable(true); // 버튼 상호작용 복구
+    }
+
     public void ResetButtonImage()
     {
-        if (currentSelect == null)
-            return;
+        if (currentSelect == null) return;
         Image prevImage = currentSelect.GetComponent<Image>();
         prevImage.sprite = changedImage.defaultImage;
     }
@@ -135,23 +149,5 @@ public class HeroListUp : MonoBehaviour
         heroRes.text = $"{hero.res}";
         heroSpd.text = $"{hero.spd}";
         heroHit.text = $"{hero.hit}";
-    }
-
-    public bool IsPointerOverUI(GameObject target)
-    {
-        PointerEventData eventData = new PointerEventData(EventSystem.current);
-        eventData.position = Input.mousePosition;
-
-        List<RaycastResult> results = new List<RaycastResult>();
-        EventSystem.current.RaycastAll(eventData, results);
-
-        foreach (var result in results)
-        {
-            if (result.gameObject == target || result.gameObject.transform.IsChildOf(target.transform))
-            {
-                return true;
-            }
-        }
-        return false;
     }
 }

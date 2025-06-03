@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -61,10 +62,27 @@ public class DBManager : MonoBehaviour
             if(json.StartsWith("[")){
                 json = "{\"jobs\":" + json + "}";
             }
-            try{
+            try
+            {
                 jobData = JsonUtility.FromJson<JobList>(json);
+
+                // ✅ enum 수동 매핑 추가
+                foreach (var job in jobData.jobs)
+                {
+                    if (Enum.IsDefined(typeof(JobCategory), job.category))
+                    {
+                        job.jobCategory = (JobCategory)job.category;
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"알 수 없는 category 값: {job.category}, 기본값 Warrior로 설정");
+                        job.jobCategory = JobCategory.Warrior;
+                    }
+                }
                 Debug.Log("첫 번째 직업: " + jobData.jobs[0].name_job);
-            }catch{}
+                Debug.Log("첫 번째 직업: " + jobData.jobs[0].jobCategory);
+            }
+            catch { }
         }
         else
         {

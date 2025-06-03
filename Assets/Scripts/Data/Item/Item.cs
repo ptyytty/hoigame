@@ -2,13 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
-public enum JobCategory
-{
-    Warrior,
-    Ranged,
-    Special,
-    Healer
-}
+
 
 [System.Serializable]
 public class JobSpritePair
@@ -17,17 +11,7 @@ public class JobSpritePair
     public Sprite sprite;
 }
 
-public enum ItemType
-{
-    Equipment,
-    Consume
-}
 
-public enum ItemTarget
-{
-    Ally,
-    Enemy
-}
 
 [System.Serializable]
 public class ConsumeItem
@@ -66,5 +50,40 @@ public class EquipItem
     public ItemType itemType;
     public string effectText;
     public int value;
+    public StatType statType;
     public string description;
+    public List<SpecialBuffType> specialBuffTypes;
+}
+
+public enum StatType
+{
+    Hp,
+    Def,
+    Res,
+    Spd,
+    Hit,
+    Dmg,
+    Heal
+}
+
+public enum SpecialBuffType
+{
+    None,
+    BleedImmune,
+    SpeedBoost,
+    HealOverTime,
+    FaintImmune
+    // 확장 가능
+}
+
+public enum ItemType
+{
+    Equipment,
+    Consume
+}
+
+public enum ItemTarget
+{
+    Ally,
+    Enemy
 }
