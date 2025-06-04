@@ -69,7 +69,7 @@ public class HeroListUp : MonoBehaviour
 
     void LoadHeroList()
     {
-        foreach (var hero in DBManager.instance.jobData.jobs)
+        foreach (var hero in HeroManager.instance.GetAllJobs())   // 현재 DB 영웅 호출 => 보유 영웅 호출로 변경 필요
         {
             Button heroButton = Instantiate(heroButtonPrefab, contentParent);
             TMP_Text heroName = heroButton.GetComponentInChildren<TMP_Text>();
@@ -138,6 +138,7 @@ public class HeroListUp : MonoBehaviour
         if (currentSelect == null) return;
         Image prevImage = currentSelect.GetComponent<Image>();
         prevImage.sprite = changedImage.defaultImage;
+        currentSelect = null;
     }
 
 
