@@ -459,7 +459,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 583.0753, y: -249.36899}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 495, y: 91.8242}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3080426066240899465
@@ -559,15 +559,26 @@ MonoBehaviour:
   productName: {fileID: 8057066550115345636}
   productPrice: {fileID: 1048319794396975105}
   productImage: {fileID: 6693651289939563316}
+  defaultGeneralImage: {fileID: 21300000, guid: b39ebad624cf096479171fee0cf3fbf8, type: 3}
+  selectGeneralImage: {fileID: 21300000, guid: 2e84989c05c0f1e468e4e1cbcd1b0dbd, type: 3}
   jobSpritePairs:
   - category: 0
-    sprite: {fileID: 21300000, guid: bae8d4d2199cb3844b763b1a7807f745, type: 3}
+    sprite: {fileID: 21300000, guid: 4f97cf91f8baedb47a2ff76593310f4a, type: 3}
   - category: 1
-    sprite: {fileID: 21300000, guid: bae8d4d2199cb3844b763b1a7807f745, type: 3}
+    sprite: {fileID: 21300000, guid: c1957046acd158f49bd9849f9eb81684, type: 3}
   - category: 2
     sprite: {fileID: 21300000, guid: bae8d4d2199cb3844b763b1a7807f745, type: 3}
   - category: 3
-    sprite: {fileID: 21300000, guid: bae8d4d2199cb3844b763b1a7807f745, type: 3}
+    sprite: {fileID: 21300000, guid: db731388673b9ec4abc2eaad8b7914c7, type: 3}
+  selectedSpritePairs:
+  - category: 0
+    sprite: {fileID: 21300000, guid: 55b6cb4c9d561564bb047b644d5d5193, type: 3}
+  - category: 1
+    sprite: {fileID: 21300000, guid: 5187bf4ba481fb14f95d9361dce85b9e, type: 3}
+  - category: 2
+    sprite: {fileID: 21300000, guid: a70ce3f4df2ceec46bb56000e00d4aa6, type: 3}
+  - category: 3
+    sprite: {fileID: 21300000, guid: b5ba8bfb74ca47c419b9ddb25676867e, type: 3}
 --- !u!1 &8544619934076159729
 GameObject:
   m_ObjectHideFlags: 0

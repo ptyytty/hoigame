@@ -6,7 +6,6 @@ using UnityEngine.UI;
 
 public class StoreManager : MonoBehaviour
 {
-
     [System.Serializable]
     public class ToggleImagepair    // 토글 버튼 정보
     {
@@ -15,12 +14,13 @@ public class StoreManager : MonoBehaviour
         public Sprite selectedSprite;
         public Sprite defaultSprite;
         public Text labelText;
-        public Color selectedTextColor = new Color(238f / 255f, 190f / 255f, 20f / 255f);
-        public Color defaultTextcolor = new Color(1, 1, 1);
+        public Color selectedTextColor = new Color(238f / 255f, 190f / 255f, 20f / 255f, 1f);
+        public Color defaultTextcolor = new Color(1f, 1f, 1f, 1f);
     }
 
     public List<ToggleImagepair> itemTypeToggleImagePairs;  // 아이템 종류 토글
     public List<ToggleImagepair> storeTypeToggleImagePairs; // 상점 토글
+    public List<ToggleImagepair> changeBuyOrSellToggle;     // 구매 판매 토글
 
     [SerializeField] private GameObject localStore, onlineStore;
     [SerializeField] private GameObject itemToggleGroup;
@@ -29,6 +29,7 @@ public class StoreManager : MonoBehaviour
 
     private Toggle lastSelectedItemType = null;
     private Toggle lastSelectedStoreType = null;
+    private Toggle lastSelectedOnlineStoreMode = null;
 
     void Start()
     {
@@ -61,6 +62,19 @@ public class StoreManager : MonoBehaviour
             });
         }
 
+        for (int i = 0; i < changeBuyOrSellToggle.Count; i++)
+        {
+            int index = i;
+
+            changeBuyOrSellToggle[i].toggle.onValueChanged.AddListener((isOn) =>
+            {
+                if (isOn)
+                {
+                    OnToggleChanged(changeBuyOrSellToggle[index].toggle, changeBuyOrSellToggle, ref lastSelectedOnlineStoreMode);
+                }
+            });
+        }
+
         // 기본값 초기화
         if (itemTypeToggleImagePairs.Count > 0)
         {
@@ -74,11 +88,18 @@ public class StoreManager : MonoBehaviour
             lastSelectedStoreType = storeTypeToggleImagePairs[0].toggle;
         }
 
+        if (changeBuyOrSellToggle.Count > 0)
+        {
+            changeBuyOrSellToggle[0].toggle.isOn = true;
+            lastSelectedOnlineStoreMode = changeBuyOrSellToggle[0].toggle;
+        }
+
         UpdateToggle(itemTypeToggleImagePairs);
         UpdateToggle(storeTypeToggleImagePairs);
+        UpdateToggle(changeBuyOrSellToggle);
     }
 
-    // 토글 전환에 따른 패널 변경
+    // 상점 타입 토글 전환에 따른 패널 변경
     public void ShowPannelByIndex(int index)
     {
         bool islocal = index == 0;
@@ -133,7 +154,9 @@ public class StoreManager : MonoBehaviour
 
             if (pair.labelText != null) // labelText 여부에 따른 텍스트 색상 변경
             {
-                pair.labelText.color = isOn ? pair.selectedTextColor : pair.defaultTextcolor;
+                Color targetColor = isOn ? pair.selectedTextColor : pair.defaultTextcolor;
+                targetColor.a = 1f;
+                pair.labelText.color = targetColor;
             }
         }
     }

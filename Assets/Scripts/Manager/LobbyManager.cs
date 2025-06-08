@@ -10,8 +10,12 @@ public class LobbyManager : MonoBehaviour
     [SerializeField] private GameObject panelMenu;
     [SerializeField] private GameObject panelGoods;
     [SerializeField] private GameObject panelStore;
+    [SerializeField] private GameObject panelManagement;
     [SerializeField] private GameObject panelSelectDungeon;
     [SerializeField] private GameObject panelDungeonPreparation;
+    [Header("Main Lobby")]
+    [SerializeField] private GameObject btnFriend;
+    [SerializeField] private GameObject btnMailbox;
 
     [Header("Undo Button")]
     [SerializeField] private GameObject undoBtn;
@@ -21,19 +25,35 @@ public class LobbyManager : MonoBehaviour
     [SerializeField] private GameObject panelItemList;
     [SerializeField] private PartySelector partySelector;
 
-    public void OnclickShowStore()
-    {
-        panelMenu.SetActive(false);
-        panelStore.SetActive(true);
-        undoBtn.SetActive(true);
-    }
-
     public void OnClickDungeonList()
     {
-        panelMenu.SetActive(false);
-        panelGoods.SetActive(false);
         panelSelectDungeon.SetActive(true);
         undoBtn.SetActive(true);
+        
+        panelMenu.SetActive(false);
+        panelGoods.SetActive(false);
+        btnFriend.SetActive(false);
+        btnMailbox.SetActive(false);
+    }
+
+    public void OnClickManagement()
+    {
+        panelManagement.SetActive(true);
+        undoBtn.SetActive(true);
+
+        panelMenu.SetActive(false);
+        btnFriend.SetActive(false);
+        btnMailbox.SetActive(false);
+    }
+
+    public void OnclickShowStore()
+    {
+        panelStore.SetActive(true);
+        undoBtn.SetActive(true);
+
+        panelMenu.SetActive(false);
+        btnFriend.SetActive(false);
+        btnMailbox.SetActive(false);
     }
 
     public void OnClickUndo()
@@ -43,21 +63,38 @@ public class LobbyManager : MonoBehaviour
         {
             panelMenu.SetActive(true);
             panelGoods.SetActive(true);
+            btnFriend.SetActive(true);
+            btnMailbox.SetActive(true);
+
             panelStore.SetActive(false);
             undoBtn.SetActive(false);
-        } 
+        }
+        else if (panelManagement.activeSelf)
+        {
+            panelMenu.SetActive(true);
+            panelGoods.SetActive(true);
+            btnFriend.SetActive(true);
+            btnMailbox.SetActive(true);
+
+            panelManagement.SetActive(false);
+            undoBtn.SetActive(false);
+        }
         else if (panelDungeonPreparation.activeSelf)
         {
             partySelector.ResetAssignParty();
             panelDungeonPreparation.SetActive(false);
             panelSelectDungeon.SetActive(true);
             panelHeroList.SetActive(true);
+
             panelItemList.SetActive(false);
         }
         else if (panelSelectDungeon.activeSelf)
         {
             panelMenu.SetActive(true);
             panelGoods.SetActive(true);
+            btnFriend.SetActive(true);
+            btnMailbox.SetActive(true);
+
             panelSelectDungeon.SetActive(false);
             undoBtn.SetActive(false);
         }

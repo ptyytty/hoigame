@@ -12,23 +12,33 @@ public class Product : MonoBehaviour
     [SerializeField] private TMP_Text productName;
     [SerializeField] private TMP_Text productPrice;
     [SerializeField] private Image productImage;
+    [SerializeField] private Sprite defaultGeneralImage;
+    [SerializeField] private Sprite selectGeneralImage;
     [SerializeField] private List<JobSpritePair> jobSpritePairs;
+    [SerializeField] private List<JobSpritePair> selectedSpritePairs;
 
+    private static Product currentSelectedProduct;
     private Dictionary<JobCategory, Sprite> spriteDict;
+    private Dictionary<JobCategory, Sprite> selectedSpriteDict;
     private Image slotImage;
-    private string effect;
+    private JobCategory currentCategory;
+    private Sprite defaultSprite;
 
     void Awake()
     {
         spriteDict = jobSpritePairs.ToDictionary(p => p.category, p => p.sprite);
+        selectedSpriteDict = selectedSpritePairs.ToDictionary(p => p.category, p => p.sprite);
         slotImage = GetComponent<Image>();
     }
 
+    // 버튼 직업 분류 및 기본 이미지 저장
     public void SetSlotImageByJob(JobCategory category)
     {
         if (spriteDict.TryGetValue(category, out Sprite sprite))
         {
             slotImage.sprite = sprite;
+            defaultSprite = sprite;
+            currentCategory = category;
         }
     }
 
@@ -38,10 +48,27 @@ public class Product : MonoBehaviour
         productPrice.text = $"{item.price}";
         productImage.sprite = item.icon;
 
+        defaultSprite = defaultGeneralImage;
+
         GetComponent<Button>().onClick.RemoveAllListeners();
         GetComponent<Button>().onClick.AddListener(() =>
         {
-            ItemInfoPanel.instance.ShowItemInfo(item.name_item, item.description, item.buffTypes, null, item.value, item.price, item.icon);
+            if (currentSelectedProduct != null && currentSelectedProduct != this)
+            {
+                currentSelectedProduct.ResetToDefaultImage();
+            }
+
+            currentSelectedProduct = this;
+
+            slotImage.sprite = selectGeneralImage;
+
+            ItemInfoPanel.instance.ShowItemInfo(item.name_item,
+                                                item.description,
+                                                item.buffTypes,
+                                                null,
+                                                item.value,
+                                                item.price,
+                                                item.icon);
         });
     }
 
@@ -54,8 +81,38 @@ public class Product : MonoBehaviour
         GetComponent<Button>().onClick.RemoveAllListeners();
         GetComponent<Button>().onClick.AddListener(() =>
         {
-            ItemInfoPanel.instance.ShowItemInfo(item.name_item, item.description, null, item.effectText, item.value, item.price, item.icon);
+            if (currentSelectedProduct != null && currentSelectedProduct != this)
+            {
+                currentSelectedProduct.ResetToDefaultImage();
+            }
+
+            currentSelectedProduct = this;
+
+            if (selectedSpriteDict.TryGetValue(currentCategory, out Sprite selectedSprite))
+            {
+                slotImage.sprite = selectedSprite;
+            }
+
+            ItemInfoPanel.instance.ShowItemInfo(item.name_item,
+                                                item.description,
+                                                null,
+                                                item.effectText,
+                                                item.value,
+                                                item.price,
+                                                item.icon);
         });
 
     }
+
+    public void ResetToDefaultImage()
+    {
+        if (currentSelectedProduct.defaultSprite != null)
+        {
+            slotImage.sprite = defaultSprite;
+            return;
+        }
+
+        currentSelectedProduct.slotImage.sprite = defaultGeneralImage;
+    }
+
 }
