@@ -52,6 +52,7 @@ public class StoreManager : MonoBehaviour
         {
             int index = i;
 
+            // 클릭할 때, 토글의 isOn이 true가 될 때 전부 호출
             storeTypeToggleImagePairs[i].toggle.onValueChanged.AddListener((isOn) =>
             {
                 if (isOn)
@@ -62,6 +63,7 @@ public class StoreManager : MonoBehaviour
             });
         }
 
+        // 구매/판매 전환 토글
         for (int i = 0; i < changeBuyOrSellToggle.Count; i++)
         {
             int index = i;
@@ -114,6 +116,9 @@ public class StoreManager : MonoBehaviour
 
             storeTypeToggleImagePairs[0].toggle.isOn = true;
             lastSelectedStoreType = storeTypeToggleImagePairs[0].toggle;
+
+            changeBuyOrSellToggle[0].toggle.isOn = true;
+            lastSelectedOnlineStoreMode = changeBuyOrSellToggle[0].toggle;
         }
 
         // 온라인 상점
