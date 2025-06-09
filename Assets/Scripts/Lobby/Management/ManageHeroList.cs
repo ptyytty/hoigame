@@ -10,8 +10,6 @@ public class ManageHeroList : MonoBehaviour
     [SerializeField] private Button heroButtonPrefab;
     [SerializeField] private Transform listPanel;
 
-    private Button currentButton;
-
     void Start()
     {
         GetMyHero();
