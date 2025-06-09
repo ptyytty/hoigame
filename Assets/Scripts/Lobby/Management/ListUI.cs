@@ -16,17 +16,17 @@ public class ListUI : MonoBehaviour
         [HideInInspector] public Material baseMaterial;
     }
 
-    [SerializeField] private GameObject managementPanel;
     [SerializeField] private List<ToggleImagepair> listTabToggles;
-    //[SerializeField] private List<ToggleImagepair> mainTabToggles;
+    [SerializeField] private List<ToggleImagepair> mainTabToggles;
 
     private Color defaultTextColor = new Color(185f / 255f, 185f / 255f, 185f / 255f, 1f);
     private Color selectedTextColor = new Color(1f, 1f, 1f, 1f);
     private Color selectedOutlineColor = new Color(164f / 255f, 109f / 255f, 9f / 255f, 1f);
-    private float selectedOutlineWidth = 0.16f;
+    private float selectedOutlineWidth = 0.18f;
 
 
-    private Toggle currentSelect;
+    private Toggle currentListTab;
+    private Toggle currentMainTab;
 
      void OnEnable()
     {
@@ -36,11 +36,25 @@ public class ListUI : MonoBehaviour
             if (index == 0)
             {
                 listTabToggles[index].toggle.isOn = true;
-                currentSelect = listTabToggles[index].toggle;
+                currentListTab = listTabToggles[index].toggle;
             }
             else
             {
                 listTabToggles[index].toggle.isOn = false;
+            }
+        }
+
+        for (int i = 0; i < mainTabToggles.Count; i++)
+        {
+            int index = i;
+            if (index == 0)
+            {
+                mainTabToggles[index].toggle.isOn = true;
+                currentMainTab = mainTabToggles[index].toggle;
+            }
+            else
+            {
+                mainTabToggles[index].toggle.isOn = false;
             }
         }
 
@@ -58,7 +72,7 @@ public class ListUI : MonoBehaviour
             pair.label.fontMaterial = pair.baseMaterial;
             pair.toggle.onValueChanged.AddListener((isOn) =>
             {
-                OnToggleChanged(listTabToggles, pair, ref currentSelect);
+                OnToggleChanged(listTabToggles, pair, ref currentListTab);
             });
         }
 
@@ -68,15 +82,25 @@ public class ListUI : MonoBehaviour
 
     void SetMainTabToggles()
     {
+        foreach (ToggleImagepair pair in mainTabToggles)
+        {
+            pair.baseMaterial = new Material(pair.label.fontMaterial);
+            pair.label.fontMaterial = pair.baseMaterial;
+            pair.toggle.onValueChanged.AddListener((isOn) =>
+            {
+                OnToggleChanged(mainTabToggles, pair, ref currentMainTab);
+            });
+        }
 
+        UpdateToggle(mainTabToggles);
     }
 
-    void OnToggleChanged(List<ToggleImagepair> togglepairs, ToggleImagepair pair, ref Toggle currentSelect)
+    void OnToggleChanged(List<ToggleImagepair> togglepairs, ToggleImagepair pair, ref Toggle currentTab)
     {
-        if (currentSelect == pair.toggle)
+        if (currentTab == pair.toggle)
             return;
 
-        currentSelect = pair.toggle;
+        currentTab = pair.toggle;
 
         UpdateToggle(togglepairs);
     }

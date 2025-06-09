@@ -27,4 +27,5 @@ public class HeroManager : MonoBehaviour
 
         return new List<Job>(jobList.jobs);
     }
+
 }
