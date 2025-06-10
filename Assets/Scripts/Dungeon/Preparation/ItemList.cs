@@ -12,7 +12,7 @@ public class ItemList : MonoBehaviour
     public delegate void EquipItemHandler(EquipItem item);
     public event EquipItemHandler OnEquipItemSelect;
 
-    [SerializeField] private HeroListUp.ChangedImage changedImage;
+    [SerializeField] private HeroButtonObject.ChangedImage changedImage;
 
     [Header("Toggles")]
     [SerializeField] private Toggle toggleConsume;

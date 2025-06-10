@@ -32,15 +32,9 @@ public class HeroListUp : MonoBehaviour
     [SerializeField] private ScrollRect scrollRect;
 
     [Header("Button Images")]
-    [SerializeField] private ChangedImage changedImage;
+    [SerializeField] private HeroButtonObject.ChangedImage changedImage;
 
-    [CreateAssetMenu(fileName = "UIAssets", menuName = "Game/Preparation Asset Collection")]
-    public class ChangedImage : ScriptableObject
-    {
-        public Sprite defaultImage;
-        public Sprite selectedImage;
-        public Sprite deactivationImage;
-    }
+
 
     private Button currentSelect;
     private List<Button> heroButtons = new();

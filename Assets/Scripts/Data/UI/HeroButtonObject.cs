@@ -1,0 +1,14 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class HeroButtonObject : MonoBehaviour
+{
+    [CreateAssetMenu(fileName = "UIAssets", menuName = "Game/Preparation Asset Collection")]
+    public class ChangedImage : ScriptableObject
+    {
+        public Sprite defaultImage;
+        public Sprite selectedImage;
+        public Sprite deactivationImage;
+    }
+}

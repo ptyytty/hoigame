@@ -10,7 +10,7 @@ public class PartySelector : MonoBehaviour
 {
     [Header("Hero List / Scripts")]
     [SerializeField] private HeroListUp heroListUp;
-    [SerializeField] private HeroListUp.ChangedImage changedImage;
+    [SerializeField] private HeroButtonObject.ChangedImage changedImage;
     [SerializeField] private ItemList itemList;
 
     [Header("Interact Panels")]
