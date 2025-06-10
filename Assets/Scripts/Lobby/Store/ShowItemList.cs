@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 
-public class ShowItemList: MonoBehaviour
+public class ShowItemList : MonoBehaviour
 {
     List<ConsumeItem> showConsumeItem;
     List<EquipItem> showEquipItem;
@@ -16,7 +16,29 @@ public class ShowItemList: MonoBehaviour
         DisplayRandomItemsInShop();
     }
 
-    // 소모 아이템 2개 랜덤 지정
+    // 상점 목록
+    void DisplayRandomItemsInShop()
+    {
+        showEquipItem = GetRandomEquipItems(1);
+        showConsumeItem = GetRandomConsumeItems(2);
+
+        foreach (EquipItem item in showEquipItem)
+        {
+            GameObject slotGO = Instantiate(itemSlotPrefabs, itemGridParent);
+            Product slotUI = slotGO.GetComponent<Product>();
+            slotUI.SetSlotImageByJob(item.jobCategory);
+            slotUI.SetEquipItemData(item);
+        }
+
+        foreach (ConsumeItem item in showConsumeItem)
+        {
+            GameObject slotGO = Instantiate(itemSlotPrefabs, itemGridParent);
+            Product slotUI = slotGO.GetComponent<Product>();
+            slotUI.SetConsumeItemData(item);
+        }
+    }
+    
+        // 소모 아이템 2개 랜덤 지정
     public List<ConsumeItem> GetRandomConsumeItems(int count)
     {
         List<ConsumeItem> copy = new List<ConsumeItem>(ItemDatabase.consumeItems);
@@ -48,28 +70,5 @@ public class ShowItemList: MonoBehaviour
         }
 
         return result;
-    }
-
-    // 상점 목록
-    void DisplayRandomItemsInShop()
-    {
-        showEquipItem = GetRandomEquipItems(1);
-        showConsumeItem = GetRandomConsumeItems(2);
-
-        foreach (EquipItem item in showEquipItem)
-        {
-            GameObject slotGO = Instantiate(itemSlotPrefabs, itemGridParent);
-            Product slotUI = slotGO.GetComponent<Product>();
-            slotUI.SetSlotImageByJob(item.jobCategory);
-            slotUI.SetEquipItemData(item);
-        }
-
-        foreach (ConsumeItem item in showConsumeItem)
-        {
-            GameObject slotGO = Instantiate(itemSlotPrefabs, itemGridParent);
-            Product slotUI = slotGO.GetComponent<Product>();
-            slotUI.SetConsumeItemData(item);
-        }
-        
     }
 }

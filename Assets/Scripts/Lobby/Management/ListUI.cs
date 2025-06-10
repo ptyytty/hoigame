@@ -119,9 +119,11 @@ public class ListUI : MonoBehaviour
                 pair.label.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, selectedOutlineColor);
                 pair.label.alpha = 1f;
 
-                var shadow = pair.label.AddComponent<Shadow>();
-                shadow.effectColor = new Color(0, 0, 0, 5f);
-                shadow.effectDistance = new Vector2(-30f, -20f);
+                // ✅ 그림자(Underlay) 설정
+                pair.label.fontMaterial.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0.5f);
+                pair.label.fontMaterial.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 1.5f);
+                pair.label.fontMaterial.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -1.5f);
+                pair.label.fontMaterial.SetColor(ShaderUtilities.ID_UnderlayColor, new Color(0, 0, 0, 0.5f)); // 약간 반투명한 검정
             }
 
             if (!ison)
@@ -129,7 +131,12 @@ public class ListUI : MonoBehaviour
                 pair.background.SetActive(false);
                 pair.label.color = defaultTextColor;
                 pair.label.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0f);
-                Destroy(pair.label.GetComponent<Shadow>());
+
+                // ✅ 그림자 제거
+                pair.label.fontMaterial.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0f);
+                pair.label.fontMaterial.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 0f);
+                pair.label.fontMaterial.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, 0f);
+                pair.label.fontMaterial.SetColor(ShaderUtilities.ID_UnderlayColor, new Color(0, 0, 0, 0f));
             }
         }
     }
