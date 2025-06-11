@@ -502,7 +502,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 130}
-  m_SizeDelta: {x: 0, y: -592.7038}
+  m_SizeDelta: {x: 0, y: -614.97363}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &60449296
 MonoBehaviour:
@@ -5324,11 +5324,18 @@ MonoBehaviour:
   m_GameObject: {fileID: 371027909}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 051149550f665f84f80ab56d05a873c1, type: 3}
+  m_Script: {fileID: 11500000, guid: d4f0c355fd1aeb743ab9bc1ebd6bc078, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  heroButtonPrefab: {fileID: 6511868903866711177, guid: 6c2a1a28096d9be42a6c2de2fc36c3f9, type: 3}
-  listPanel: {fileID: 620739522}
+  framePrefab: {fileID: -6943157645068861488, guid: 6c2a1a28096d9be42a6c2de2fc36c3f9, type: 3}
+  grid: {fileID: 620739522}
+  changedImage: {fileID: 11400000, guid: f6c831540e95fe041857a3f08c2072b2, type: 2}
+  heroName: {fileID: 1314582989}
+  heroHp: {fileID: 907766815}
+  heroDef: {fileID: 941966042}
+  heroRes: {fileID: 834114763}
+  heroSpd: {fileID: 823690784}
+  heroHit: {fileID: 1492830538}
 --- !u!1 &371971317
 GameObject:
   m_ObjectHideFlags: 0
@@ -9889,7 +9896,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -192.06738, y: 196.07007}
+  m_AnchoredPosition: {x: -169.5, y: 196.06}
   m_SizeDelta: {x: -1377.33, y: -857.81}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &737280280
@@ -22711,7 +22718,7 @@ MonoBehaviour:
   heroHit: {fileID: 479283625}
   heroButtonPrefab: {fileID: 888865974871720240, guid: fb8a019601b8d2e4089cf244fe019821, type: 3}
   scrollRect: {fileID: 1657856393}
-  changedImage: {fileID: 11400000, guid: f5bb5027dfc5e69499753f47e106aeeb, type: 2}
+  changedImage: {fileID: 11400000, guid: f6c831540e95fe041857a3f08c2072b2, type: 2}
 --- !u!114 &2023360652
 MonoBehaviour:
   m_ObjectHideFlags: 0

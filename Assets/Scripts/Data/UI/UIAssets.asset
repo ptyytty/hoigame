@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 0}
-  m_Name: ChangedImageAsset
-  m_EditorClassIdentifier: Assembly-CSharp::HeroListUp/ChangedImage
+  m_Name: UIAssets
+  m_EditorClassIdentifier: Assembly-CSharp::HeroButtonObject/ChangedImage
   defaultImage: {fileID: 21300000, guid: 8efd03668be3e464f9689f54cba3c158, type: 3}
   selectedImage: {fileID: 21300000, guid: 921505e588807da478f56acafb8ab0cf, type: 3}
   deactivationImage: {fileID: 21300000, guid: 8f9ab66ac85a2494499aca6675a1ab19, type: 3}
