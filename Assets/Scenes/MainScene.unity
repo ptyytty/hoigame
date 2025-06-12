@@ -502,7 +502,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 130}
-  m_SizeDelta: {x: 0, y: -614.97363}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &60449296
 MonoBehaviour:
@@ -535,8 +535,8 @@ MonoBehaviour:
     m_Right: 0
     m_Top: 0
     m_Bottom: 0
-  m_ChildAlignment: 1
-  m_Spacing: 37
+  m_ChildAlignment: 0
+  m_Spacing: 25
   m_ChildForceExpandWidth: 1
   m_ChildForceExpandHeight: 1
   m_ChildControlWidth: 0
@@ -5327,7 +5327,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d4f0c355fd1aeb743ab9bc1ebd6bc078, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  framePrefab: {fileID: -6943157645068861488, guid: 6c2a1a28096d9be42a6c2de2fc36c3f9, type: 3}
+  employToggle: {fileID: 1418528247}
+  framePrefab: {fileID: 6511868903866711177, guid: 6c2a1a28096d9be42a6c2de2fc36c3f9, type: 3}
   grid: {fileID: 620739522}
   changedImage: {fileID: 11400000, guid: f6c831540e95fe041857a3f08c2072b2, type: 2}
   heroName: {fileID: 1314582989}
@@ -10130,7 +10131,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &750638286
 RectTransform:
   m_ObjectHideFlags: 0
@@ -15365,8 +15366,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -193.27783, y: -142.25}
-  m_SizeDelta: {x: -1300.0652, y: -284.5}
+  m_AnchoredPosition: {x: -162.06982, y: -142.25}
+  m_SizeDelta: {x: -1362.5, y: -284.5}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1261810648
 MonoBehaviour:
@@ -15418,14 +15419,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: db8b48c07bebc7448b04de59f6a15dc4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  heroButtonPrefab: {fileID: 303170674716374249, guid: 1d575e84699ccde47a08db08fbb2b167, type: 3}
+  heroButtonPrefab: {fileID: 3817030335011758302, guid: 1d575e84699ccde47a08db08fbb2b167, type: 3}
   gridMainTab: {fileID: 60449295}
-  heroName: {fileID: 0}
-  heroHp: {fileID: 0}
-  heroDef: {fileID: 0}
-  heroRes: {fileID: 0}
-  heroSpd: {fileID: 0}
-  heroHit: {fileID: 0}
+  listUpManager: {fileID: 371027913}
+  changedImage: {fileID: 11400000, guid: f6c831540e95fe041857a3f08c2072b2, type: 2}
 --- !u!1 &1282865078
 GameObject:
   m_ObjectHideFlags: 0

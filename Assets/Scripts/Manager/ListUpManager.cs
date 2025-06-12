@@ -6,9 +6,11 @@ using UnityEngine.UI;
 
 public class ListUpManager : MonoBehaviour
 {
+    [Header("Main Tab State")]
+    [SerializeField] Toggle employToggle;
 
     [Header("Set Button")]
-    [SerializeField] private HeroButtonObject framePrefab;
+    [SerializeField] private Button framePrefab;
     [SerializeField] private Transform grid;
 
     [Header("Button Image")]
@@ -33,29 +35,42 @@ public class ListUpManager : MonoBehaviour
     {
         foreach (Job job in HeroManager.instance.GetAllJobs())
         {
-            HeroButtonObject buttonObj = Instantiate(framePrefab, grid);  // frame은 HeroButtonObject 타입으로 바꿔야 함
+            Button heroButton = Instantiate(framePrefab, grid);
 
-            Button heroButton = buttonObj.button;
-            buttonObj.heroJob.text = job.name_job;
-            buttonObj.background.sprite = changedImage.defaultImage;
+            Image buttonBackground = heroButton.GetComponent<Image>();
+            Image heroImage = heroButton.GetComponentInChildren<Image>();
+            TMP_Text heroName = heroButton.transform.Find("Text_Name").GetComponent<TMP_Text>();
+            TMP_Text heroJob = heroButton.transform.Find("Text_Job").GetComponent<TMP_Text>();
+            TMP_Text heroLevel = heroButton.transform.Find("Text_Level").GetComponent<TMP_Text>();
 
-            Button capturedButton = buttonObj.button;
-            Image capturedImage = buttonObj.background;
+            buttonBackground.sprite = changedImage.defaultImage;
+            heroJob.text = job.name_job;
+
+            Button capturedButton = heroButton;
+            Image capturedImage = buttonBackground;
 
             capturedButton.onClick.AddListener(() =>
             {
+                if (employToggle.isOn == true) return;
+
                 if (currentSelected == capturedButton)
                     return;
 
                 if (currentSelected != null)
-                    currentSelected.GetComponent<HeroButtonObject>().background.sprite = changedImage.defaultImage;
+                    ResetButtonImage();
 
-                capturedImage.sprite = changedImage.selectedImage;
                 currentSelected = capturedButton;
-
-                ShowHeroInfo(job);
+                capturedImage.sprite = changedImage.selectedImage;
             });
         }
+    }
+
+    public void ResetButtonImage()
+    {
+        if (currentSelected == null) return;
+        Image prevImage = currentSelected.GetComponent<Image>();
+        prevImage.sprite = changedImage.defaultImage;
+        currentSelected = null;
     }
 
     public void ShowHeroInfo(Job hero)
