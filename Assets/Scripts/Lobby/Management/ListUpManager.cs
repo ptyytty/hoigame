@@ -24,6 +24,9 @@ public class ListUpManager : MonoBehaviour
     [SerializeField] private TMP_Text heroSpd;
     [SerializeField] private TMP_Text heroHit;
 
+    [Header("Created Asset")]
+    [SerializeField] private TestHero testHero;
+
     private Button currentSelected;
 
     void Start()
@@ -33,7 +36,7 @@ public class ListUpManager : MonoBehaviour
 
     public void GetOwnedHeroList()
     {
-        foreach (Job job in HeroManager.instance.GetAllJobs())
+        foreach (Job job in testHero.jobs)
         {
             Button heroButton = Instantiate(framePrefab, grid);
 
@@ -63,6 +66,16 @@ public class ListUpManager : MonoBehaviour
                 capturedImage.sprite = changedImage.selectedImage;
             });
         }
+    }
+
+    public void RefreshHeroList()
+    {
+        foreach (Transform child in grid)
+        {
+            Destroy(child.gameObject);
+        }
+
+        GetOwnedHeroList();
     }
 
     public void ResetButtonImage()

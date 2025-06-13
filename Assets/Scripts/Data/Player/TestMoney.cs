@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -11,9 +12,54 @@ public class TestMoney : ScriptableObject
     public int purpleSoul;
     public int greenSoul;
 
-    public JobCategory warrior = JobCategory.Warrior;
-    public JobCategory range = JobCategory.Ranged;
-    public JobCategory special = JobCategory.Special;
-    public JobCategory healer = JobCategory.Healer;
+    private Dictionary<JobCategory, Func<int>> soulGetter;
 
+    public void Initialize()
+    {
+        soulGetter = new Dictionary<JobCategory, Func<int>>()
+        {
+            { JobCategory.Warrior, () => redSoul },
+            { JobCategory.Ranged, () => blueSoul },
+            { JobCategory.Special, () => purpleSoul },
+            { JobCategory.Healer, () => greenSoul }
+        };
+    }
+
+    public int GetSoul(JobCategory category)
+    {
+        if (soulGetter == null) Initialize();
+        return soulGetter.TryGetValue(category, out var getter) ? getter() : 0;
+    }
+
+    public bool HasEnoughSoul(JobCategory category, int required) => GetSoul(category) >= required;
+
+    // ✅ 소울 감소 함수
+    public void DecreaseSoul(JobCategory category, int amount)
+    {
+        switch (category)
+        {
+            case JobCategory.Warrior: redSoul -= amount; break;
+            case JobCategory.Ranged: blueSoul -= amount; break;
+            case JobCategory.Special: purpleSoul -= amount; break;
+            case JobCategory.Healer: greenSoul -= amount; break;
+        }
+    }
+
+    // ✅ 소울 증가 함수
+    public void IncreaseSoul(JobCategory category, int amount)
+    {
+        switch (category)
+        {
+            case JobCategory.Warrior: redSoul += amount; break;
+            case JobCategory.Ranged: blueSoul += amount; break;
+            case JobCategory.Special: purpleSoul += amount; break;
+            case JobCategory.Healer: greenSoul += amount; break;
+        }
+    }
+
+    // ✅ 가격 지불 함수
+    public void PayHeroPrice(JobCategory category, int price)
+    {
+        DecreaseSoul(category, price);
+    }
 }

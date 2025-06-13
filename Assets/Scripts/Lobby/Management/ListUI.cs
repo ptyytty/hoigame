@@ -13,6 +13,7 @@ public class ListUI : MonoBehaviour
         public Toggle toggle;
         public GameObject background;
         public TextMeshProUGUI label;
+        public GameObject panel;
         [HideInInspector] public Material baseMaterial;
     }
 
@@ -113,6 +114,8 @@ public class ListUI : MonoBehaviour
 
             if (ison)
             {
+                if(pair.panel != null) pair.panel.SetActive(true);
+                
                 pair.background.SetActive(true);
                 pair.label.color = selectedTextColor;
                 pair.label.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, selectedOutlineWidth);
@@ -128,6 +131,8 @@ public class ListUI : MonoBehaviour
 
             if (!ison)
             {
+                if(pair.panel != null) pair.panel.SetActive(false);
+                
                 pair.background.SetActive(false);
                 pair.label.color = defaultTextColor;
                 pair.label.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0f);

@@ -19,12 +19,12 @@ public class ShowMoney : MonoBehaviour
 
     void Start()
     {
-        UpdateOwnedMoney();
+        
     }
 
     void Update()
     {
-
+        UpdateOwnedMoney();
     }
 
     public void UpdateOwnedMoney()

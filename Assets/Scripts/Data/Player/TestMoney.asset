@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 87dddce521735c04788c57f6a1ae82e3, type: 3}
   m_Name: TestMoney
   m_EditorClassIdentifier: 
-  money: 5800
-  redSoul: 7
-  blueSoul: 2
-  purpleSoul: 5
-  greenSoul: 1
+  money: 500000
+  redSoul: 11
+  blueSoul: 14
+  purpleSoul: 11
+  greenSoul: 14

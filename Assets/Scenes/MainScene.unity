@@ -5337,6 +5337,7 @@ MonoBehaviour:
   heroRes: {fileID: 834114763}
   heroSpd: {fileID: 823690784}
   heroHit: {fileID: 1492830538}
+  testHero: {fileID: 11400000, guid: d3959306d5daa2f4f8073d130bd6ae7f, type: 2}
 --- !u!1 &371971317
 GameObject:
   m_ObjectHideFlags: 0
@@ -5756,7 +5757,7 @@ MonoBehaviour:
     m_PressedTrigger: Pressed
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
-  m_Interactable: 1
+  m_Interactable: 0
   m_TargetGraphic: {fileID: 402814810}
   m_OnClick:
     m_PersistentCalls:
@@ -10199,27 +10200,33 @@ MonoBehaviour:
   - toggle: {fileID: 1473114938}
     background: {fileID: 830567288}
     label: {fileID: 126242393}
+    panel: {fileID: 0}
     baseMaterial: {fileID: 0}
   - toggle: {fileID: 294436139}
     background: {fileID: 13425868}
     label: {fileID: 244782277}
+    panel: {fileID: 0}
     baseMaterial: {fileID: 0}
   - toggle: {fileID: 502365618}
     background: {fileID: 257151052}
     label: {fileID: 309564631}
+    panel: {fileID: 0}
     baseMaterial: {fileID: 0}
   mainTabToggles:
   - toggle: {fileID: 1418528247}
     background: {fileID: 1413181626}
     label: {fileID: 200871780}
+    panel: {fileID: 60449294}
     baseMaterial: {fileID: 0}
   - toggle: {fileID: 1081605870}
     background: {fileID: 1916686609}
     label: {fileID: 1694978902}
+    panel: {fileID: 1264456805}
     baseMaterial: {fileID: 0}
   - toggle: {fileID: 1772379198}
     background: {fileID: 1420610288}
     label: {fileID: 1944881223}
+    panel: {fileID: 964206230}
     baseMaterial: {fileID: 0}
 --- !u!1 &751619259
 GameObject:
@@ -12585,7 +12592,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.392}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -15602,6 +15609,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   listUpManager: {fileID: 371027913}
+  heroListUp: {fileID: 2023360651}
   heroButtonPrefab: {fileID: 3817030335011758302, guid: 1d575e84699ccde47a08db08fbb2b167, type: 3}
   gridMainTab: {fileID: 60449295}
   heroPricePrefab: {fileID: 480536434173432377, guid: 53828a8bd647488479585c3b7eebdcd6, type: 3}
@@ -15612,6 +15620,7 @@ MonoBehaviour:
   goodsImage: {fileID: 11400000, guid: 67b0ff96e08edbd46a2a1209fd94ed81, type: 2}
   testMoney: {fileID: 11400000, guid: ae5d3ad176a796446ac45a67d3fe78d9, type: 2}
   changedImage: {fileID: 11400000, guid: f6c831540e95fe041857a3f08c2072b2, type: 2}
+  testHero: {fileID: 11400000, guid: d3959306d5daa2f4f8073d130bd6ae7f, type: 2}
 --- !u!1 &1264456805
 GameObject:
   m_ObjectHideFlags: 0
@@ -15662,7 +15671,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.392}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -22999,6 +23008,7 @@ MonoBehaviour:
   heroButtonPrefab: {fileID: 888865974871720240, guid: fb8a019601b8d2e4089cf244fe019821, type: 3}
   scrollRect: {fileID: 1657856393}
   changedImage: {fileID: 11400000, guid: f6c831540e95fe041857a3f08c2072b2, type: 2}
+  testHero: {fileID: 11400000, guid: d3959306d5daa2f4f8073d130bd6ae7f, type: 2}
 --- !u!114 &2023360652
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -23465,7 +23475,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 280, y: -113.30551}
+  m_AnchoredPosition: {x: 280, y: -113.30542}
   m_SizeDelta: {x: -1771.4501, y: -342.4071}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2125716771

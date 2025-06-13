@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ced8eaaef7e122746a4dffd3650e085d, type: 3}
+  m_Name: TestHero
+  m_EditorClassIdentifier: 
+  jobs:
+  - id_job: 1
+    name_job: "\uC131\uAE30\uC0AC"
+    hp: 67
+    def: 12
+    res: 15
+    spd: 1
+    hit: 95
+    loc: 1
+    category: 0
+    activeBuffs: 
+  - id_job: 10
+    name_job: "\uB2CC\uC790"
+    hp: 50
+    def: 3
+    res: 0
+    spd: 10
+    hit: 95
+    loc: 0
+    category: 2
+    activeBuffs: 
+  - id_job: 12
+    name_job: "\uC758\uC0AC"
+    hp: 42
+    def: 2
+    res: 0
+    spd: 1
+    hit: 105
+    loc: 2
+    category: 3
+    activeBuffs: 
+  - id_job: 10
+    name_job: "\uB2CC\uC790"
+    hp: 50
+    def: 3
+    res: 0
+    spd: 10
+    hit: 95
+    loc: 0
+    category: 2
+    activeBuffs: 
+  - id_job: 1
+    name_job: "\uC131\uAE30\uC0AC"
+    hp: 67
+    def: 12
+    res: 15
+    spd: 1
+    hit: 95
+    loc: 1
+    category: 0
+    activeBuffs: 
+  - id_job: 11
+    name_job: "\uC131\uC9C1\uC790"
+    hp: 37
+    def: 2
+    res: 4
+    spd: 1
+    hit: 105
+    loc: 2
+    category: 3
+    activeBuffs: 

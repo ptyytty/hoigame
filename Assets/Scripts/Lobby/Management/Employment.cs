@@ -7,6 +7,7 @@ using UnityEngine.UI;
 public class Employment : MonoBehaviour
 {
     [SerializeField] private ListUpManager listUpManager;
+    [SerializeField] private HeroListUp heroListUp;
 
     [Header("Set Prefab")]
     [SerializeField] private Button heroButtonPrefab;
@@ -23,15 +24,30 @@ public class Employment : MonoBehaviour
     [SerializeField] private GoodsImage goodsImage;
     [SerializeField] private TestMoney testMoney;       // 임시 데이터
     [SerializeField] private HeroButtonObject.ChangedImage changedImage;
+    [SerializeField] private TestHero testHero;
 
     private List<Job> randomHeros;
-
+    private Job selectedHero;
+    private int heroPrice = 3;
     private Button currentSelected;
 
     void Start()
     {
         Button employ = employButton.GetComponent<Button>();
         DisplayRandomHero();
+
+        employ.onClick.AddListener(() =>
+        {
+            testHero.jobs.Add(selectedHero);
+            testMoney.PayHeroPrice(selectedHero.jobCategory, heroPrice);
+            currentSelected.interactable = false;
+            infoPanel.SetActive(false);
+            employButton.gameObject.SetActive(false);
+            currentSelected = null;
+
+            listUpManager.RefreshHeroList();
+            heroListUp.RefreshHeroList();
+        });
     }
 
     List<Job> ShowEmployableHero(int level) // 매개 변수 = 슬롯 확장 단계
@@ -55,7 +71,7 @@ public class Employment : MonoBehaviour
         foreach (Job job in randomHeros)
         {
             Button heroButton = Instantiate(heroButtonPrefab, gridMainTab);
-            
+
             Image buttonBackground = heroButton.GetComponent<Image>();
             Image heroImage = heroButton.GetComponentInChildren<Image>();
             TMP_Text heroName = heroButton.transform.Find("Text_Name").GetComponent<TMP_Text>();
@@ -76,56 +92,22 @@ public class Employment : MonoBehaviour
             {
                 case JobCategory.Warrior:
                     image.sprite = goodsImage.warriorImage;
-                    if (testMoney.redSoul < 3)
-                    {
-                        price.color = Color.red;
-                        employButton.interactable = false;
-                    }
-                    else
-                    {
-                        employButton.interactable = true;
-                    }
                     break;
 
                 case JobCategory.Ranged:
                     image.sprite = goodsImage.rangeImage;
-                    if (testMoney.blueSoul < 3)
-                    {
-                        price.color = Color.red;
-                        employButton.interactable = false;
-                    }
-                    else
-                    {
-                        employButton.interactable = true;
-                    }
                     break;
 
                 case JobCategory.Special:
                     image.sprite = goodsImage.specialImage;
-                    if (testMoney.purpleSoul < 3)
-                    {
-                        price.color = Color.red;
-                        employButton.interactable = false;
-                    }
-                    else
-                    {
-                        employButton.interactable = true;
-                    }
                     break;
 
                 case JobCategory.Healer:
                     image.sprite = goodsImage.healerImage;
-                    if (testMoney.greenSoul < 3)
-                    {
-                        price.color = Color.red;
-                        employButton.interactable = false;
-                    }
-                    else
-                    {
-                        employButton.interactable = true;
-                    }
                     break;
             }
+
+            if (!testMoney.HasEnoughSoul(job.jobCategory, 3)) price.color = Color.red;
 
             capturedButton.onClick.AddListener(() =>
             {
@@ -135,10 +117,12 @@ public class Employment : MonoBehaviour
                 if (currentSelected != null)
                     ResetButtonImage();
 
-                if (testMoney.redSoul < 3) employButton.interactable = false;
+                if (testMoney.HasEnoughSoul(job.jobCategory, 3)) employButton.interactable = true;
+                else employButton.interactable = false;
 
                 currentSelected = capturedButton;
                 capturedImage.sprite = changedImage.selectedImage;
+                selectedHero = job;
 
                 employButton.gameObject.SetActive(true);
                 pricePanel.SetActive(true);
@@ -156,8 +140,5 @@ public class Employment : MonoBehaviour
         currentSelected = null;
     }
 
-    void ControlEmployButton(Job job)
-    {
-        
-    }
+    
 }

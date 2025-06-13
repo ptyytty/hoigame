@@ -31,8 +31,9 @@ public class HeroListUp : MonoBehaviour
 
     [SerializeField] private ScrollRect scrollRect;
 
-    [Header("Button Images")]
+    [Header("Created Assets")]
     [SerializeField] private HeroButtonObject.ChangedImage changedImage;
+    [SerializeField] private TestHero testHero;
 
 
 
@@ -63,7 +64,7 @@ public class HeroListUp : MonoBehaviour
 
     void LoadHeroList()
     {
-        foreach (var hero in HeroManager.instance.GetAllJobs())   // 현재 DB 영웅 호출 => 보유 영웅 호출로 변경 필요
+        foreach (var hero in testHero.jobs)
         {
             Button heroButton = Instantiate(heroButtonPrefab, contentParent);
             TMP_Text heroName = heroButton.GetComponentInChildren<TMP_Text>();
@@ -97,6 +98,7 @@ public class HeroListUp : MonoBehaviour
                 capturedImage.sprite = changedImage.selectedImage;
                 currentSelect = capturedButton;
 
+                // PartySelector와 연결
                 OnHeroSelected?.Invoke(hero);
 
                 ShowHeroInfo(hero);
@@ -133,6 +135,20 @@ public class HeroListUp : MonoBehaviour
         Image prevImage = currentSelect.GetComponent<Image>();
         prevImage.sprite = changedImage.defaultImage;
         currentSelect = null;
+    }
+
+    public void RefreshHeroList()
+    {
+        foreach (Transform child in contentParent)
+        {
+            Destroy(child.gameObject);
+        }
+
+        heroButtons.Clear();
+        heroDatas.Clear();
+        currentSelect = null;
+
+        LoadHeroList();
     }
 
 
