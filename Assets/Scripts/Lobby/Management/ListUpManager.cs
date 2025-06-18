@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -28,6 +29,7 @@ public class ListUpManager : MonoBehaviour
     [SerializeField] private TestHero testHero;
 
     private Button currentSelected;
+    private enum SortType {Name, Job, Level}
 
     void Start()
     {
