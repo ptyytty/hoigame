@@ -9,6 +9,8 @@ public class ListUpManager : MonoBehaviour
 {
     [Header("Main Tab State")]
     [SerializeField] Toggle employToggle;
+    [SerializeField] Toggle growthToggle;
+    [SerializeField] Toggle recoveryToggle;
 
     [Header("Set Button")]
     [SerializeField] private Button framePrefab;
@@ -64,10 +66,18 @@ public class ListUpManager : MonoBehaviour
                 if (currentSelected != null)
                     ResetButtonImage();
 
+                if (growthToggle.isOn == true)
+                    SelectHeroGrowth();
+
                 currentSelected = capturedButton;
                 capturedImage.sprite = changedImage.selectedImage;
             });
         }
+    }
+
+    void SelectHeroGrowth()
+    {
+        
     }
 
     public void RefreshHeroList()
