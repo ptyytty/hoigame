@@ -4,6 +4,7 @@ using UnityEditor;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class InteractableManager : MonoBehaviour
 {
@@ -26,8 +27,13 @@ public class InteractableManager : MonoBehaviour
     [SerializeField] private string[] nameFilters = { "Cabinet", "vending machine V2", "water purifier" };
     [SerializeField] private string[] stairFilters = {"UpStairs", "DownStairs"};
 
-    
-    public GameObject interactionUI;
+    [Header("Object")]
+    public GameObject party;
+    public GameObject partyCam;
+
+    [Header("Interact UI")]
+    public Button interactionUp;
+    public Button interactionDown;
     void Start()
     {
         AutoFindFloorAndScan();
@@ -38,13 +44,25 @@ public class InteractableManager : MonoBehaviour
     /// candidates 리스트에 있는 오브젝트 중 확률에 따라 Interactable 컴포넌트 부여
     /// </summary>
     // 상호작용 랜덤 배정
-    void AssingInteractables(){
-        foreach(GameObject obj in candidates){
-            if(Random.value <= interactionChance){
-                if(!obj.TryGetComponent(out Interactable interactable)){
+    void AssingInteractables()
+    {
+        foreach (GameObject obj in candidates)
+        {
+            if (Random.value <= interactionChance)
+            {
+                if (!obj.TryGetComponent(out Interactable interactable))
+                {
                     obj.AddComponent<Interactable>();
-                    
+
                 }
+            }
+        }
+
+        foreach (GameObject obj in stairs)
+        {
+            if (!obj.TryGetComponent(out Interactable interactable))
+            {
+                obj.AddComponent<Interactable>();
             }
         }
     }

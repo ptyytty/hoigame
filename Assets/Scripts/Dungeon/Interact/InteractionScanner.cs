@@ -8,7 +8,8 @@ public class InteractionScanner : MonoBehaviour
 {
     public float detectionDistance = 40f;   // 탐지 거리
     [SerializeField] private Transform partyTransform;
-    private Interactable currentTarget;
+    private Interactable currentTarget; // 일반 오브젝트 우선순위용
+    private List<Interactable> currentStairs = new List<Interactable>(); // 계단 다중 표시용
     private float coneAngle = 70f;
     private float coneOffsetAngle = 0f;
 
@@ -16,75 +17,17 @@ public class InteractionScanner : MonoBehaviour
     {
         ScanForInteractable();
     }
-
-    // void ScanForInteractable()
-    // {
-    //     Vector3 origin = transform.position + Vector3.up * 1.2f;    // Party 위치에서 Y 값 올리기
-
-    //     Vector3[] directions = new Vector3[]
-    //     {
-    //         GetDiagonalDirection(DungeonManager.instance.currentDir, 0f),
-    //         GetDiagonalDirection(DungeonManager.instance.currentDir, -15f),
-    //         GetDiagonalDirection(DungeonManager.instance.currentDir, 60f)
-    //     };
-
-    //     Color[] debugColors = new Color[] { Color.cyan, Color.yellow, Color.green };
-
-    //     Interactable closest = null;
-    //     float closestDistance = Mathf.Infinity;
-
-    //     for (int i = 0; i < directions.Length; i++)
-    //     {
-    //         Vector3 dir = directions[i];
-    //         Color rayColor = debugColors[i];
-
-    //         Debug.DrawRay(origin, dir * detectionDistance, rayColor);
-
-    //         if (Physics.Raycast(origin, dir, out RaycastHit hit, detectionDistance))
-    //         {
-    //             Interactable interactable = hit.collider.GetComponent<Interactable>();
-    //             if (interactable != null)
-    //             {
-    //                 float distance = Vector3.Distance(origin, hit.point);
-    //                 if (distance < closestDistance)
-    //                 {
-    //                     closestDistance = distance;
-    //                     closest = interactable;
-    //                 }
-    //             }
-    //         }
-    //     }
-
-    //     if (closest != null && closest != currentTarget)
-    //     {
-    //         if (currentTarget != null)
-    //             currentTarget.ShowUI(false);
-
-    //         currentTarget = closest;
-    //         currentTarget.ShowUI(true);
-    //     }
-    //     else if (closest == null && currentTarget != null)
-    //     {
-    //         currentTarget.ShowUI(false);
-    //         currentTarget = null;
-    //     }
-    // }
-
-    // Vector3 GetDiagonalDirection(MoveDirection dir, float offsetAngle)
-    // {
-    //     float baseAngle = (dir == MoveDirection.Left) ? -120f : 120f;
-    //     return (Quaternion.AngleAxis(baseAngle + offsetAngle, Vector3.up) * partyTransform.forward).normalized;
-    // }
-
-
+    
     void ScanForInteractable()
     {
         Vector3 origin = transform.position + Vector3.up * 1.2f;
         Vector3 forward = GetDiagonalDirection(DungeonManager.instance.currentDir, 0f);
 
         Collider[] hits = Physics.OverlapSphere(origin, detectionDistance);
+        
         Interactable closest = null;
         float closestAngle = Mathf.Infinity;
+        List<Interactable> detectedStairs = new List<Interactable>();
 
         foreach (Collider col in hits)
         {
@@ -96,16 +39,23 @@ public class InteractionScanner : MonoBehaviour
 
             if (angle <= coneAngle / 2f)
             {
-                // 중심에 가까운 오브젝트 선택
-                if (angle < closestAngle)
+                // 계단 오브젝트는 모두 따로 처리
+                if (interactable.CompareTag("Upstair") || interactable.CompareTag("Downstair"))
                 {
-                    closestAngle = angle;
-                    closest = interactable;
+                    detectedStairs.Add(interactable);
+                }
+                else
+                {
+                    if (angle < closestAngle)
+                    {
+                        closestAngle = angle;
+                        closest = interactable;
+                    }
                 }
             }
         }
 
-        // UI 처리
+        // 일반 오브젝트 UI 처리
         if (closest != null && closest != currentTarget)
         {
             if (currentTarget != null)
@@ -119,6 +69,21 @@ public class InteractionScanner : MonoBehaviour
             currentTarget.ShowUI(false);
             currentTarget = null;
         }
+
+        // 계단 오브젝트 UI 처리
+        foreach (var stair in currentStairs)
+        {
+            if (!detectedStairs.Contains(stair))
+                stair.ShowUI(false);
+        }
+
+        foreach (var stair in detectedStairs)
+        {
+            if (!currentStairs.Contains(stair))
+                stair.ShowUI(true);
+        }
+
+        currentStairs = detectedStairs;
     }
 
     Vector3 GetDiagonalDirection(MoveDirection dir, float offsetAngle)
