@@ -1,12 +1,18 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 
 public class DungeonInventory : MonoBehaviour
 {
     private const int maxSlotCount = 6;
     private List<InventorySlot> slots = new();
+
+    [SerializeField] private List<Button> inventory;
+    [SerializeField] private List<Image> image;
+    [SerializeField] private List<TMP_Text> amount;
 
     void Awake()
     {
