@@ -7,17 +7,13 @@ using TMPro;
 
 public class DungeonUI : MonoBehaviour
 {
-    [SerializeField]
-    public RectTransform skillPanel; // 현재 패널
-    [SerializeField]
-    public Button skillButton;   // 패널을 여는 버튼
-    [SerializeField]
-    private TMP_Text skillTarget;
-    [SerializeField]
-    private RectTransform enemyPanel;
-    [SerializeField]
-    private RectTransform partyPanel;
 
+    [Header("Battle UI")]
+    [SerializeField] public RectTransform skillPanel; // 현재 패널
+    [SerializeField] public Button skillButton;   // 패널을 여는 버튼
+    [SerializeField] private TMP_Text skillTarget;
+    [SerializeField] private RectTransform enemyPanel;
+    [SerializeField] private RectTransform partyPanel;
 
     //private Vector3 originalPosition;
 
