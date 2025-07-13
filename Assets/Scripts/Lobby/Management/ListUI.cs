@@ -20,6 +20,12 @@ public class ListUI : MonoBehaviour
     [SerializeField] private List<ToggleImagepair> listTabToggles;
     [SerializeField] private List<ToggleImagepair> mainTabToggles;
 
+    [SerializeField] private GameObject infoPanel;
+
+    [Header("Script")]
+    [SerializeField] private ListUpManager listUpManager;
+    [SerializeField] private Employment employment;
+
     private Color defaultTextColor = new Color(185f / 255f, 185f / 255f, 185f / 255f, 1f);
     private Color selectedTextColor = new Color(1f, 1f, 1f, 1f);
     private Color selectedOutlineColor = new Color(164f / 255f, 109f / 255f, 9f / 255f, 1f);
@@ -29,7 +35,7 @@ public class ListUI : MonoBehaviour
     private Toggle currentListTab;
     private Toggle currentMainTab;
 
-     void OnEnable()
+    void OnEnable()
     {
         for (int i = 0; i < listTabToggles.Count; i++)
         {
@@ -77,7 +83,6 @@ public class ListUI : MonoBehaviour
             });
         }
 
-
         UpdateToggle(listTabToggles);
     }
 
@@ -90,6 +95,7 @@ public class ListUI : MonoBehaviour
             pair.toggle.onValueChanged.AddListener((isOn) =>
             {
                 OnToggleChanged(mainTabToggles, pair, ref currentMainTab);
+                ControlDispayPanel(pair);
             });
         }
 
@@ -114,8 +120,8 @@ public class ListUI : MonoBehaviour
 
             if (ison)
             {
-                if(pair.panel != null) pair.panel.SetActive(true);
-                
+                if (pair.panel != null) pair.panel.SetActive(true);
+
                 pair.background.SetActive(true);
                 pair.label.color = selectedTextColor;
                 pair.label.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, selectedOutlineWidth);
@@ -131,8 +137,8 @@ public class ListUI : MonoBehaviour
 
             if (!ison)
             {
-                if(pair.panel != null) pair.panel.SetActive(false);
-                
+                if (pair.panel != null) pair.panel.SetActive(false);
+
                 pair.background.SetActive(false);
                 pair.label.color = defaultTextColor;
                 pair.label.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0f);
@@ -143,6 +149,26 @@ public class ListUI : MonoBehaviour
                 pair.label.fontMaterial.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, 0f);
                 pair.label.fontMaterial.SetColor(ShaderUtilities.ID_UnderlayColor, new Color(0, 0, 0, 0f));
             }
+        }
+    }
+
+    void ControlDispayPanel(ToggleImagepair toggle)
+    {
+
+        if (infoPanel.activeSelf == true) listUpManager.EmployPanelState(false);
+
+        if (toggle == mainTabToggles[0])
+        {
+            listUpManager.PricePanelState(true);
+            employment.ResetButtonImage();
+        }
+        else if (toggle == mainTabToggles[1])
+        {
+            listUpManager.PricePanelState(false);
+        }
+        else if (toggle == mainTabToggles[2])
+        {
+            
         }
     }
 }

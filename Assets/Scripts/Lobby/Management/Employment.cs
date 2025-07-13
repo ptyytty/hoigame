@@ -17,7 +17,6 @@ public class Employment : MonoBehaviour
 
     [Header("Extra Panel")]
     [SerializeField] private GameObject pricePanel;
-    [SerializeField] private GameObject infoPanel;
     [SerializeField] private Button employButton;
 
     [Header("Extra Assets")]
@@ -41,7 +40,7 @@ public class Employment : MonoBehaviour
             testHero.jobs.Add(selectedHero);
             testMoney.PayHeroPrice(selectedHero.jobCategory, heroPrice);
             currentSelected.interactable = false;
-            infoPanel.SetActive(false);
+            listUpManager.EmployPanelState(false);
             employButton.gameObject.SetActive(false);
             currentSelected = null;
 
@@ -126,7 +125,7 @@ public class Employment : MonoBehaviour
 
                 employButton.gameObject.SetActive(true);
                 pricePanel.SetActive(true);
-                infoPanel.SetActive(true);
+                listUpManager.EmployPanelState(true);
                 listUpManager.ShowHeroInfo(job);
             });
         }
@@ -139,6 +138,4 @@ public class Employment : MonoBehaviour
         prevImage.sprite = changedImage.defaultImage;
         currentSelected = null;
     }
-
-    
 }

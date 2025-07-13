@@ -27,11 +27,20 @@ public class ListUpManager : MonoBehaviour
     [SerializeField] private TMP_Text heroSpd;
     [SerializeField] private TMP_Text heroHit;
 
+    [Header("Employ Object")]
+    [SerializeField] private GameObject infoPanel;
+    [SerializeField] private GameObject employBtn;
+    [SerializeField] private GameObject employPrice;
+
+    [Header("Growth Object")]
+    [SerializeField] private GameObject growthImage;
+    
+
     [Header("Created Asset")]
     [SerializeField] private TestHero testHero;
 
     private Button currentSelected;
-    private enum SortType {Name, Job, Level}
+    private enum SortType { Name, Job, Level }
 
     void Start()
     {
@@ -77,7 +86,7 @@ public class ListUpManager : MonoBehaviour
 
     void SelectHeroGrowth()
     {
-        
+
     }
 
     public void RefreshHeroList()
@@ -106,5 +115,22 @@ public class ListUpManager : MonoBehaviour
         heroRes.text = $"{hero.res}";
         heroSpd.text = $"{hero.spd}";
         heroHit.text = $"{hero.hit}";
+    }
+
+    public void EmployPanelState(bool state)
+    {
+        infoPanel.SetActive(state);
+        employBtn.SetActive(state);
+        
+    }
+
+    public void PricePanelState(bool state)
+    {
+        employPrice.SetActive(state);
+    }
+
+    public void GrowthPanelState(bool state)
+    {
+        
     }
 }
