@@ -135,18 +135,20 @@ public class ItemList : ListUIBase<EquipItem>
         for (int i = 0; i < equipItemButtons.Count; i++)
         {
             if (equipItemButtons[i] == null) continue;
-            
+
             bool canEquip = equipItemDatas[i].jobCategory == category;
             equipItemButtons[i].interactable = canEquip;
         }
     }
 
+    // 이하 PartySelector 호출용 Public 메소드
     public void ResetItemButton()
     {
-        if (currentSelect == null) return;
+        ResetSelectedButton();
+    }
 
-        Image prevImage = currentSelect.GetComponent<Image>();
-        prevImage.sprite = changedImage.defaultImage;
-        currentSelect = null;
+    public void SetInteractable(bool state)
+    {
+        SetAllButtonsInteractable(state);
     }
 }

@@ -4400,7 +4400,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &310846878
 RectTransform:
   m_ObjectHideFlags: 0
@@ -19419,7 +19419,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   heroListUp: {fileID: 2023360651}
-  changedImage: {fileID: 11400000, guid: f5bb5027dfc5e69499753f47e106aeeb, type: 2}
+  changedImage: {fileID: 11400000, guid: f6c831540e95fe041857a3f08c2072b2, type: 2}
   itemList: {fileID: 2023360652}
   partyPanel: {fileID: 1625330228}
   heroListPanel: {fileID: 1657856391}
@@ -23212,7 +23212,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a037040f092db1341ba7c2d99a658e25, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  buttonPrefab: {fileID: 4241490134597024580, guid: 172f37444c13b5146a5a477e79b7daf1, type: 3}
+  buttonPrefab: {fileID: 888865974871720240, guid: fb8a019601b8d2e4089cf244fe019821, type: 3}
   contentParent: {fileID: 1523556767}
   changedImage: {fileID: 11400000, guid: f6c831540e95fe041857a3f08c2072b2, type: 2}
   partySelector: {fileID: 1625330232}
@@ -23240,7 +23240,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   buttonPrefab: {fileID: 4241490134597024580, guid: 172f37444c13b5146a5a477e79b7daf1, type: 3}
-  contentParent: {fileID: 1523556767}
+  contentParent: {fileID: 1238288116}
   changedImage: {fileID: 11400000, guid: f6c831540e95fe041857a3f08c2072b2, type: 2}
   toggleConsume: {fileID: 728928249}
   toggleEquip: {fileID: 1302539202}

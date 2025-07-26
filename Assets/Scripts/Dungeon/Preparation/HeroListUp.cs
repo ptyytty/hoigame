@@ -103,4 +103,15 @@ public class HeroListUp : ListUIBase<Job>
     {
         Debug.Log("선택됨!");
     }
+
+    // 이하 PartySelector 호출용 Public 메소드
+    public void ResetItemButton()
+    {
+        ResetSelectedButton();
+    }
+
+    public void SetInteractable(bool state)
+    {
+        SetAllButtonsInteractable(state);
+    }
 }
