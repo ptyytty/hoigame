@@ -5,7 +5,6 @@ using UnityEngine;
 // 상호작용 오브젝트 자동 부착
 public class Interactable : MonoBehaviour
 {
-
     void Start()
     {
         gameObject.layer = LayerMask.NameToLayer("Interactable");

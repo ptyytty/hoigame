@@ -5,14 +5,12 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class ItemList : MonoBehaviour
+public class ItemList : ListUIBase<EquipItem>
 {
     public static ItemList instance;
 
     public delegate void EquipItemHandler(EquipItem item);
     public event EquipItemHandler OnEquipItemSelect;
-
-    [SerializeField] private HeroButtonObject.ChangedImage changedImage;
 
     [Header("Toggles")]
     [SerializeField] private Toggle toggleConsume;
@@ -20,18 +18,12 @@ public class ItemList : MonoBehaviour
     [SerializeField] private Sprite selectedImage;
     [SerializeField] private Sprite unselectedImage;
 
-    [Header("List")]
-    [SerializeField] private Button itemButtonPrefab;
-    [SerializeField] private Transform itemListPanel;
-
     [Header("Inventory")]
     [SerializeField] private DungeonInventory dungeonInventory;
     [Header("Panel")]
     [SerializeField] private GameObject itemList;
     [SerializeField] private GameObject partyPanel;
     [SerializeField] private PartySelector partySelector;
-
-    private Button currentSelect;
 
     private List<Button> equipItemButtons = new();
     private List<EquipItem> equipItemDatas = new();
@@ -56,11 +48,9 @@ public class ItemList : MonoBehaviour
         RefreshItemList();
     }
 
-    void OnEnable()
+    protected override void OnEnable()
     {
-        var clickHandler = FindObjectOfType<UIClickResetHandler>();
-        if (clickHandler != null)
-            clickHandler.RegisterResetCallback(ResetItemButton);
+        base.OnEnable();
     }
 
     void OnToggleChanged(bool _)
@@ -68,9 +58,28 @@ public class ItemList : MonoBehaviour
         RefreshItemList();
     }
 
+    protected override void LoadList()
+    {
+        if (toggleConsume.isOn)
+            PrintConsumeItem();
+        else if (toggleEquip.isOn)
+        {
+            foreach (var ownedItem in PlayerItemManager.instance.ownedEquipItem)
+                CreateButton(ownedItem.itemData);
+        }
+    }
+
+    protected override string GetLabel(EquipItem data) => data.name_item;
+
+    protected override void OnSelected(EquipItem item)
+    {
+        Debug.Log($"장비 선택됨: {item.name_item}");
+        OnEquipItemSelect?.Invoke(item);
+    }
+
     void PrintConsumeItem()
     {
-        foreach (Transform child in itemListPanel)
+        foreach (Transform child in contentParent)
         {
             Destroy(child.gameObject);
         }
@@ -80,7 +89,7 @@ public class ItemList : MonoBehaviour
         foreach (var ownedItem in items)
         {
             if (ownedItem.count <= 0) continue;
-            Button itemButton = Instantiate(itemButtonPrefab, itemListPanel);
+            Button itemButton = Instantiate(buttonPrefab, contentParent);
             TMP_Text itemName = itemButton.transform.Find("ItemName").GetComponent<TMP_Text>();
             TMP_Text itemAmount = itemButton.transform.Find("ItemAmount").GetComponent<TMP_Text>();
 
@@ -108,79 +117,17 @@ public class ItemList : MonoBehaviour
         }
     }
 
-    void PrintEquipItems()
-    {
-        var items = PlayerItemManager.instance.ownedEquipItem;
-
-        foreach (var ownedItem in items)
-        {
-            Button button = Instantiate(itemButtonPrefab, itemListPanel);
-            Image buttonImage = button.GetComponent<Image>();
-            TMP_Text itemName = button.transform.Find("ItemName").GetComponent<TMP_Text>();
-            TMP_Text itemCount = button.transform.Find("ItemAmount").GetComponent<TMP_Text>();
-
-            itemName.text = ownedItem.itemData.name_item;
-            itemCount.text = ownedItem.count.ToString();
-
-            Button capturedButton = button; //영웅 버튼
-            Image capturedImage = buttonImage;
-
-            // 장비는 개별 장착 또는 처리 방식에 맞춰 로직 구성
-            var currentItem = ownedItem.itemData;
-
-            equipItemButtons.Add(button);
-            equipItemDatas.Add(currentItem);
-
-            button.onClick.AddListener(() =>
-            {
-                // 이미 선택된 버튼이면 무시
-                if (currentSelect == capturedButton)
-                    return;
-
-                // 기존 선택된 버튼이 있으면 이미지 복원
-                if (currentSelect != null)
-                {
-                    ResetItemButton();
-                }
-
-                Debug.Log($"장비 선택됨: {currentItem.name_item}");
-                capturedImage.sprite = changedImage.selectedImage;
-                currentSelect = capturedButton;
-                OnEquipItemSelect?.Invoke(currentItem);
-            });
-        }
-    }
-
     public void RefreshItemList()
     {
-        equipItemButtons.Clear();
-        equipItemDatas.Clear();
+        ClearList();
 
-        foreach (Transform child in itemListPanel)
-        {
-            Destroy(child.gameObject);
-        }
+        var toggleEquipImage = toggleEquip.GetComponentInChildren<Image>();
+        var toggleConsumeImage = toggleConsume.GetComponentInChildren<Image>();
 
-        if (toggleConsume.isOn)
-        {
-            var toggleEquipImage = toggleEquip.GetComponentInChildren<Image>();
-            var toggleConsumeImage = toggleConsume.GetComponentInChildren<Image>();
+        toggleEquipImage.sprite = toggleConsume.isOn ? selectedImage : unselectedImage;
+        toggleConsumeImage.sprite = toggleEquip.isOn ? selectedImage : unselectedImage;
 
-            toggleConsumeImage.sprite = selectedImage;
-            toggleEquipImage.sprite = unselectedImage;
-
-            PrintConsumeItem();
-        }
-        else if (toggleEquip.isOn)
-        {
-            var toggleEquipImage = toggleEquip.GetComponentInChildren<Image>();
-            var toggleConsumeImage = toggleConsume.GetComponentInChildren<Image>();
-
-            toggleConsumeImage.sprite = unselectedImage;
-            toggleEquipImage.sprite = selectedImage;
-
-            PrintEquipItems();
-        }
+        LoadList();
     }
 
     public void SetEquipItemButtonInteractableByJob(JobCategory category)
@@ -191,15 +138,6 @@ public class ItemList : MonoBehaviour
             
             bool canEquip = equipItemDatas[i].jobCategory == category;
             equipItemButtons[i].interactable = canEquip;
-        }
-    }
-
-    public void SetAllEquipButtonsInteractable(bool state)
-    {
-        foreach (var btn in equipItemButtons)
-        {
-            if (btn != null)
-                btn.interactable = state;
         }
     }
 

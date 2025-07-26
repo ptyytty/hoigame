@@ -169,7 +169,7 @@ public class PartySelector : MonoBehaviour
             Debug.Log("아이템 함수");
             AssignItemToHero(selectedSlotIndex.Value, equipItem);
             equipItem = null;
-            itemList.SetAllEquipButtonsInteractable(true);
+            //itemList.SetAllEquipButtonsInteractable(true);
             ResetSelection(selectedSlotIndex.Value);
             return;
         }
@@ -285,15 +285,15 @@ public class PartySelector : MonoBehaviour
     void ResetSelection(int index)
     {
         slotImages[index].sprite = changedImage.defaultImage;
-        heroListUp.ResetButtonImage();
-        heroListUp.SetAllHeroButtonsInteractable(true); // ✅ 리스트 복구
+        //heroListUp.ResetButtonImage();
+        //heroListUp.SetAllHeroButtonsInteractable(true); // ✅ 리스트 복구
         ResetPartySlotInteractable();
 
         selectedHero = null;
         selectedSlotIndex = null;
 
         itemList.ResetItemButton();
-        itemList.SetAllEquipButtonsInteractable(true);
+        //itemList.SetAllEquipButtonsInteractable(true);
     }
 
     public void ResetSelectorState()
@@ -378,7 +378,7 @@ public class PartySelector : MonoBehaviour
         {
             AssignItemToHero(selectedSlotIndex.Value, equipItem);
             equipItem = null;
-            itemList.SetAllEquipButtonsInteractable(true);
+            //temList.SetAllEquipButtonsInteractable(true);
             ResetSelection(selectedSlotIndex.Value);
         }
     }

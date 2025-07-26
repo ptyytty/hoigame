@@ -4400,7 +4400,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &310846878
 RectTransform:
   m_ObjectHideFlags: 0
@@ -10229,7 +10229,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &750638286
 RectTransform:
   m_ObjectHideFlags: 0
@@ -12766,7 +12766,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: -55}
-  m_SizeDelta: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 10}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &975642826
 MonoBehaviour:
@@ -15745,7 +15745,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 10}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &1264456807
 MonoBehaviour:
@@ -18235,7 +18235,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0.000015258789, y: -0.0008544922}
-  m_SizeDelta: {x: 0, y: -667.0972}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &1523556768
 MonoBehaviour:
@@ -23137,7 +23137,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &2023360648
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -23212,7 +23212,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a037040f092db1341ba7c2d99a658e25, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  buttonPrefab: {fileID: 4241490134597024580, guid: 172f37444c13b5146a5a477e79b7daf1, type: 3}
   contentParent: {fileID: 1523556767}
+  changedImage: {fileID: 11400000, guid: f6c831540e95fe041857a3f08c2072b2, type: 2}
   partySelector: {fileID: 1625330232}
   partyPanel: {fileID: 1625330228}
   heroListPanel: {fileID: 1657856391}
@@ -23224,7 +23226,6 @@ MonoBehaviour:
   heroHit: {fileID: 479283625}
   heroButtonPrefab: {fileID: 888865974871720240, guid: fb8a019601b8d2e4089cf244fe019821, type: 3}
   scrollRect: {fileID: 1657856393}
-  changedImage: {fileID: 11400000, guid: f6c831540e95fe041857a3f08c2072b2, type: 2}
   testHero: {fileID: 11400000, guid: d3959306d5daa2f4f8073d130bd6ae7f, type: 2}
 --- !u!114 &2023360652
 MonoBehaviour:
@@ -23238,13 +23239,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 038534f82705cf44db587777aced0618, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  changedImage: {fileID: 11400000, guid: f5bb5027dfc5e69499753f47e106aeeb, type: 2}
+  buttonPrefab: {fileID: 4241490134597024580, guid: 172f37444c13b5146a5a477e79b7daf1, type: 3}
+  contentParent: {fileID: 1523556767}
+  changedImage: {fileID: 11400000, guid: f6c831540e95fe041857a3f08c2072b2, type: 2}
   toggleConsume: {fileID: 728928249}
   toggleEquip: {fileID: 1302539202}
   selectedImage: {fileID: 21300000, guid: 8efd03668be3e464f9689f54cba3c158, type: 3}
   unselectedImage: {fileID: 21300000, guid: 8f9ab66ac85a2494499aca6675a1ab19, type: 3}
-  itemButtonPrefab: {fileID: 4241490134597024580, guid: 172f37444c13b5146a5a477e79b7daf1, type: 3}
-  itemListPanel: {fileID: 1238288116}
   dungeonInventory: {fileID: 516527265}
   itemList: {fileID: 311043940}
   partyPanel: {fileID: 1625330228}

@@ -25,8 +25,8 @@ public class UIClickResetHandler : MonoBehaviour
         if (heroListUp != null)
             RegisterResetCallback(heroListUp.ResetHeroListState);
 
-        if (itemList != null)
-            RegisterResetCallback(() => itemList.SetAllEquipButtonsInteractable(true));
+        //if (itemList != null)
+            //RegisterResetCallback(() => itemList.SetAllEquipButtonsInteractable(true));
     }
 
     void Update()
