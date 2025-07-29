@@ -12578,6 +12578,7 @@ MonoBehaviour:
   undoBtn: {fileID: 1939894651}
   panelHeroList: {fileID: 1657856391}
   panelItemList: {fileID: 311043940}
+  heroListUp: {fileID: 2023360651}
   partySelector: {fileID: 1625330232}
 --- !u!1 &959365611
 GameObject:
@@ -22309,18 +22310,6 @@ MonoBehaviour:
       - m_Target: {fileID: 956194916}
         m_TargetAssemblyTypeName: LobbyManager, Assembly-CSharp
         m_MethodName: OnClickUndo
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 310846881}
-        m_TargetAssemblyTypeName: DungeonSelector, Assembly-CSharp
-        m_MethodName: ResetSelectDungeon
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

@@ -16,13 +16,14 @@ MonoBehaviour:
   - id_job: 1
     name_job: "\uC131\uAE30\uC0AC"
     hp: 67
-    def: 12
+    def: 22
     res: 15
     spd: 1
     hit: 95
     loc: 1
     category: 0
     activeBuffs: 
+    jobCategory: 0
   - id_job: 10
     name_job: "\uB2CC\uC790"
     hp: 50
@@ -33,6 +34,7 @@ MonoBehaviour:
     loc: 0
     category: 2
     activeBuffs: 
+    jobCategory: 2
   - id_job: 12
     name_job: "\uC758\uC0AC"
     hp: 42
@@ -43,6 +45,7 @@ MonoBehaviour:
     loc: 2
     category: 3
     activeBuffs: 
+    jobCategory: 3
   - id_job: 10
     name_job: "\uB2CC\uC790"
     hp: 50
@@ -53,6 +56,7 @@ MonoBehaviour:
     loc: 0
     category: 2
     activeBuffs: 
+    jobCategory: 2
   - id_job: 1
     name_job: "\uC131\uAE30\uC0AC"
     hp: 67
@@ -63,6 +67,7 @@ MonoBehaviour:
     loc: 1
     category: 0
     activeBuffs: 
+    jobCategory: 0
   - id_job: 11
     name_job: "\uC131\uC9C1\uC790"
     hp: 37
@@ -73,3 +78,4 @@ MonoBehaviour:
     loc: 2
     category: 3
     activeBuffs: 
+    jobCategory: 3

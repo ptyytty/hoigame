@@ -32,9 +32,6 @@ public class HeroListUp : ListUIBase<Job>
     [Header("Created Assets")]
     [SerializeField] private TestHero testHero;
 
-    private List<Button> heroButtons = new();
-    private List<Job> heroDatas = new();
-
     // delegate 정의 (형식 선언)
     public delegate void HeroSelectedHandler(Job selectedHero);
     // event 선언
@@ -53,22 +50,18 @@ public class HeroListUp : ListUIBase<Job>
     protected override void LoadList()
     {
         foreach (var hero in testHero.jobs)
-        {
             CreateButton(hero);
 
-            // PartySelector와 연결
-            OnHeroSelected?.Invoke(hero);
-
-            ShowHeroInfo(hero);
-        }
+        currentSelect = null;
     }
 
     public void SetHeroButtonInteractableByLoc(int requiredLoc)
     {
-        for (int i = 0; i < heroButtons.Count; i++)
+        for (int i = 0; i < buttons.Count; i++)
         {
-            bool canUse = heroDatas[i].loc == requiredLoc || heroDatas[i].loc == (int)Loc.None;
-            heroButtons[i].interactable = canUse;
+            bool canUse = dataList[i].loc == requiredLoc || dataList[i].loc == (int)Loc.None;
+            buttons[i].interactable = canUse;
+            Debug.Log(i);
         }
     }
 
@@ -94,18 +87,21 @@ public class HeroListUp : ListUIBase<Job>
         heroHit.text = $"{hero.hit}";
     }
 
-    protected override string GetLabel(Job data)
+    protected override string GetLabel(Job hero)
     {
-        return data.name_job;
+        return hero.name_job;
     }
 
-    protected override void OnSelected(Job data)
+    protected override void OnSelected(Job hero)
     {
         Debug.Log("선택됨!");
+        OnHeroSelected?.Invoke(hero);
+
+        ShowHeroInfo(hero);
     }
 
     // 이하 PartySelector 호출용 Public 메소드
-    public void ResetItemButton()
+    public void ResetButton()
     {
         ResetSelectedButton();
     }

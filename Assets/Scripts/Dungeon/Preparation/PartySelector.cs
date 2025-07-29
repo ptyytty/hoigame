@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
@@ -56,6 +57,7 @@ public class PartySelector : MonoBehaviour
 
         itemList.OnEquipItemSelect += OnEquipItemSelectedFromList;
 
+        ResetPartySlotInteractable();
     }
 
     void OnDisable()
@@ -134,6 +136,7 @@ public class PartySelector : MonoBehaviour
         Button capturedButton = slotButtons[index];
         Loc slotLoc = (index <= 1) ? Loc.Front : Loc.Back;
         heroListUp.SetHeroButtonInteractableByLoc((int)slotLoc);
+        
 
         // 영웅 리스트 클릭 후 슬롯 선택
         if (selectedHero != null)
@@ -167,7 +170,7 @@ public class PartySelector : MonoBehaviour
             Debug.Log("아이템 함수");
             AssignItemToHero(selectedSlotIndex.Value, equipItem);
             equipItem = null;
-            itemList.SetInteractable(true);
+            //itemList.SetInteractable(true);
             ResetSelection(selectedSlotIndex.Value);
             return;
         }
@@ -283,7 +286,7 @@ public class PartySelector : MonoBehaviour
     void ResetSelection(int index)
     {
         slotImages[index].sprite = changedImage.defaultImage;
-        heroListUp.ResetItemButton();
+        heroListUp.ResetButton();
         heroListUp.SetInteractable(true); // ✅ 리스트 복구
         ResetPartySlotInteractable();
 
@@ -365,6 +368,7 @@ public class PartySelector : MonoBehaviour
             if (equipItem.jobCategory == assignedHeroes[i].jobCategory)
             {
                 slotButtons[i].interactable = true;
+                continue;
             }
             else if (equipItem.jobCategory != assignedHeroes[i].jobCategory)
             {
@@ -394,36 +398,15 @@ public class PartySelector : MonoBehaviour
             }
         }
 
-        if (allAssigned)
-        {
-            Debug.Log("✅ 모든 슬롯에 영웅이 배정됨");
-            SetEnterDungeonButton();
-        }
-        else
-        {
-            SetNoEnterDungeonButton();
-        }
+        SetEnterDungeonButton(allAssigned);
     }
 
-    void SetEnterDungeonButton()
+    void SetEnterDungeonButton(bool assigned)
     {
         Image image = enterDungeon.GetComponent<Image>();
 
-        image.sprite = enterDungeonButton.entryImage;
-    }
-
-    void SetNoEnterDungeonButton()
-    {
-        Image image = enterDungeon.GetComponent<Image>();
-
-        for (int i = 0; i < assignedHeroes.Length; i++)
-        {
-            if (assignedHeroes[i] == null)
-            {
-                image.sprite = enterDungeonButton.noEntryImage;
-                return;
-            }
-        }
+        image.sprite = assigned ? enterDungeonButton.entryImage : enterDungeonButton.noEntryImage;
+        enterDungeon.interactable = assigned;
     }
 
     public void OnClickEnterDungeon()

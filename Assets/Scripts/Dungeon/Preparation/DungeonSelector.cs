@@ -88,18 +88,4 @@ public class DungeonSelector : MonoBehaviour
         InventoryUIManager.instance.OpenInventoryPanel();
         currentPanel = dungeonPreparationPanel;
     }
-
-    public void ResetSelectDungeon()
-    {
-        if (currentPanel == dungeonPreparationPanel)
-        {
-            dungeonPreparationPanel.SetActive(false);
-            dungeonSelectPanel.SetActive(true);
-            currentPanel = dungeonSelectPanel;
-        }
-        
-        currentIndex = 0;
-        UpdateUI();
-        
-    }
 }

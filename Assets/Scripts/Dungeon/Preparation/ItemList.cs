@@ -25,9 +25,6 @@ public class ItemList : ListUIBase<EquipItem>
     [SerializeField] private GameObject partyPanel;
     [SerializeField] private PartySelector partySelector;
 
-    private List<Button> equipItemButtons = new();
-    private List<EquipItem> equipItemDatas = new();
-
     void Awake()
     {
         if (instance == null)
@@ -132,13 +129,19 @@ public class ItemList : ListUIBase<EquipItem>
 
     public void SetEquipItemButtonInteractableByJob(JobCategory category)
     {
-        for (int i = 0; i < equipItemButtons.Count; i++)
+        for (int i = 0; i < buttons.Count; i++)
         {
-            if (equipItemButtons[i] == null) continue;
+            if (buttons[i] == null) continue;
 
-            bool canEquip = equipItemDatas[i].jobCategory == category;
-            equipItemButtons[i].interactable = canEquip;
+            bool canEquip = dataList[i].jobCategory == category;
+            buttons[i].interactable = canEquip;
         }
+    }
+
+    public void ResetItemListState()
+    {
+        ResetSelectedButton();
+        SetAllButtonsInteractable(true);
     }
 
     // 이하 PartySelector 호출용 Public 메소드

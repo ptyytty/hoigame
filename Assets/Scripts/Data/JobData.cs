@@ -16,7 +16,7 @@ public class Job
     public int loc;
     public int category;
     public List<SpecialBuffType> activeBuffs = new();
-    [NonSerialized] public JobCategory jobCategory;
+    public JobCategory jobCategory;
     [NonSerialized] public EquipItem equippedItem;
 }
 

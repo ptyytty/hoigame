@@ -23,6 +23,9 @@ public class LobbyManager : MonoBehaviour
     [Header("Dungeon Preparation")]
     [SerializeField] private GameObject panelHeroList;
     [SerializeField] private GameObject panelItemList;
+
+    [Header("Scripts")]
+    [SerializeField] private HeroListUp heroListUp;
     [SerializeField] private PartySelector partySelector;
 
     public void OnClickDungeonList()
@@ -81,11 +84,13 @@ public class LobbyManager : MonoBehaviour
         }
         else if (panelDungeonPreparation.activeSelf)
         {
+            heroListUp.ResetButton();
+
             partySelector.ResetAssignParty();
-            panelDungeonPreparation.SetActive(false);
             panelSelectDungeon.SetActive(true);
             panelHeroList.SetActive(true);
 
+            panelDungeonPreparation.SetActive(false);
             panelItemList.SetActive(false);
         }
         else if (panelSelectDungeon.activeSelf)
