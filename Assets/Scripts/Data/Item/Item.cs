@@ -2,16 +2,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
-
-
+// 상점 장비 아이템 이미지
 [System.Serializable]
 public class JobSpritePair
 {
     public JobCategory category;
     public Sprite sprite;
 }
-
-
 
 [System.Serializable]
 public class ConsumeItem
@@ -50,30 +47,9 @@ public class EquipItem
     public ItemType itemType;
     public string effectText;
     public int value;
-    public StatType statType;
+    public EquipItemBuffType buffType;
     public string description;
     public List<SpecialBuffType> specialBuffTypes;
-}
-
-public enum StatType
-{
-    Hp,
-    Def,
-    Res,
-    Spd,
-    Hit,
-    Dmg,
-    Heal
-}
-
-public enum SpecialBuffType
-{
-    None,
-    BleedImmune,
-    SpeedBoost,
-    HealOverTime,
-    FaintImmune
-    // 확장 가능
 }
 
 public enum ItemType
@@ -82,6 +58,7 @@ public enum ItemType
     Consume
 }
 
+// 아군, 적 구분만
 public enum ItemTarget
 {
     Ally,

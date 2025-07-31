@@ -5,27 +5,17 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class ListUpManager : MonoBehaviour
+public class ListUpManager : ListUIBase<Job>
 {
     [Header("Main Tab State")]
     [SerializeField] Toggle employToggle;
     [SerializeField] Toggle growthToggle;
     [SerializeField] Toggle recoveryToggle;
 
-    [Header("Set Button")]
-    [SerializeField] private Button framePrefab;
-    [SerializeField] private Transform grid;
-
-    [Header("Button Image")]
-    [SerializeField] private HeroButtonObject.ChangedImage changedImage;
-
-    [Header("Hero Info Panel")]
-    [SerializeField] private TMP_Text heroName;
-    [SerializeField] private TMP_Text heroHp;
-    [SerializeField] private TMP_Text heroDef;
-    [SerializeField] private TMP_Text heroRes;
-    [SerializeField] private TMP_Text heroSpd;
-    [SerializeField] private TMP_Text heroHit;
+    [Header("List Toggle")]
+    [SerializeField] Toggle toggleSortByName;
+    [SerializeField] Toggle toggleSortByJob;
+    [SerializeField] Toggle toggleSortByLevel;
 
     [Header("Employ Object")]
     [SerializeField] private GameObject infoPanel;
@@ -34,54 +24,57 @@ public class ListUpManager : MonoBehaviour
 
     [Header("Growth Object")]
     [SerializeField] private GameObject growthImage;
-    
 
     [Header("Created Asset")]
     [SerializeField] private TestHero testHero;
 
-    private Button currentSelected;
     private enum SortType { Name, Job, Level }
+    private SortType currentSortType = SortType.Name;
 
     void Start()
     {
-        GetOwnedHeroList();
+        toggleSortByName.onValueChanged.AddListener((isOn) => { if (isOn) ChangeSortType(SortType.Name); });
+        toggleSortByJob.onValueChanged.AddListener((isOn) => { if (isOn) ChangeSortType(SortType.Job); });
+        toggleSortByLevel.onValueChanged.AddListener((isOn) => { if (isOn) ChangeSortType(SortType.Level); });
+
+        LoadList();
     }
 
-    public void GetOwnedHeroList()
+    protected override void OnEnable()
     {
-        foreach (Job job in testHero.jobs)
+        base.OnEnable();
+    }
+
+    protected override void LoadList()
+    {
+        List<Job> sortedList = new List<Job>(testHero.jobs);
+        switch (currentSortType)
         {
-            Button heroButton = Instantiate(framePrefab, grid);
-
-            Image buttonBackground = heroButton.GetComponent<Image>();
-            Image heroImage = heroButton.GetComponentInChildren<Image>();
-            TMP_Text heroName = heroButton.transform.Find("Text_Name").GetComponent<TMP_Text>();
-            TMP_Text heroJob = heroButton.transform.Find("Text_Job").GetComponent<TMP_Text>();
-            TMP_Text heroLevel = heroButton.transform.Find("Text_Level").GetComponent<TMP_Text>();
-
-            buttonBackground.sprite = changedImage.defaultImage;
-            heroJob.text = job.name_job;
-
-            Button capturedButton = heroButton;
-            Image capturedImage = buttonBackground;
-
-            capturedButton.onClick.AddListener(() =>
-            {
-                if (employToggle.isOn == true) return;
-
-                if (currentSelected == capturedButton)
-                    return;
-
-                if (currentSelected != null)
-                    ResetButtonImage();
-
-                if (growthToggle.isOn == true)
-                    SelectHeroGrowth();
-
-                currentSelected = capturedButton;
-                capturedImage.sprite = changedImage.selectedImage;
-            });
+            case SortType.Name:
+                sortedList.Sort((a, b) => a.name_job.CompareTo(b.name_job));
+                break;
+            case SortType.Job:
+                sortedList.Sort((a, b) => a.jobCategory.CompareTo(b.jobCategory));
+                break;
+            case SortType.Level:
+                sortedList.Sort((a, b) => a.id_job.CompareTo(b.id_job));
+                break;
         }
+
+        foreach (var hero in sortedList)
+            CreateButton(hero);
+    }
+
+    private void ChangeSortType(SortType sortType)
+    {
+        currentSortType = sortType;
+        RefreshList();
+    }
+
+    protected override void OnSelected(Job hero)
+    {
+        if (growthToggle.isOn == true)
+            SelectHeroGrowth();
     }
 
     void SelectHeroGrowth()
@@ -89,39 +82,15 @@ public class ListUpManager : MonoBehaviour
 
     }
 
-    public void RefreshHeroList()
-    {
-        foreach (Transform child in grid)
-        {
-            Destroy(child.gameObject);
-        }
-
-        GetOwnedHeroList();
-    }
-
     public void ResetButtonImage()
     {
-        if (currentSelected == null) return;
-        Image prevImage = currentSelected.GetComponent<Image>();
-        prevImage.sprite = changedImage.defaultImage;
-        currentSelected = null;
-    }
-
-    public void ShowHeroInfo(Job hero)
-    {
-        heroName.text = $"{hero.name_job}";
-        heroHp.text = $"{hero.hp}";
-        heroDef.text = $"{hero.def}";
-        heroRes.text = $"{hero.res}";
-        heroSpd.text = $"{hero.spd}";
-        heroHit.text = $"{hero.hit}";
+        base.ResetSelectedButton();
     }
 
     public void EmployPanelState(bool state)
     {
         infoPanel.SetActive(state);
         employBtn.SetActive(state);
-        
     }
 
     public void PricePanelState(bool state)
@@ -131,6 +100,23 @@ public class ListUpManager : MonoBehaviour
 
     public void GrowthPanelState(bool state)
     {
-        
+
+    }
+
+    protected override void SetLabel(Button button, Job hero)
+    {
+        TMP_Text nameText = button.transform.Find("Text_Name").GetComponent<TMP_Text>();
+        TMP_Text jobText = button.transform.Find("Text_Job").GetComponent<TMP_Text>();
+        TMP_Text levelText = button.transform.Find("Text_Level").GetComponent<TMP_Text>();
+
+        nameText.text = hero.name_job;
+        jobText.text = hero.name_job.ToString();
+        levelText.text = $"Lv.{hero.id_job}";
+    }
+
+    public void RefreshList()
+    {
+        ClearList();
+        LoadList();
     }
 }

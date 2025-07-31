@@ -66,7 +66,14 @@ public class ItemList : ListUIBase<EquipItem>
         }
     }
 
-    protected override string GetLabel(EquipItem data) => data.name_item;
+    protected override void SetLabel(Button button, EquipItem data)
+    {
+        TMP_Text itemName = button.transform.Find("ItemName").GetComponent<TMP_Text>();
+        TMP_Text itemAmount = button.transform.Find("ItemAmount").GetComponent<TMP_Text>();
+
+        itemName.text = data.name_item;
+        itemAmount.text = $"수량: ";
+    }
 
     protected override void OnSelected(EquipItem item)
     {

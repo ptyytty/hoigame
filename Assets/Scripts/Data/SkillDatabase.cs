@@ -13,6 +13,6 @@ public class HeroSkill
     public Area area;
     public int heroId;
     public int monsterId;
-    public EffectType effect;
+    public SkillType effect;
     public Debuff debuff;
 }

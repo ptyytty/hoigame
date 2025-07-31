@@ -15,18 +15,8 @@ public class HeroListUp : ListUIBase<Job>
     [SerializeField] private GameObject partyPanel;
     [SerializeField] private GameObject heroListPanel;
 
-    [Header("Hero Info Panel")]
-    [SerializeField] private TMP_Text heroName;
-    [SerializeField] private TMP_Text heroHp;
-    [SerializeField] private TMP_Text heroDef;
-    [SerializeField] private TMP_Text heroRes;
-    [SerializeField] private TMP_Text heroSpd;
-    [SerializeField] private TMP_Text heroHit;
-
-
     [Header("Prefab")]
     [SerializeField] private Button heroButtonPrefab;
-
     [SerializeField] private ScrollRect scrollRect;
 
     [Header("Created Assets")]
@@ -37,14 +27,10 @@ public class HeroListUp : ListUIBase<Job>
     // event 선언
     public event HeroSelectedHandler OnHeroSelected;
 
-    void Start()
-    {
-        LoadList();
-    }
-
     protected override void OnEnable()
     {
         base.OnEnable();
+        RefreshHeroList();
     }
 
     protected override void LoadList()
@@ -77,19 +63,15 @@ public class HeroListUp : ListUIBase<Job>
         LoadList();
     }
 
-    public void ShowHeroInfo(Job hero)
+    protected override void SetLabel(Button button, Job hero)
     {
-        heroName.text = $"{hero.name_job}";
-        heroHp.text = $"{hero.hp}";
-        heroDef.text = $"{hero.def}";
-        heroRes.text = $"{hero.res}";
-        heroSpd.text = $"{hero.spd}";
-        heroHit.text = $"{hero.hit}";
-    }
-
-    protected override string GetLabel(Job hero)
-    {
-        return hero.name_job;
+        TMP_Text nameText = button.transform.Find("Text_Name").GetComponent<TMP_Text>();
+        TMP_Text jobText = button.transform.Find("Text_Job").GetComponent<TMP_Text>();
+        TMP_Text levelText = button.transform.Find("Text_Level").GetComponent<TMP_Text>();
+        
+        nameText.text  = hero.name_job;
+        jobText.text   = hero.name_job.ToString();
+        levelText.text = $"Lv.{hero.id_job}";
     }
 
     protected override void OnSelected(Job hero)

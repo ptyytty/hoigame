@@ -11,6 +11,14 @@ public abstract class ListUIBase<TData> : MonoBehaviour
     [SerializeField] protected Transform contentParent;
     [SerializeField] protected HeroButtonObject.ChangedImage changedImage;
 
+    [Header("Hero Info")]
+    [SerializeField] private TMP_Text heroName;
+    [SerializeField] private TMP_Text heroHp;
+    [SerializeField] private TMP_Text heroDef;
+    [SerializeField] private TMP_Text heroRes;
+    [SerializeField] private TMP_Text heroSpd;
+    [SerializeField] private TMP_Text heroHit;
+
     protected Button currentSelect;
     protected List<Button> buttons = new();
     protected List<TData> dataList = new();
@@ -28,7 +36,7 @@ public abstract class ListUIBase<TData> : MonoBehaviour
     {
         Button button = Instantiate(buttonPrefab, contentParent);
         TMP_Text label = button.GetComponentInChildren<TMP_Text>();
-        label.text = GetLabel(data);
+        SetLabel(button, data);
 
         var capturedButton = button;
         var capturedData = data;
@@ -79,8 +87,18 @@ public abstract class ListUIBase<TData> : MonoBehaviour
             btn.interactable = state;
     }
 
+    public void ShowHeroInfo(Job hero)
+    {
+        heroName.text = $"{hero.name_job}";
+        heroHp.text = $"{hero.hp}";
+        heroDef.text = $"{hero.def}";
+        heroRes.text = $"{hero.res}";
+        heroSpd.text = $"{hero.spd}";
+        heroHit.text = $"{hero.hit}";
+    }
+
     // 버튼에 표시할 텍스트 반환
-    protected abstract string GetLabel(TData data);
+    protected abstract void SetLabel(Button button, TData data);
     // 버튼 클릭 시 실행 로직
     protected abstract void OnSelected(TData data);
     // 리스트 생성

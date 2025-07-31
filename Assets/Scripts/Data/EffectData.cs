@@ -1,4 +1,5 @@
-public enum EffectType
+// 스킬 타입
+public enum SkillType
 {
     Damage,
     Heal,
@@ -7,7 +8,8 @@ public enum EffectType
     Special
 }
 
-public enum DebuffType
+// 스킬 사용 시 디버프
+public enum SkillDebuffType
 {
     Addiction,  // 중독
     Bleeding,   // 출혈
@@ -20,7 +22,7 @@ public enum DebuffType
 [System.Serializable]
 public class Debuff
 {
-    public DebuffType debuffType;
+    public SkillDebuffType debuffType;
 
     public int duration;    // 지속 턴 수
     public string description;  // 설명

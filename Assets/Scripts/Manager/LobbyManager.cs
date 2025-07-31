@@ -27,12 +27,14 @@ public class LobbyManager : MonoBehaviour
     [Header("Scripts")]
     [SerializeField] private HeroListUp heroListUp;
     [SerializeField] private PartySelector partySelector;
+    [SerializeField] private ListUpManager listUpManager;
+    [SerializeField] private Employment employment;
 
     public void OnClickDungeonList()
     {
         panelSelectDungeon.SetActive(true);
         undoBtn.SetActive(true);
-        
+
         panelMenu.SetActive(false);
         panelGoods.SetActive(false);
         btnFriend.SetActive(false);
@@ -81,10 +83,13 @@ public class LobbyManager : MonoBehaviour
 
             panelManagement.SetActive(false);
             undoBtn.SetActive(false);
+
+            listUpManager.ResetButtonImage();
+            employment.ResetButtonImage();
         }
         else if (panelDungeonPreparation.activeSelf)
         {
-            heroListUp.ResetButton();
+            heroListUp.ResetHeroListState();
 
             partySelector.ResetAssignParty();
             panelSelectDungeon.SetActive(true);

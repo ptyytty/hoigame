@@ -1,17 +1,43 @@
+// 사용 아이템 사용 시 효과
 public enum ConsumeBuffType
 {
     Damage,
     Heal,
-    Remove,     // 디버프 제거
+    Remove,         // 디버프 제거
     Poison,
     Bleeding,
     Burn,
-    Sign,
-    Faint,
+    Sign,           // 표식
+    Faint,          // 기절
     Taunt,
-    AbilityBuff,
-    AbilityDebuff,
+    AbilityBuff,    // 능력치 버프
+    AbilityDebuff,  // 능력치 디버프
+    Special         // 특수 효과
+}
+
+// 장비 아이템 사용 시 효과
+// Special과 연결
+public enum EquipItemBuffType
+{
+    Hp,
+    Def,
+    Res,
+    Spd,
+    Hit,
+    Dmg,
+    Heal,
     Special
+}
+
+// 특수효과 목록
+public enum SpecialBuffType
+{
+    None,
+    BleedImmune,
+    SpeedBoost,
+    HealOverTime,
+    FaintImmune
+    // 확장 가능
 }
 
 [System.Serializable]
