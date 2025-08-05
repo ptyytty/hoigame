@@ -16,7 +16,6 @@ public enum ConsumeBuffType
 }
 
 // 장비 아이템 사용 시 효과
-// Special과 연결
 public enum EquipItemBuffType
 {
     Hp,
@@ -30,21 +29,20 @@ public enum EquipItemBuffType
 }
 
 // 특수효과 목록
+// Special과 연결
 public enum SpecialBuffType
 {
-    None,
-    BleedImmune,
+    BleedImmune,        // 화상 면역
     SpeedBoost,
     HealOverTime,
-    FaintImmune
+    FaintImmune         // 도발 면역
     // 확장 가능
 }
 
 [System.Serializable]
-public class DebuffEffect
+public class BuffEffect
 {
     public ConsumeBuffType debuffType;
-
     public int duration;    // 지속 턴 수
     public string description;  // 설명
 

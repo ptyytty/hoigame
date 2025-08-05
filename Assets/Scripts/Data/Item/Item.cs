@@ -47,7 +47,7 @@ public class EquipItem
     public ItemType itemType;
     public string effectText;
     public int value;
-    public EquipItemBuffType buffType;
+    public List<EquipItemBuffType> buffType;
     public string description;
     public List<SpecialBuffType> specialBuffTypes;
 }

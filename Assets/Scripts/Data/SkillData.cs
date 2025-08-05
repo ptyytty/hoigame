@@ -1,20 +1,86 @@
+using System.Collections.Generic;
+
 [System.Serializable]
-public class Skill{
-    public int id_skill;
-    public string name_skill;
-    public int dmg;
-    public int target;     //스킬 대상 0: 적     1: 아군     2: 자신
-    public int loc;        //사용 위치 0: 상관없음   1: 전열     2: 후열
-    public int area;       //사용 범위 0: 단일     1: 같은 열     3: 전체
-    public int id_job;
+public class Skill
+{
+    public int skillId;
+    public string skillName;
+    public Target target;       //스킬 대상 0: 적     1: 아군     2: 자신
+    public Loc loc;             //사용 위치 0: 상관없음   1: 전열     2: 후열
+    public Area area;           //사용 범위 0: 단일     1: 같은 열     3: 전체
+    public int heroId;
+    public int monsterId;
+    public SkillType type;
+    public int correctionHit;               // 명중 보정
+    public List<SkillEffect> effects = new();
 }
 
 [System.Serializable]
-public class SkillList{
+public class SkillList
+{
     public Skill[] skills;
 }
 
-public enum Target{
+// 스킬 타입
+public enum SkillType
+{
+    Damage,
+    Heal,
+    Buff,
+    Debuff,
+    SignDamage,
+    Special
+}
+
+// 스킬 사용 시 디버프
+public enum SkillDebuffType
+{
+    Poison,  // 중독
+    Bleeding,   // 출혈
+    Burn,       // 화상
+    Sign,       // 표식
+    Faint,      // 기절
+    Taunt       // 도발
+}
+
+public enum SkillBuffType
+{
+    Defense,
+    Resistance,
+    Speed,
+    Hit,
+    Damage,
+    Heal,
+    Remove
+}
+
+[System.Serializable]
+public class Debuff
+{
+    public SkillDebuffType debuffType;      // 버프, 디버프
+    public int duration;                    // 지속 턴 수
+    public float probability;                // 적용 확률
+}
+
+[System.Serializable]
+public class Buff
+{
+    public SkillBuffType buffType;      // 버프, 디버프
+    public int duration;                // 지속 턴 수
+    public float probability;            // 적용 확률
+    public int figure;                  // 증감 수치
+    public void InitiatingEffect(SkillBuffType buffType)
+    {
+        switch (buffType)
+        {
+            default:
+                break;
+        }
+    }
+}
+
+public enum Target
+{
     Enemy = 0,
     Ally = 1,
     Self = 2

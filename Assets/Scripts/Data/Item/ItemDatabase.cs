@@ -129,7 +129,7 @@ public static class ItemDatabase
             itemType = ItemType.Equipment,
             effectText = "민첩",
             value = 5,
-            buffType = EquipItemBuffType.Spd,
+            buffType = new List<EquipItemBuffType> {EquipItemBuffType.Spd},
             description = "착용감 좋은 신발."
         },
 
@@ -142,7 +142,7 @@ public static class ItemDatabase
             itemType = ItemType.Equipment,
             effectText = "명중",
             value = 5,
-            buffType = EquipItemBuffType.Hit,
+            buffType = new List<EquipItemBuffType> {EquipItemBuffType.Hit},
             description = "가죽으로 만든 장갑이다."
         },
 
@@ -155,7 +155,7 @@ public static class ItemDatabase
             itemType = ItemType.Equipment,
             effectText = "방어",
             value = 5,
-            buffType = EquipItemBuffType.Def,
+            buffType = new List<EquipItemBuffType> {EquipItemBuffType.Def},
             description = "튼튼한 건틀릿. 때리기에 좋지만 막기엔 더 좋다."
         },
 
@@ -168,7 +168,7 @@ public static class ItemDatabase
             itemType = ItemType.Equipment,
             effectText = "스킬 피해",
             value = 5,
-            buffType = EquipItemBuffType.Dmg,
+            buffType = new List<EquipItemBuffType> {EquipItemBuffType.Dmg},
             description = "마법사의 스테프. 휘두르기 좋다."
         },
 
@@ -181,7 +181,7 @@ public static class ItemDatabase
             itemType = ItemType.Equipment,
             effectText = "회복량",
             value = 5,
-            buffType = EquipItemBuffType.Heal,
+            buffType = new List<EquipItemBuffType> {EquipItemBuffType.Heal},
             description = "장난감 요술봉. 신비한 힘이 깃들어져 있다."
         },
 
@@ -194,7 +194,7 @@ public static class ItemDatabase
             itemType = ItemType.Equipment,
             effectText = "민첩",
             value = 5,
-            buffType = EquipItemBuffType.Spd,
+            buffType = new List<EquipItemBuffType> {EquipItemBuffType.Spd},
             description = "어깨에 걸쳐지는 망토. 오버핏이다."
         },
 

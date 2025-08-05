@@ -18,6 +18,24 @@ public class Job
     public List<SpecialBuffType> activeBuffs = new();
     public JobCategory jobCategory;
     [NonSerialized] public EquipItem equippedItem;
+
+    // 스킬 사용 관련 속성
+    [NonSerialized] public bool CanAct = true;
+    [NonSerialized] public bool Marked = false;
+    [NonSerialized] public Job ForcedTarget;
+    private Dictionary<SkillDebuffType, int> activeDebuffs = new();
+
+    public void AddDebuff(SkillDebuffType type, int duration)
+    {
+        if (activeDebuffs.ContainsKey(type))
+        {
+            activeDebuffs[type] += duration;
+        }
+        else
+        {
+            activeDebuffs.Add(type, duration);
+        }
+    }
 }
 
 [System.Serializable]

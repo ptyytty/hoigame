@@ -253,7 +253,7 @@ public class PartySelector : MonoBehaviour
     // 아이템 착용
     void ApplyItemStats(Job hero, EquipItem item)
     {
-        switch (item.buffType)
+        switch (item.buffType[0])
         {
             case EquipItemBuffType.Def:
                 hero.def += item.value;
@@ -269,7 +269,7 @@ public class PartySelector : MonoBehaviour
     // 아이템 해제
     void UnapplyItemStats(Job hero, EquipItem item)
     {
-        switch (item.buffType)
+        switch (item.buffType[0])
         {
             case EquipItemBuffType.Def:
                 hero.def -= item.value;

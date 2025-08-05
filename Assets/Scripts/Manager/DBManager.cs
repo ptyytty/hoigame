@@ -15,7 +15,7 @@ public class DBManager : MonoBehaviour
     public static DBManager instance = null;
 
     public Job[] jobs {get;private set;}
-    public Skill[] skills {get;private set;}
+    //public Skill[] skills {get;private set;}
 
     //직업 종류 찾기
     public JobList jobData;
