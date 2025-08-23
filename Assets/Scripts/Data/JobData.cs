@@ -15,17 +15,18 @@ public class Job
     public int hit;
     public int loc;
     public int category;
-    public List<SpecialBuffType> activeBuffs = new();
     public JobCategory jobCategory;
     [NonSerialized] public EquipItem equippedItem;
 
     // 스킬 사용 관련 속성
     [NonSerialized] public bool CanAct = true;
     [NonSerialized] public bool Marked = false;
+    [NonSerialized] public bool isCountering = false;
     [NonSerialized] public Job ForcedTarget;
-    private Dictionary<SkillDebuffType, int> activeDebuffs = new();
+    private Dictionary<BuffType, int> activeBuffs = new();
+    private Dictionary<BuffType, int> activeDebuffs = new();
 
-    public void AddDebuff(SkillDebuffType type, int duration)
+    public void AddBuff(BuffType type, int duration)
     {
         if (activeDebuffs.ContainsKey(type))
         {

@@ -32,10 +32,20 @@ public enum SkillType
     Special
 }
 
-// 스킬 사용 시 디버프
-public enum SkillDebuffType
+public enum BuffType
 {
-    Poison,  // 중독
+    //-----Buff-----
+    Defense,
+    Resistance,
+    Speed,
+    Hit,
+    Damage,
+    Heal,
+    Remove,
+
+    //-----Debuff----
+
+    Poison,     // 중독
     Bleeding,   // 출혈
     Burn,       // 화상
     Sign,       // 표식
@@ -43,21 +53,10 @@ public enum SkillDebuffType
     Taunt       // 도발
 }
 
-public enum SkillBuffType
-{
-    Defense,
-    Resistance,
-    Speed,
-    Hit,
-    Damage,
-    Heal,
-    Remove
-}
-
 [System.Serializable]
 public class Debuff
 {
-    public SkillDebuffType debuffType;      // 버프, 디버프
+    public BuffType debuffType;      // 버프, 디버프
     public int duration;                    // 지속 턴 수
     public float probability;                // 적용 확률
 }
@@ -65,11 +64,11 @@ public class Debuff
 [System.Serializable]
 public class Buff
 {
-    public SkillBuffType buffType;      // 버프, 디버프
+    public BuffType buffType;      // 버프, 디버프
     public int duration;                // 지속 턴 수
     public float probability;            // 적용 확률
     public int figure;                  // 증감 수치
-    public void InitiatingEffect(SkillBuffType buffType)
+    public void InitiatingEffect(BuffType buffType)
     {
         switch (buffType)
         {
