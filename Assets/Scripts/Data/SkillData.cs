@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 [System.Serializable]
 public class Skill
@@ -53,12 +54,19 @@ public enum BuffType
     Taunt       // 도발
 }
 
-[System.Serializable]
-public class Debuff
+public static class BuffGroups
 {
-    public BuffType debuffType;      // 버프, 디버프
-    public int duration;                    // 지속 턴 수
-    public float probability;                // 적용 확률
+    public static readonly HashSet<BuffType> StatBuffs = new()
+    { BuffType.Defense, BuffType.Resistance, BuffType.Speed, BuffType.Hit, BuffType.Damage, BuffType.Heal };
+
+    public static readonly HashSet<BuffType> DotDebuffs = new()
+    { BuffType.Poison, BuffType.Bleeding, BuffType.Burn };
+
+    public static readonly HashSet<BuffType> CrowdControls = new()
+    { BuffType.Faint, BuffType.Taunt };
+
+    public static bool IsDebuff(BuffType t) =>
+        DotDebuffs.Contains(t) || CrowdControls.Contains(t) || t == BuffType.Sign;
 }
 
 [System.Serializable]
@@ -68,15 +76,12 @@ public class Buff
     public int duration;                // 지속 턴 수
     public float probability;            // 적용 확률
     public int figure;                  // 증감 수치
-    public void InitiatingEffect(BuffType buffType)
-    {
-        switch (buffType)
-        {
-            default:
-                break;
-        }
-    }
+
+    public StackMode stack = StackMode.Refresh;
+
 }
+
+public enum StackMode { Refresh, StackValue, Ignore }       // 버프 및 효과 추가 관련 변수
 
 public enum Target
 {
