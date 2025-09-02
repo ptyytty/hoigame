@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,6 +31,9 @@ public class ListUpManager : ListUIBase<Job>
 
     private enum SortType { Name, Job, Level }
     private SortType currentSortType = SortType.Name;
+
+    public event Action<Job> OnOwnedHeroSelected;           // Growth 구독 이벤트
+    public Job CurrentSelectedHero{ get; private set; }     // 외부에서 선택 영웅 조회
 
     void Start()
     {
@@ -73,13 +77,10 @@ public class ListUpManager : ListUIBase<Job>
 
     protected override void OnSelected(Job hero)
     {
+        CurrentSelectedHero = hero;
+
         if (growthToggle.isOn == true)
-            SelectHeroGrowth();
-    }
-
-    void SelectHeroGrowth()
-    {
-
+            OnOwnedHeroSelected?.Invoke(hero);
     }
 
     public void ResetButtonImage()
@@ -100,7 +101,12 @@ public class ListUpManager : ListUIBase<Job>
 
     public void GrowthPanelState(bool state)
     {
+        growthImage.SetActive(state);
+    }
 
+    public void RecoveryPanelState(bool state)
+    {
+        
     }
 
     protected override void SetLabel(Button button, Job hero)

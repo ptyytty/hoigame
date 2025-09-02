@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: TestMoney
   m_EditorClassIdentifier: 
   money: 500000
-  redSoul: 5
-  blueSoul: 8
-  purpleSoul: 3
-  greenSoul: 8
+  redSoul: 997
+  blueSoul: 100
+  purpleSoul: 10
+  greenSoul: 97

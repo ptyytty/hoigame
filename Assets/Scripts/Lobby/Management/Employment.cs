@@ -7,6 +7,7 @@ using UnityEngine.UI;
 
 public class Employment : ListUIBase<Job>
 {
+    [Header("Refs")]
     [SerializeField] private ListUpManager listUpManager;
     [SerializeField] private HeroListUp heroListUp;
 

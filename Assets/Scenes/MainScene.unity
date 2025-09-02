@@ -15850,6 +15850,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3094f82b0494a5c4a84838f138fd032b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  buttonPrefab: {fileID: 7006990107890594953, guid: 593b79a3e0c6e3048ba7e7fb710a9c36, type: 3}
+  contentParent: {fileID: 1264456806}
+  changedImage: {fileID: 11400000, guid: f6c831540e95fe041857a3f08c2072b2, type: 2}
+  heroName: {fileID: 0}
+  heroHp: {fileID: 0}
+  heroDef: {fileID: 0}
+  heroRes: {fileID: 0}
+  heroSpd: {fileID: 0}
+  heroHit: {fileID: 0}
+  listUpManager: {fileID: 371027913}
 --- !u!1 &1282865078
 GameObject:
   m_ObjectHideFlags: 0

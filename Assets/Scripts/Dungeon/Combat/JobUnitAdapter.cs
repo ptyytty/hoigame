@@ -4,15 +4,15 @@ using System;
 
 public class JobUnitAdapter : IBattleUnit
 {
-    public Job Data { get; }                     // 원본 DTO
-    public bool CanAct { get; private set; } = true;
-    public bool Marked { get; private set; } = false;
+    public Job Data { get; }                                            // 원본 DTO
+    public bool CanAct { get; private set; } = true;                    // 행동 가능 여부
+    public bool Marked { get; private set; } = false;                   // 표식 상태
 
     private readonly Dictionary<StatKind, TimedMod> _mods = new();
     private readonly Dictionary<string, DotInstance> _dots = new();
-    private readonly Dictionary<string, int> _cc = new(); // "Stun","Taunt"
-    private int _markRemaining = 0;
-    private int _tempDamageBonus = 0;
+    private readonly Dictionary<string, int> _cc = new();               // "Stun","Taunt"
+    private int _markRemaining = 0;                                     // 표식 수
+    private int _tempDamageBonus = 0;                                   // 피해량 조정
 
     public JobUnitAdapter(Job dto) { Data = dto; }
 
@@ -109,6 +109,6 @@ public class JobUnitAdapter : IBattleUnit
 
     public int CurrentDamageBonus => _tempDamageBonus;
 
-    private struct TimedMod   { public StatKind Stat; public int Value; public int Remaining; }
-    private struct DotInstance{ public string Name; public int DamagePerTurn; public int Remaining; public int Stacks; }
+    private struct TimedMod   { public StatKind Stat; public int Value; public int Remaining; }         // 지속 턴이 있는 스탯 변화
+    private struct DotInstance{ public string Name; public int DamagePerTurn; public int Remaining; public int Stacks; }    // Dot 관련 정보
 }

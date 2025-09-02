@@ -671,6 +671,26 @@ public class HeroSkills
             }
         }
     };
+
+    public IEnumerable<Skill> GetHeroSkills(Job job)
+    {
+        switch (job.id_job)
+        {
+            case 0: return holyKnightSkills;
+            case 1: return woodcutterSkills;
+            case 2: return warriorSkills;
+            case 3: return boxerSkills;
+            case 4: return archerSkills;
+            case 5: return hunterSkills;
+            case 6: return ninzaSkills;
+            case 7: return GeneralWizardSkills;
+            case 8: return ShamanSkills;
+            case 9: return BomberSkills;
+            case 10: return ClericSkills;
+            case 11: return DoctorSkills;
+            default: return System.Array.Empty<Skill>();
+        }
+    }
 };
     
 

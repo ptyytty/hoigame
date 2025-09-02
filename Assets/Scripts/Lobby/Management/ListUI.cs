@@ -5,6 +5,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
+// ToggleGroup에 따른 MainTab 변경
 public class ListUI : MonoBehaviour
 {
     [System.Serializable]
@@ -161,14 +162,28 @@ public class ListUI : MonoBehaviour
         {
             listUpManager.PricePanelState(true);
             employment.ResetButtonImage();
+
+            listUpManager.GrowthPanelState(false);
+
+            listUpManager.RecoveryPanelState(false);
         }
         else if (toggle == mainTabToggles[1])
         {
+            listUpManager.EmployPanelState(false);
             listUpManager.PricePanelState(false);
+
+            listUpManager.GrowthPanelState(true);
+
+            listUpManager.RecoveryPanelState(false);
         }
         else if (toggle == mainTabToggles[2])
         {
-            
+            listUpManager.EmployPanelState(false);
+            listUpManager.PricePanelState(false);
+
+            listUpManager.GrowthPanelState(false);
+
+            listUpManager.RecoveryPanelState(true);
         }
     }
 }
