@@ -8,6 +8,8 @@ public class Job
 {
     public int id_job;
     public string name_job;
+    public int level;
+    public int exp;
     public int hp;
     public int def;
     public int res;
