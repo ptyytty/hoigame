@@ -18,9 +18,10 @@ public class Employment : ListUIBase<Job>
     [Header("Extra Panel")]
     [SerializeField] private GameObject pricePanel;
     [SerializeField] private Button employButton;
+    [SerializeField] private TMP_Text employText;
 
     [Header("Extra Assets")]
-    [SerializeField] private GoodsImage goodsImage;
+    [SerializeField] private GoodsImage currencyImage;
     [SerializeField] private TestMoney testMoney;       // 임시 데이터
     [SerializeField] private TestHero testHero;
     [SerializeField] private TestHero DBHero;
@@ -35,21 +36,21 @@ public class Employment : ListUIBase<Job>
 
         employButton.onClick.AddListener(() =>
         {
-            testHero.jobs.Add(selectedHero);
-            testMoney.PayHeroPrice(selectedHero.jobCategory, heroPrice);
-            currentSelect.interactable = false;
-            listUpManager.EmployPanelState(false);
-            employButton.gameObject.SetActive(false);
-            currentSelect = null;
 
-            listUpManager.RefreshList();
-            heroListUp.RefreshHeroList();
         });
     }
 
     protected override void OnEnable()
     {
         base.OnEnable();
+
+        employButton.onClick.AddListener(EmployHero);
+        employText.text = "고용";
+    }
+
+    private void OnDisable()
+    {
+        employButton.onClick.RemoveListener(EmployHero);
     }
 
     List<Job> ShowEmployableHero(int level) // 매개 변수 = 슬롯 확장 단계
@@ -82,19 +83,19 @@ public class Employment : ListUIBase<Job>
             switch (hero.jobCategory)
             {
                 case JobCategory.Warrior:
-                    image.sprite = goodsImage.warriorImage;
+                    image.sprite = currencyImage.warriorImage;
                     break;
 
                 case JobCategory.Ranged:
-                    image.sprite = goodsImage.rangeImage;
+                    image.sprite = currencyImage.rangeImage;
                     break;
 
                 case JobCategory.Special:
-                    image.sprite = goodsImage.specialImage;
+                    image.sprite = currencyImage.specialImage;
                     break;
 
                 case JobCategory.Healer:
-                    image.sprite = goodsImage.healerImage;
+                    image.sprite = currencyImage.healerImage;
                     break;
             }
 
@@ -125,6 +126,19 @@ public class Employment : ListUIBase<Job>
         pricePanel.SetActive(true);
         listUpManager.EmployPanelState(true);
         ShowHeroInfo(hero);
+    }
+
+    void EmployHero()
+    {
+        testHero.jobs.Add(selectedHero);
+        testMoney.PayHeroPrice(selectedHero.jobCategory, heroPrice);
+        currentSelect.interactable = false;
+        listUpManager.EmployPanelState(false);
+        employButton.gameObject.SetActive(false);
+        currentSelect = null;
+
+        listUpManager.RefreshList();
+        heroListUp.RefreshHeroList();
     }
 
     public void ResetButtonImage()

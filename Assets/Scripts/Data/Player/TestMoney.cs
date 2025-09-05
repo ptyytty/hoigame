@@ -14,6 +14,8 @@ public class TestMoney : ScriptableObject
 
     private Dictionary<JobCategory, Func<int>> soulGetter;
 
+    private void OnEnable() => Initialize();
+
     public void Initialize()
     {
         soulGetter = new Dictionary<JobCategory, Func<int>>()
@@ -31,7 +33,15 @@ public class TestMoney : ScriptableObject
         return soulGetter.TryGetValue(category, out var getter) ? getter() : 0;
     }
 
+    // required 이상 있는지 확인
     public bool HasEnoughSoul(JobCategory category, int required) => GetSoul(category) >= required;
+
+    public string SoulCost(JobCategory category, int required)
+    {
+        int have = GetSoul(category);
+
+        return $"{have}/{required}";
+    }
 
     // ✅ 소울 감소 함수
     public void DecreaseSoul(JobCategory category, int amount)

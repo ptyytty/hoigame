@@ -26,6 +26,7 @@ public class ListUI : MonoBehaviour
     [Header("Script")]
     [SerializeField] private ListUpManager listUpManager;
     [SerializeField] private Employment employment;
+    [SerializeField] private Growth growth;
 
     private Color defaultTextColor = new Color(185f / 255f, 185f / 255f, 185f / 255f, 1f);
     private Color selectedTextColor = new Color(1f, 1f, 1f, 1f);
@@ -160,6 +161,8 @@ public class ListUI : MonoBehaviour
 
         if (toggle == mainTabToggles[0])
         {
+            listUpManager.ResetButtonImage();
+
             listUpManager.PricePanelState(true);
             employment.ResetButtonImage();
 
@@ -169,6 +172,8 @@ public class ListUI : MonoBehaviour
         }
         else if (toggle == mainTabToggles[1])
         {
+            listUpManager.ResetButtonImage();
+
             listUpManager.EmployPanelState(false);
             listUpManager.PricePanelState(false);
 
@@ -178,6 +183,8 @@ public class ListUI : MonoBehaviour
         }
         else if (toggle == mainTabToggles[2])
         {
+            listUpManager.ResetButtonImage();
+            
             listUpManager.EmployPanelState(false);
             listUpManager.PricePanelState(false);
 

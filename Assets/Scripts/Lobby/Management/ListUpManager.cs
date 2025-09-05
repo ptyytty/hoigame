@@ -33,7 +33,7 @@ public class ListUpManager : ListUIBase<Job>
     private SortType currentSortType = SortType.Name;
 
     public event Action<Job> OnOwnedHeroSelected;           // Growth 구독 이벤트
-    public Job CurrentSelectedHero{ get; private set; }     // 외부에서 선택 영웅 조회
+    public Job CurrentSelectedHero { get; private set; }     // 외부에서 선택 영웅 조회
 
     void Start()
     {
@@ -86,6 +86,7 @@ public class ListUpManager : ListUIBase<Job>
     public void ResetButtonImage()
     {
         base.ResetSelectedButton();
+        CurrentSelectedHero = null;
     }
 
     public void EmployPanelState(bool state)
@@ -106,7 +107,7 @@ public class ListUpManager : ListUIBase<Job>
 
     public void RecoveryPanelState(bool state)
     {
-        
+
     }
 
     protected override void SetLabel(Button button, Job hero)

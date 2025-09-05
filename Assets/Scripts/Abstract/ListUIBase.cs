@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // Hero 리스트 추상 클래스
+// 리스트 생성 클래스
 public abstract class ListUIBase<TData> : MonoBehaviour
 {
     [SerializeField] protected Button buttonPrefab;
