@@ -11,7 +11,7 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Game/Master Catalog", fileName = "MasterCatalog")]
 public class MasterCatalog : ScriptableObject
 {
-    [Header("Hero Prototypes DB")]
+    [Header("Hero DB")]
     [SerializeField] private TestHero heroDB;   // TestHero.asset 지정
 
     [Header("Item Master")]
@@ -37,7 +37,7 @@ public class MasterCatalog : ScriptableObject
                     Debug.LogError($"[MasterCatalog] Duplicate heroId: {job.id_job} ({job.name_job})");
                     continue;
                 }
-                heroMap[job.id_job] = job; // 프로토타입 보관
+                heroMap[job.id_job] = job; // heroDB 정보 => heroMap으로 복제
             }
         }
 
@@ -58,31 +58,31 @@ public class MasterCatalog : ScriptableObject
     /// <summary> heroId로 런타임 Job 복제본 생성 </summary>
     public Job CreateJobInstance(int heroId)
     {
-        if (heroMap == null || heroMap.Count == 0) BuildMaps();
-        if (!heroMap.TryGetValue(heroId, out var proto))
+        if (heroMap == null || heroMap.Count == 0) BuildMaps();     // heroMap 미생성 시 BuilMaps 실행
+        if (!heroMap.TryGetValue(heroId, out var hero))
         {
             Debug.LogWarning($"[MasterCatalog] Unknown heroId: {heroId}");
             return null;
         }
-        return CloneJob(proto);
+        return CloneJob(hero);
     }
 
-    private Job CloneJob(Job p)
+    private Job CloneJob(Job hero)  // 영웅 정보 복제
     {
         return new Job
         {
-            id_job      = p.id_job,
-            name_job    = p.name_job,
-            level       = p.level,  // 저장 로드시 덮어씀
-            exp         = p.exp,    // 저장 로드시 덮어씀
-            hp          = p.hp,
-            def         = p.def,
-            res         = p.res,
-            spd         = p.spd,
-            hit         = p.hit,
-            loc         = p.loc,
-            category    = p.category,
-            jobCategory = p.jobCategory,
+            id_job      = hero.id_job,
+            name_job    = hero.name_job,
+            level       = hero.level,  // 저장 로드시 덮어씀
+            exp         = hero.exp,    // 저장 로드시 덮어씀
+            hp          = hero.hp,
+            def         = hero.def,
+            res         = hero.res,
+            spd         = hero.spd,
+            hit         = hero.hit,
+            loc         = hero.loc,
+            category    = hero.category,
+            jobCategory = hero.jobCategory,
             equippedItem = null     // 런타임에서 별도 장비 처리
         };
     }

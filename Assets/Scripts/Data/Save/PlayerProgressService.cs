@@ -2,13 +2,34 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 using Save;
-using Unity.VisualScripting;
+using Game.Skills;
+using System;
+using System.Linq;
 
 /// <summary>
 /// 런타임 ↔ Save DTO 변환, 저장 타이밍 관리, 싱글턴 서비스
 /// </summary>
 public class PlayerProgressService : MonoBehaviour
 {
+
+    // 저장 작동 테스트
+#if UNITY_EDITOR
+    [ContextMenu("DEV/Save Now")]
+    private async void DEV_SaveNow()
+    {
+        await SaveAsync();
+        Debug.Log("[DEV] Saved.");
+    }
+
+    [ContextMenu("DEV/Reload & Apply")]
+    private async void DEV_ReloadApply()
+    {
+        var data = await SaveSystem.LoadAsync();
+        ApplyToRuntime(data);
+        Debug.Log("[DEV] Reloaded & Applied.");
+    }
+#endif
+
     public static PlayerProgressService Instance { get; private set; }
 
     // 현재 세이브 상태(메모리)
@@ -30,7 +51,7 @@ public class PlayerProgressService : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
-    private async void Start()
+    private async void Start()      // 비동기식 Start문
     {
         // 1) 로드
         Current = await SaveSystem.LoadAsync();
@@ -40,6 +61,7 @@ public class PlayerProgressService : MonoBehaviour
 
         // 3) 저장 상태를 런타임으로 적용
         ApplyToRuntime(Current);
+
     }
 
     private void OnApplicationPause(bool pause)
@@ -58,13 +80,13 @@ public class PlayerProgressService : MonoBehaviour
 
     // ========== 저장/로드 보조 ==========
 
-    public async Task<bool> SaveAsync()
+    public async Task<bool> SaveAsync()         // Task: 작업의 단위를 반환해주는 변수  Task >> void(반환값X)   Task<int> >> int형 반환
     {
         // 1) 런타임 -> Save DTO
         CaptureFromRuntime();
 
         // 2) 파일로 기록
-        return await SaveSystem.SaveAsync(Current);
+        return await SaveSystem.SaveAsync(Current);     // await: 내부 코드가 끝날 때까지 이 지점에서 저ㅓㅇ지
     }
 
     /// <summary>
@@ -83,7 +105,11 @@ public class PlayerProgressService : MonoBehaviour
             {
                 heroId = hero.id_job,
                 level = GetHeroLevel(hero),   // TODO: 프로젝트의 레벨 시스템 참조
-                exp = GetHeroExp(hero)      // TODO: 프로젝트의 경험치 시스템 참조
+                exp = GetHeroExp(hero),      // TODO: 프로젝트의 경험치 시스템 참조
+
+                heroUid = string.IsNullOrEmpty(hero.instanceId)
+                        ? System.Guid.NewGuid().ToString("N")
+                        : hero.instanceId
             };
 
             // 스킬 성장/업그레이드(예: skillId->level)
@@ -114,21 +140,25 @@ public class PlayerProgressService : MonoBehaviour
     public void ApplyToRuntime(SaveGame save)
     {
         // ---- 영웅 ----
-        testHero.jobs.Clear();
+        testHero.jobs.Clear();                  // 보유 영웅 우선 초기화
 
-        foreach (var hs in save.heroes)
+        foreach (var hero in save.heroes)
         {
             // 마스터 데이터에서 Job 프로토타입/팩토리 호출
-            var job = masterCatalog.CreateJobInstance(hs.heroId);
+            var job = masterCatalog.CreateJobInstance(hero.heroId);
             if (job == null) continue;
 
-            // 레벨/경험/성장/스킬 적용
-            SetHeroLevel(job, hs.level);
-            SetHeroExp(job, hs.exp);
-            ApplyHeroSkillLevels(job, hs.skillLevels);
-            ApplyHeroGrowthStats(job, hs.growthStats);
+            job.instanceId = string.IsNullOrEmpty(hero.heroUid)
+                ? System.Guid.NewGuid().ToString("N")
+                : hero.heroUid;
 
-            testHero.jobs.Add(job);
+            // 레벨/경험/성장/스킬 적용
+            SetHeroLevel(job, hero.level);      // 마스터 데이터 -> testHero 호출
+            SetHeroExp(job, hero.exp);          // 
+            ApplyHeroSkillLevels(job, hero.skillLevels);
+            ApplyHeroGrowthStats(job, hero.growthStats);
+
+            testHero.jobs.Add(job);             // 보유 영웅 상태 업데이트
         }
 
         // ---- 인벤토리 ----
@@ -139,7 +169,6 @@ public class PlayerProgressService : MonoBehaviour
         playerItems.slots = new List<Save.Item>(save.inventory.slots ?? new List<Save.Item>());
 
         // ---- 화폐/자원 ----
-        inventoryRuntime.ClearAll();
         inventoryRuntime.LoadFromSave(save.inventory);            // ← 세이브 → 런타임
         inventoryRuntime.Gold = save.gold;
         inventoryRuntime.redSoul = save.redSoul;
@@ -154,13 +183,16 @@ public class PlayerProgressService : MonoBehaviour
         if (save == null) return;
 
         // 1) 영웅 컨테이너/필드 정규화
-        save.heroes ??= new List<HeroSave>();
-        foreach (var h in save.heroes)
+        save.heroes ??= new List<HeroSave>();           //  if (save.heroes == null)    save.heroes = new List<HeroSave>();
+        foreach (var hero in save.heroes)
         {
-            h.skillLevels ??= new Dictionary<int, int>();
-            h.growthStats ??= new Dictionary<string, int>();
-            if (h.level <= 0) h.level = 1;
-            if (h.exp < 0) h.exp = 0;
+            hero.skillLevels ??= new Dictionary<int, int>();
+            hero.growthStats ??= new Dictionary<string, int>();
+            if (hero.level <= 0) hero.level = 1;
+            if (hero.exp < 0) hero.exp = 0;
+
+            if (string.IsNullOrEmpty(hero.heroUid))
+                hero.heroUid = System.Guid.NewGuid().ToString("N");
         }
 
         // 2) 인벤토리 컨테이너/슬롯 정규화
@@ -178,8 +210,9 @@ public class PlayerProgressService : MonoBehaviour
         save.greenSoul = Mathf.Max(0, save.greenSoul);
 
         // 4) 스키마 버전 업 (현재 스키마가 2라고 가정)
-        if (save.version < 2) save.version = 2;
+        if (save.version < 1) save.version = 1;
     }
+
 
     // ========== 아래는 프로젝트별로 구현해야 하는 부분(샘플/스텁) ==========
     private int GetHeroLevel(Job hero) => hero.level; // 예시
@@ -187,9 +220,7 @@ public class PlayerProgressService : MonoBehaviour
 
     private Dictionary<int, int> GetHeroSkillLevels(Job hero)
     {
-        // 예시: hero가 들고 있는 스킬 목록에서 id->강화레벨을 구성
-        // return hero.skills.ToDictionary(s => s.id, s => s.level);
-        return new Dictionary<int, int>();
+        return new Dictionary<int, int>(hero.skillLevels);
     }
 
     private Dictionary<string, int> GetHeroGrowthStats(Job hero)
@@ -202,12 +233,23 @@ public class PlayerProgressService : MonoBehaviour
     private void SetHeroLevel(Job hero, int level) { hero.level = level; }
     private void SetHeroExp(Job hero, int exp) { hero.exp = exp; }
 
+    /// <summary>
+    /// 영웅 스킬, 성장 상황 업데이트
+    /// </summary>
     private void ApplyHeroSkillLevels(Job hero, Dictionary<int, int> map)
     {
+        hero.skillLevels.Clear();
+
         if (map == null) return;
-        // 예시:
-        // foreach (var kv in map)
-        //     hero.GetSkillById(kv.Key).SetLevel(kv.Value);
+
+        foreach (var key in map)
+        {
+            int hId = SkillKey.ExtractHeroId(key.Key);
+            if (hId != hero.id_job) continue;
+            hero.skillLevels[key.Key] = (int)MathF.Max(1, key.Value);
+        }
+
+        // TODO: 스킬 객체/데미지/쿨타임 등에 실제 반영이 필요하면 여기서 적용
     }
 
     private void ApplyHeroGrowthStats(Job hero, Dictionary<string, int> stats)
@@ -217,3 +259,4 @@ public class PlayerProgressService : MonoBehaviour
         // if (stats.TryGetValue("hp", out var hpUp)) hero.hp += hpUp * 5;
     }
 }
+

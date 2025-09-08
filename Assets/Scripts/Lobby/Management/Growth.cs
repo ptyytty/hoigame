@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Game.Skills;
 
 public class Growth : ListUIBase<Skill>
 {
@@ -30,6 +31,7 @@ public class Growth : ListUIBase<Skill>
     private static readonly HeroSkills heroSkills = new HeroSkills();
 
     private Job currentHero;
+    private int currentSkillId;
 
     protected override void OnEnable()
     {
@@ -98,6 +100,8 @@ public class Growth : ListUIBase<Skill>
         infoPanel.SetActive(true);
         skillName.text = skill.skillName;
 
+        currentSkillId = skill.skillId;
+
         switch (currentHero.jobCategory)
         {
             case JobCategory.Warrior:
@@ -117,7 +121,12 @@ public class Growth : ListUIBase<Skill>
                 break;
         }
 
-        if (!testMoney.HasEnoughSoul(currentHero.jobCategory, 3)) priceText.color = Color.red;
+        if (!testMoney.HasEnoughSoul(currentHero.jobCategory, 3))
+        {
+            priceText.color = Color.red;
+            growthButton.interactable = false;
+        }
+        else growthButton.interactable = true;
 
         priceText.text = testMoney.SoulCost(currentHero.jobCategory, 3);
 
@@ -126,7 +135,48 @@ public class Growth : ListUIBase<Skill>
 
     void GrowthSkill()
     {
-        
+        TryUpgradeSkill(currentHero, currentSkillId);
+    }
+
+    public bool TryUpgradeSkill(Job hero, int localSkillId, int cost = 3, int maxLevel = 5)
+    {
+        int key = SkillKey.Make(hero.id_job, localSkillId);
+        int have = 0;
+        Debug.Log("성장 시작");
+
+        // 비용 확인
+        switch (hero.jobCategory)
+        {
+            case JobCategory.Warrior:
+                have = InventoryRuntime.Instance.redSoul;
+                break;
+
+            case JobCategory.Ranged:
+                have = InventoryRuntime.Instance.blueSoul;
+                break;
+
+            case JobCategory.Special:
+                have = InventoryRuntime.Instance.purpleSoul;
+                break;
+
+            case JobCategory.Healer:
+                have = InventoryRuntime.Instance.greenSoul;
+                break;
+        }
+        if (have < cost) return false;
+
+        hero.skillLevels.TryGetValue(key, out int cur);
+        if (cur >= maxLevel) return false;
+        Debug.Log(have);
+        have -= cost;
+        Debug.Log(have);
+        // 레벨 증가
+        hero.skillLevels[key] = cur + 1;
+        Debug.Log($"{hero.skillLevels[key]} / [{string.Join(",", hero.skillLevels.Values)}]");
+        // 즉시 저장
+        _ = PlayerProgressService.Instance.SaveAsync();
+        Debug.Log("성장 실행");
+        return true;
     }
 
 }

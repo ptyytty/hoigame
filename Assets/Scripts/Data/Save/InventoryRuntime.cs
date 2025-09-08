@@ -27,27 +27,28 @@ public class InventoryRuntime : MonoBehaviour
     // ---------- Save → Runtime ----------
     public void LoadFromSave(InventorySave saveInv)
     {
+        // 보유 아이템 초기화
         ownedConsume.Clear();
         ownedEquipItem.Clear();
 
         if (saveInv?.slots == null) return;
 
-        foreach (var s in saveInv.slots)
+        foreach (var item in saveInv.slots)
         {
-            if (s.count <= 0 || s.itemId <= 0) continue;
+            if (item.count <= 0 || item.itemId <= 0) continue;
 
-            if (s.type == ItemType.Consume)
+            if (item.type == ItemType.Consume)
             {
-                var def = ItemCatalog.GetConsume(s.itemId);
+                var def = ItemCatalog.GetConsume(item.itemId);
                 if (def == null) continue;
-                AddConsumeItem(def, s.count);
+                AddConsumeItem(def, item.count);
             }
             else // Equipment
             {
-                var def = ItemCatalog.GetEquip(s.itemId);
+                var def = ItemCatalog.GetEquip(item.itemId);
                 if (def == null) continue;
                 // 장비는 1개씩
-                for (int i = 0; i < Mathf.Max(1, s.count); i++)
+                for (int i = 0; i < Mathf.Max(1, item.count); i++)
                     AddEquipItem(def);
             }
         }
@@ -96,15 +97,15 @@ public class InventoryRuntime : MonoBehaviour
         return found?.count ?? 0;
     }
 
-    public void AddConsumeItem(ConsumeItem item, int delta)
+    public void AddConsumeItem(ConsumeItem item, int count)
     {
         var found = ownedConsume.Find(x => x.itemData.id_item == item.id_item);
         if (found == null)
         {
-            if (delta > 0) ownedConsume.Add(new OwnedItem<ConsumeItem>(item, delta));
+            if (count > 0) ownedConsume.Add(new OwnedItem<ConsumeItem>(item, count));
             return;
         }
-        found.count += delta;
+        found.count += count;
         if (found.count <= 0) ownedConsume.Remove(found);
     }
 
@@ -122,12 +123,6 @@ public class InventoryRuntime : MonoBehaviour
             yield return new RuntimeSlot { itemId = c.itemData.id_item, num = 0, type = ItemType.Consume, count = c.count };
         foreach (var e in ownedEquipItem)
             yield return new RuntimeSlot { itemId = e.itemData.id_item, num = 0, type = ItemType.Equipment, count = 1 };
-    }
-
-    public void ClearAll()
-    {
-        ownedConsume.Clear();
-        ownedEquipItem.Clear();
     }
 
     public void PushEmpty() { /* 빈 슬롯 개념이 없으니 무시해도 됨 */ }

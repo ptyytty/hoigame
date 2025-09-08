@@ -1,10 +1,12 @@
-using System;                
-using System.IO;                  
-using System.Text;                    
-using System.Threading.Tasks;         
-using UnityEngine;                    
+using System;
+using System.IO;
+using System.Text;
+using System.Threading.Tasks;
+using UnityEngine;
 using Newtonsoft.Json;                // Json.NET 직렬화/역직렬화
-using Save;                           // 만든 Save 네임스페이스(SaveGame 등 모델들)
+using Save;
+using System.Linq;
+using System.Collections.Generic;                           // 만든 Save 네임스페이스(SaveGame 등 모델들)
 
 public static class SaveSystem         // 인스턴스 없이 어디서든 쓰는 정적 유틸 클래스
 {
@@ -88,6 +90,8 @@ public static class SaveSystem         // 인스턴스 없이 어디서든 쓰�
             if (!File.Exists(SavePath))
             {
                 // 없으면 신규 데이터 반환
+                var fresh = CreateNewSave();
+                NormalizeAfterLoad(fresh);
                 return CreateNewSave();
                 // 첫 실행 등 저장 파일이 없으면 새 데이터로 시작
             }
@@ -159,4 +163,49 @@ public static class SaveSystem         // 인스턴스 없이 어디서든 쓰�
             greenSoul = 0
         };
     }
+
+    // SaveSystem.cs 내부 아무 곳(클래스 범위) — private static helper로 두면 깔끔
+    private static void NormalizeAfterLoad(SaveGame data)
+    {
+        // 리스트/딕셔너리 null 방지
+        data.heroes ??= new List<HeroSave>();
+
+        foreach (var hero in data.heroes)
+        {
+            hero.skillLevels ??= new Dictionary<int, int>();
+
+            // 영웅 정의(직업) ID 가져오기 — 프로젝트 필드명에 맞게 수정
+            int heroDefId = hero.heroId;   // ← 예: hero.jobId / hero.data.id_job 등으로 바꿔도 됨
+
+            NormalizeSkillLevelsForHero(hero, heroDefId);
+        }
+    }
+
+    /// <summary>
+    /// hero.skillLevels에서 누락된 스킬ID는 0으로 채우고,
+    /// 카탈로그에 없는 키는 제거
+    /// </summary>
+    private static void NormalizeSkillLevelsForHero(HeroSave hero, int heroDefId)
+    {
+        // 영웅(직업)별 스킬 ID 목록 가져오기
+        var ids = SkillCatalog.GetHeroSkillIds(heroDefId); // IReadOnlyList<int>
+
+        // 누락 키 → 0으로 채우기
+        for (int i = 0; i < ids.Count; i++)
+        {
+            int id = ids[i];
+            if (!hero.skillLevels.ContainsKey(id))
+                hero.skillLevels[id] = 0;
+        }
+
+        // 카탈로그에 없는 키 제거
+        // 열거 중 변경 방지를 위해 임시 리스트 사용
+        var toRemove = new List<int>();
+        foreach (var k in hero.skillLevels.Keys)
+            if (!ids.Contains(k))
+                toRemove.Add(k);
+        for (int i = 0; i < toRemove.Count; i++)
+            hero.skillLevels.Remove(toRemove[i]);
+    }
+
 }

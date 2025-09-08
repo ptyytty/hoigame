@@ -19,6 +19,7 @@ public class Job
     public int category;
     public JobCategory jobCategory;
     [NonSerialized] public EquipItem equippedItem;
+    [NonSerialized] public string instanceId;
 
     // 스킬 사용 관련 속성
     [NonSerialized] public bool CanAct = true;
@@ -28,6 +29,10 @@ public class Job
     private Dictionary<BuffType, int> activeBuffs = new();
     private Dictionary<BuffType, int> activeDebuffs = new();
 
+    // 성장 확인
+    public Dictionary<int, int> skillLevels = new();        // ★ key = heroId * BASE(100) + localSkillId
+
+    // 버프 적용
     public void AddBuff(BuffType type, int duration)
     {
         if (activeDebuffs.ContainsKey(type))

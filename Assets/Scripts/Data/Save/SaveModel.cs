@@ -27,8 +27,9 @@ namespace Save
     }
 
     [Serializable]
-    public class HeroSave
+    public class HeroSave           //  보유 영웅 정보
     {
+        public string heroUid;      // 영웅 인스턴스 고유 식별자
         public int heroId;           // 마스터 데이터에 존재하는 id
         public int level;
         public int exp;

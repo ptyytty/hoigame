@@ -118,7 +118,7 @@ public class ListUpManager : ListUIBase<Job>
 
         nameText.text = hero.name_job;
         jobText.text = hero.name_job.ToString();
-        levelText.text = $"Lv.{hero.id_job}";
+        levelText.text = $"Lv.{hero.level}";
     }
 
     public void RefreshList()

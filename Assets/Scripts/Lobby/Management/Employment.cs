@@ -17,7 +17,7 @@ public class Employment : ListUIBase<Job>
 
     [Header("Extra Panel")]
     [SerializeField] private GameObject pricePanel;
-    [SerializeField] private Button employButton;
+    [SerializeField] private Button confirmButton;
     [SerializeField] private TMP_Text employText;
 
     [Header("Extra Assets")]
@@ -34,7 +34,7 @@ public class Employment : ListUIBase<Job>
     {
         LoadList();
 
-        employButton.onClick.AddListener(() =>
+        confirmButton.onClick.AddListener(() =>
         {
 
         });
@@ -44,13 +44,13 @@ public class Employment : ListUIBase<Job>
     {
         base.OnEnable();
 
-        employButton.onClick.AddListener(EmployHero);
+        confirmButton.onClick.AddListener(EmployHero);
         employText.text = "고용";
     }
 
     private void OnDisable()
     {
-        employButton.onClick.RemoveListener(EmployHero);
+        confirmButton.onClick.RemoveListener(EmployHero);
     }
 
     List<Job> ShowEmployableHero(int level) // 매개 변수 = 슬롯 확장 단계
@@ -113,16 +113,16 @@ public class Employment : ListUIBase<Job>
 
         nameText.text = hero.name_job;
         jobText.text = hero.name_job.ToString();
-        levelText.text = $"Lv.{hero.id_job}";
+        levelText.text = $"Lv.{hero.level}";
     }
 
     protected override void OnSelected(Job hero)
     {
-        if (testMoney.HasEnoughSoul(hero.jobCategory, 3)) employButton.interactable = true;
-        else employButton.interactable = false;
+        if (testMoney.HasEnoughSoul(hero.jobCategory, 3)) confirmButton.interactable = true;
+        else confirmButton.interactable = false;
 
         selectedHero = hero;
-        employButton.gameObject.SetActive(true);
+        confirmButton.gameObject.SetActive(true);
         pricePanel.SetActive(true);
         listUpManager.EmployPanelState(true);
         ShowHeroInfo(hero);
@@ -134,7 +134,7 @@ public class Employment : ListUIBase<Job>
         testMoney.PayHeroPrice(selectedHero.jobCategory, heroPrice);
         currentSelect.interactable = false;
         listUpManager.EmployPanelState(false);
-        employButton.gameObject.SetActive(false);
+        confirmButton.gameObject.SetActive(false);
         currentSelect = null;
 
         listUpManager.RefreshList();
