@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 public static class SkillCatalog
 {
     private static bool built;
-    private static Dictionary<int, List<Skill>> byHero;  // heroId -> 스킬 3개
+    private static Dictionary<int, List<Skill>> byHero;  // heroId -> 스킬 3개 딕셔너리
 
     private static void BuildOnce()
     {
@@ -20,7 +21,7 @@ public static class SkillCatalog
             { 4, skills.archerSkills },
             { 5, skills.hunterSkills },
             { 6, skills.ninzaSkills },
-            { 7, skills.GeneralWizardSkills }, // 필요 시 Fire/Ice/Electric로 바뀌는 직업은 정책 결정
+            { 7, skills.GeneralWizardSkills }, // Fire/Ice/Electric
             { 8, skills.ShamanSkills },
             { 9, skills.BomberSkills },
             { 10, skills.ClericSkills },
@@ -31,20 +32,24 @@ public static class SkillCatalog
     }
 
     /// <summary>
-    /// 해당 영웅(heroId)의 모든 스킬 ID를 반환 (정규화/표시용)
+    /// 해당 영웅(ownHeroId)의 모든 스킬 ID를 반환 (정규화/표시용)
     /// </summary>
-    public static IReadOnlyList<int> GetHeroSkillIds(int heroId)
+    public static IReadOnlyList<int> GetHeroSkillIds(int ownHeroId)
     {
         BuildOnce();
-        var list = GetHeroSkills(heroId);
+        var list = GetHeroSkills(ownHeroId);
         // 스킬 ID 중복 방지
-        return list.Select(s => s.skillId).Distinct().ToList();
+        return list.Select(s => s.skillId).Distinct().ToList(); // s = 원소 s의 skillId return
     }
 
-    public static IReadOnlyList<Skill> GetHeroSkills(int heroId)
+    // 해당 영웅(ownHeroId)의 스킬들 조회
+    public static IReadOnlyList<Skill> GetHeroSkills(int ownHeroId)
     {
         BuildOnce();
-        return byHero.TryGetValue(heroId, out var list) ? list : (IReadOnlyList<Skill>)System.Array.Empty<Skill>();
+        // ownHeroId 찾으면 true, 값 list에 대입 / 아니면 false 
+        bool found = byHero.TryGetValue(ownHeroId, out var list);  // list = List<Skill>
+        // list / 캐시된 빈 배열 반환
+        return found ? list : Array.Empty<Skill>();
     }
 
     public static Skill GetSkill(int heroId, int localSkillId)

@@ -37,11 +37,11 @@ public class PlayerProgressService : MonoBehaviour
 
     // --- 런타임 시스템 참조(실제 프로젝트에 맞게 할당) ---
     [Header("Runtime Systems")]
-    [SerializeField] private TestHero testHero;     // 사용자의 보유 영웅 리스트를 들고있는 런타임 오브젝트(예: jobs 리스트)
-    [SerializeField] private InventorySave playerItems; // 사용자의 인벤토리 런타임(예시)
+    [SerializeField] private TestHero ownHero;                 // 보유 영웅 리스트를 들고있는 런타임 오브젝트
+    [SerializeField] private InventorySave playerItems;         // 보유 인벤토리 런타임 오브젝트
     [SerializeField] private MasterCatalog masterCatalog;       // ID->마스터 데이터 맵핑(예: 영웅/아이템 사전)
-    [SerializeField] private InventoryRuntime inventoryRuntime;
-    [SerializeField] private TestInventory startingInventory;
+    [SerializeField] private InventoryRuntime inventoryRuntime; // 현재 보유 재화
+    [SerializeField] private TestInventory startingInventory;   // 현재 보유 아이템(프로토 타입)
 
     // 싱글턴
     private void Awake()
@@ -64,22 +64,24 @@ public class PlayerProgressService : MonoBehaviour
 
     }
 
+    /// <summary>
+    /// 일시정지,종료 시 자동 저장
+    /// </summary>
     private void OnApplicationPause(bool pause)
     {
         if (pause)
         {
-            _ = SaveAsync(); // 일시정지 시 저장(에러 무시)
+            _ = SaveAsync();
         }
     }
 
     private void OnApplicationQuit()
     {
-        // 종료 시 동기 저장을 원하면 .GetAwaiter().GetResult()로 기다릴 수도 있음
         _ = SaveAsync();
     }
 
-    // ========== 저장/로드 보조 ==========
 
+    // ========== 저장/로드 보조 ==========
     public async Task<bool> SaveAsync()         // Task: 작업의 단위를 반환해주는 변수  Task >> void(반환값X)   Task<int> >> int형 반환
     {
         // 1) 런타임 -> Save DTO
@@ -99,26 +101,26 @@ public class PlayerProgressService : MonoBehaviour
 
         // ---- 영웅 보유/성장 ----
         save.heroes.Clear();
-        foreach (var hero in testHero.jobs) // testHero.jobs: List<Job>
+        foreach (var hero in ownHero.jobs) // ownHero.jobs: List<Job>
         {
             var h = new HeroSave
             {
                 heroId = hero.id_job,
-                level = GetHeroLevel(hero),   // TODO: 프로젝트의 레벨 시스템 참조
-                exp = GetHeroExp(hero),      // TODO: 프로젝트의 경험치 시스템 참조
+                level = GetHeroLevel(hero),     // 레벨 대입
+                exp = GetHeroExp(hero),         // 경험치 대입
 
                 heroUid = string.IsNullOrEmpty(hero.instanceId)
-                        ? System.Guid.NewGuid().ToString("N")
+                        ? System.Guid.NewGuid().ToString("N")       // N = 하이픈 없는 32자
                         : hero.instanceId
             };
 
             // 스킬 성장/업그레이드(예: skillId->level)
-            h.skillLevels = GetHeroSkillLevels(hero); // TODO: 실제 로직 반환
+            h.skillLevels = GetHeroSkillLevels(hero); // 영웅 스킬 레벨 대입
 
             // 추가 성장치(선택)
-            h.growthStats = GetHeroGrowthStats(hero); // TODO: 실제 로직 반환
+            h.growthStats = GetHeroGrowthStats(hero); // 성장 능력치 대입
 
-            save.heroes.Add(h);
+            save.heroes.Add(h);     // 현재 영웅 정보 확인
         }
 
         // ---- 인벤토리 ----
@@ -140,7 +142,7 @@ public class PlayerProgressService : MonoBehaviour
     public void ApplyToRuntime(SaveGame save)
     {
         // ---- 영웅 ----
-        testHero.jobs.Clear();                  // 보유 영웅 우선 초기화
+        ownHero.jobs.Clear();                  // 보유 영웅 우선 초기화
 
         foreach (var hero in save.heroes)
         {
@@ -153,12 +155,12 @@ public class PlayerProgressService : MonoBehaviour
                 : hero.heroUid;
 
             // 레벨/경험/성장/스킬 적용
-            SetHeroLevel(job, hero.level);      // 마스터 데이터 -> testHero 호출
+            SetHeroLevel(job, hero.level);      // 마스터 데이터 -> ownHero 호출
             SetHeroExp(job, hero.exp);          // 
             ApplyHeroSkillLevels(job, hero.skillLevels);
             ApplyHeroGrowthStats(job, hero.growthStats);
 
-            testHero.jobs.Add(job);             // 보유 영웅 상태 업데이트
+            ownHero.jobs.Add(job);             // 보유 영웅 상태 업데이트
         }
 
         // ---- 인벤토리 ----

@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ced8eaaef7e122746a4dffd3650e085d, type: 3}
-  m_Name: TestHero
+  m_Name: OwnHeroes
   m_EditorClassIdentifier: 
   jobs:
   - id_job: 3

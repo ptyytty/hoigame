@@ -17298,7 +17298,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1376459711}
-  - component: {fileID: 1376459710}
   - component: {fileID: 1376459709}
   - component: {fileID: 1376459712}
   m_Layer: 0
@@ -17320,29 +17319,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 31d34c7fbd83687409634baf8e593bcb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  testHero: {fileID: 11400000, guid: d3959306d5daa2f4f8073d130bd6ae7f, type: 2}
+  ownHero: {fileID: 11400000, guid: d3959306d5daa2f4f8073d130bd6ae7f, type: 2}
   playerItems:
     slots: []
   masterCatalog: {fileID: 11400000, guid: 76b7e7dd8182a0b48be825f24e3447bc, type: 2}
-  inventoryRuntime: {fileID: 1376459710}
+  inventoryRuntime: {fileID: 1376459712}
   startingInventory: {fileID: 11400000, guid: 1426bb341626c1b488035f52b9cf96a1, type: 2}
---- !u!114 &1376459710
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1376459708}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d6745f283869e12499a37d35391d53b7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Gold: 0
-  redSoul: 0
-  blueSoul: 0
-  purpleSoul: 0
-  greenSoul: 0
 --- !u!4 &1376459711
 Transform:
   m_ObjectHideFlags: 0

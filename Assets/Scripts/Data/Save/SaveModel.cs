@@ -9,7 +9,7 @@ namespace Save
         // 스키마 버전 (마이그레이션용)
         public int version = 1;
 
-        // 플레이어 식별(필요 시)
+        // 플레이어 식별
         public string playerId;
 
         // 영웅 보유 및 성장 상태
@@ -29,12 +29,12 @@ namespace Save
     [Serializable]
     public class HeroSave           //  보유 영웅 정보
     {
-        public string heroUid;      // 영웅 인스턴스 고유 식별자
+        public string heroUid;      // 영웅 인스턴스 고유 식별자 (중복 영웅)
         public int heroId;           // 마스터 데이터에 존재하는 id
         public int level;
         public int exp;
 
-        // 스킬 업그레이드(예: skillId->level)
+        // 스킬 업그레이드 상황  skillId->level(최대 5)
         public Dictionary<int, int> skillLevels = new();
 
         // 영웅의 성장(능력치 강화 등) 세부를 따로 둬도 됨
