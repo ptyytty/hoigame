@@ -13,6 +13,8 @@ public class InventoryRuntime : MonoBehaviour
     public int purpleSoul;
     public int greenSoul;
 
+    public enum CurrencyType {Gold, RedSoul, BlueSoul, PurpleSoul, GreenSoul}
+
     // === 내부 보유 구조 ===
     private readonly List<OwnedItem<ConsumeItem>> ownedConsume = new();
     public  readonly List<OwnedItem<EquipItem>>   ownedEquipItem = new(); // ItemList가 그대로 씀
@@ -23,6 +25,21 @@ public class InventoryRuntime : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
     }
+
+    // 재화 설정
+    private void SetCurrency(CurrencyType type, int value)
+    {
+        value = Mathf.Max(0, value);
+        switch (type)
+        {
+            case CurrencyType.Gold: Gold = value; break;
+            case CurrencyType.RedSoul: redSoul = value; break;
+            case CurrencyType.BlueSoul: blueSoul = value; break;
+            case CurrencyType.PurpleSoul: purpleSoul = value; break;
+            case CurrencyType.GreenSoul: greenSoul = value; break;
+        }
+    }
+
 
     // ---------- Save → Runtime ----------
     public void LoadFromSave(InventorySave saveInv)

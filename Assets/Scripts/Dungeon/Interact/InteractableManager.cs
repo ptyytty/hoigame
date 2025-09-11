@@ -34,6 +34,7 @@ public class InteractableManager : MonoBehaviour
     [Header("Interact UI")]
     public Button interactionUp;
     public Button interactionDown;
+    public GameObject interactionObj;
     void Start()
     {
         AutoFindFloorAndScan();

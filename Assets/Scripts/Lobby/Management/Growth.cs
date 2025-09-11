@@ -164,6 +164,7 @@ public class Growth : ListUIBase<Skill>
                 break;
         }
         if (have < cost) return false;
+        Debug.Log("비용 있음");
 
         hero.skillLevels.TryGetValue(key, out int cur);
         if (cur >= maxLevel) return false;

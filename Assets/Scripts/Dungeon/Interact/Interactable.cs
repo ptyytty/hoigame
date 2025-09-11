@@ -42,5 +42,9 @@ public class Interactable : MonoBehaviour
             InteractableManager.instance.interactionUp.gameObject.SetActive(show);
         else if (gameObject.CompareTag("Downstair"))
             InteractableManager.instance.interactionDown.gameObject.SetActive(show);
+
+        else if (gameObject.CompareTag("Untagged"))
+            InteractableManager.instance.interactionObj.gameObject.SetActive(show);
+        // 오브젝트 UI
     }
 }
