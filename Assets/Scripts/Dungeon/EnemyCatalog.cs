@@ -3,7 +3,7 @@ using System.Linq;
 using UnityEngine;
 
 
-[CreateAssetMenu(menuName = "Game/Enemies/Enemy Catalog", fileName = "EnemyCatalog")]
+[CreateAssetMenu(menuName = "Game/Enemy Catalog", fileName = "EnemyCatalog")]
 public class EnemyCatalog : ScriptableObject
 {
     [System.Serializable]

@@ -27,33 +27,35 @@ public class SpawnAndBattleZone : MonoBehaviour
 
     // ====== 카탈로그 & 스폰 옵션 ======
     [Header("Catalog & Count")]
-    public EnemyCatalog catalog;
+    public EnemyCatalog catalog;            // ScriptableObject
+
+    // 스폰될 몬스터 수
     [Min(1)] public int minCount = 2;
     [Min(1)] public int maxCount = 4;
 
     [Header("Trigger & Once")] 
-    public string partyTag = "PlayerParty"; // 파티 오브젝트에 이 태그 지정
+    public string partyTag = "Party"; // 파티 오브젝트에 이 태그 지정
     public bool triggerOnce = true;          // 한 번만 발동
 
     [Header("Placement")] 
     public bool useNavMesh = true;
     public float navSampleRange = 2f;
-    public LayerMask blockMask;              // 장애물/지형 레이어
+    public LayerMask blockMask;              // 장애물/지형 레이어 (스폰 불가)
     public float extraSeparation = 0.2f;     // 카탈로그 반경 + 추가 간격
 
     [Header("Battle Start")]
-    public BattleStartMode battleStart = BattleStartMode.LoadSceneAdditive;
+    public BattleStartMode battleStart = BattleStartMode.LoadSceneAdditive; // 전투 씬 전환
     public string battleSceneName = "Battle";
     public bool loadSceneAdditively = true;
 
     [Header("Debug")] 
-    public bool showGizmos = true;
+    public bool showGizmos = true;  // 에디터에서 존 범위 표시
 
     private BoxCollider box;
     private bool consumed;
 
     // ====== 내부 타입/헬퍼 ======
-    public enum BattleStartMode { LoadSceneAdditive, InvokeCSharpEvent, DoNothing }
+    public enum BattleStartMode { LoadSceneAdditive, InvokeCSharpEvent, DoNothing } // 1. Additive 모드 진입 2. 외부 전투 시스템 호출 3. 아무 것도 하지 않음
 
     /// <summary>
     /// 외부 전투 시스템에 직접 연결하고 싶을 때 구독 가능한 이벤트.
