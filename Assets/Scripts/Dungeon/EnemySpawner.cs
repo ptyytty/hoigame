@@ -1,228 +1,263 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
-using UnityEngine.AI;               // 3D NavMesh 사용 시
-using UnityEngine.SceneManagement;  // 전투 씬 로드 옵션
+using UnityEngine.Events;
 
-/// <summary>
-/// 파티가 트리거 존을 통과하면 EnemyCatalog에서 원하는 수만큼 랜덤 스폰 후, 즉시 전투를 시작한다.
-/// - 2D라면 OnTriggerEnter2D/Collider2D, Physics2D.OverlapCircle 등으로 치환
-/// - 오브젝트 풀, 웨이브, 재스폰, 카메라 연출도 이 파일에서 쉽게 확장 가능
-/// </summary>
-[RequireComponent(typeof(BoxCollider))]
-public class SpawnAndBattleZone : MonoBehaviour
+[DisallowMultipleComponent]
+public class EnemySpawnerV2 : MonoBehaviour
 {
-    // ====== 파티 연동(간소화) ======
-    /// <summary>
-    /// 외부 파티 제공자. 같은 파일 안에 정의된 인터페이스를 구현한 컴포넌트를 지정하면 런타임에서 자동으로 영웅 목록을 읽어옵니다.
-    /// 미지정 시 fallbackParty 사용.
-    /// </summary>
-    [SerializeField] private MonoBehaviour partyProvider;
+    [Header("Trigger")]
+    [Tooltip("이 콜라이더(또는 자식 콜라이더)에 Party가 들어오면 스폰합니다.")]
+    [SerializeField] private string partyTag = "Party";
+    [SerializeField] private bool oneShot = true;           // 한 번만 스폰
+    [SerializeField] private bool disableAfterSpawn = true; // 스폰 후 비활성화
 
-    /// <summary>
-    /// partyProvider를 쓰지 않는다면, 인스펙터나 코드에서 직접 세팅할 수 있는 파티 목록입니다.
-    /// </summary>
-    [SerializeField] private List<Job> fallbackParty = new();
+    [Header("Spawn Distance / Position")]
+    [Tooltip("기준 지점(파티 또는 스포너)에서 앞으로 얼마나 떨어진 곳에 스폰할지(m).")]
+    [Min(0f)] public float spawnDistance = 4f;
+    [Tooltip("스폰 기준(거리/방향 계산용)")]
+    public SpawnOrigin origin = SpawnOrigin.Party; // Party 또는 Spawner
+    [Tooltip("생성 위치에 추가로 더할 로컬 오프셋(스포너 기준).")]
+    public Vector3 extraOffset = Vector3.zero;
 
-    // ====== 카탈로그 & 스폰 옵션 ======
-    [Header("Catalog & Count")]
-    public EnemyCatalog catalog;            // ScriptableObject
+    public enum SpawnOrigin { Party, Spawner }
 
-    // 스폰될 몬스터 수
-    [Min(1)] public int minCount = 2;
-    [Min(1)] public int maxCount = 4;
+    [Header("Facing (방향 설정)")]
+    public FacingMode facingMode = FacingMode.PartyForward;
+    public float yawOffsetDeg = 0f; // 추가 회전(Yaw)
+    public Vector3 customDirection = Vector3.forward;  // FacingMode.CustomDirection 일 때
+    public Vector3 fixedEuler = Vector3.zero;          // FacingMode.FixedEuler 일 때
 
-    [Header("Trigger & Once")] 
-    public string partyTag = "Party"; // 파티 오브젝트에 이 태그 지정
-    public bool triggerOnce = true;          // 한 번만 발동
-
-    [Header("Placement")] 
-    public bool useNavMesh = true;
-    public float navSampleRange = 2f;
-    public LayerMask blockMask;              // 장애물/지형 레이어 (스폰 불가)
-    public float extraSeparation = 0.2f;     // 카탈로그 반경 + 추가 간격
-
-    [Header("Battle Start")]
-    public BattleStartMode battleStart = BattleStartMode.LoadSceneAdditive; // 전투 씬 전환
-    public string battleSceneName = "Battle";
-    public bool loadSceneAdditively = true;
-
-    [Header("Debug")] 
-    public bool showGizmos = true;  // 에디터에서 존 범위 표시
-
-    private BoxCollider box;
-    private bool consumed;
-
-    // ====== 내부 타입/헬퍼 ======
-    public enum BattleStartMode { LoadSceneAdditive, InvokeCSharpEvent, DoNothing } // 1. Additive 모드 진입 2. 외부 전투 시스템 호출 3. 아무 것도 하지 않음
-
-    /// <summary>
-    /// 외부 전투 시스템에 직접 연결하고 싶을 때 구독 가능한 이벤트.
-    /// UnityEvent는 List<T> 시리얼라이즈 제약이 있어 C# event로 제공.
-    /// </summary>
-    public static event System.Action<IReadOnlyList<Job>, IReadOnlyList<GameObject>> OnBattleStart;
-
-    public interface IHeroPartyProvider { IReadOnlyList<Job> GetParty(); }
-
-    public static class BattleContext
+    public enum FacingMode
     {
-        public static List<Job> Heroes;
-        public static List<GameObject> Enemies;
+        PartyForward,     // 파티가 바라보는 방향
+        SpawnerForward,   // 스포너(이 오브젝트)가 바라보는 방향
+        FaceTowardsParty, // 파티를 향하도록
+        CustomDirection,  // 커스텀 벡터 방향
+        FixedEuler        // 정확한 오일러 각 고정
     }
 
-    void Reset()
+    [Header("Encounter (내가 고른 세트 중 하나)")]
+    [Tooltip("스폰 시 이 목록 중 하나의 세트를 선택해서 생성합니다.")]
+    public List<Encounter> encounters = new();
+
+    [Tooltip("강제로 이 인덱스의 세트를 사용 (-1이면 가중치 랜덤).")]
+    public int forcedEncounterIndex = -1;
+
+    [Header("Lifecycle / Events")]
+    [Tooltip("스폰된 몬스터들을 부모로 담아둘 컨테이너(없으면 계층 최상위 생성).")]
+    public Transform spawnParent;
+    public UnityEvent<List<GameObject>> onSpawned; // 스폰 직후 콜백
+
+    [Serializable]
+    public class Encounter
     {
-        box = GetComponent<BoxCollider>();
-        if (box) box.isTrigger = true;
+        public string name;
+        [Tooltip("이 세트에 포함될 몬스터 프리팹들(필수).")]
+        public List<GameObject> monsterPrefabs = new();
+
+        [Header("세트 선택 가중치")]
+        [Min(0f)] public float weight = 1f;
+
+        [Header("포메이션(선택)")]
+        [Tooltip("각 몬스터의 상대 위치(스폰 기준점 기준). 비워두면 자동으로 일렬 배치.")]
+        public List<Vector3> localPositions = new();
+
+        [Tooltip("각 몬스터의 추가 회전(옵션).")]
+        public List<Vector3> extraEulerPerMonster = new();
     }
 
-    void Awake()
+    bool _hasSpawned = false;
+
+    private void OnTriggerEnter(Collider other)
     {
-        box = GetComponent<BoxCollider>();
-        if (box && !box.isTrigger) box.isTrigger = true;
+        if (!enabled) return;
+        if (oneShot && _hasSpawned) return;
+        if (!other || !other.CompareTag(partyTag)) return;
+
+        Transform party = other.attachedRigidbody ? other.attachedRigidbody.transform : other.transform;
+        Spawn(party);
     }
 
-    void OnTriggerEnter(Collider other)
+    /// <summary>원할 때 스크립트에서 수동으로 호출해도 됨.</summary>
+    public void Spawn(Transform party)
     {
-        if (triggerOnce && consumed) return;
-        if (!other.CompareTag(partyTag)) return;
-        StartCoroutine(SpawnAndStartBattle());
-    }
+        if (oneShot && _hasSpawned) return;
 
-    IEnumerator SpawnAndStartBattle()
-    {
-        consumed = true;
-        if (catalog == null || catalog.entries == null || catalog.entries.Count == 0)
+        // 1) 세트 고르기
+        var enc = PickEncounter();
+        if (enc == null || enc.monsterPrefabs == null || enc.monsterPrefabs.Count == 0)
         {
-            Debug.LogWarning("[SpawnAndBattleZone] Catalog is empty.");
-            yield break;
+            Debug.LogWarning($"[EnemySpawnerV2] 사용할 Encounter가 없습니다. (게임오브젝트: {name})");
+            return;
         }
 
-        int want = Random.Range(minCount, maxCount + 1);
-        var picks = catalog.PickMany(want);
+        // 2) 기준점/방향 계산
+        Vector3 basePos; Quaternion baseRot;
+        ComputeBasePose(party, out basePos, out baseRot);
 
-        var positions = FindSpawnPositions(picks);
-        if (positions.Count == 0)
+        // 3) 포메이션 위치들 계산
+        var positions = BuildPositions(enc, basePos, baseRot, enc.monsterPrefabs.Count);
+
+        // 4) 스폰
+        var spawned = new List<GameObject>(enc.monsterPrefabs.Count);
+        for (int i = 0; i < enc.monsterPrefabs.Count; i++)
         {
-            Debug.LogWarning("[SpawnAndBattleZone] No valid positions.");
-            yield break;
-        }
+            var prefab = enc.monsterPrefabs[i];
+            if (!prefab) continue;
 
-        var spawned = new List<GameObject>(positions.Count);
-        for (int i = 0; i < positions.Count; i++)
-        {
-            var def = picks[i];
-            if (def?.prefab == null) continue;
-            var go = Instantiate(def.prefab, positions[i], Quaternion.identity);
-            spawned.Add(go);
-            yield return null; // 프레임 분산(옵션)
-        }
-
-        var heroes = ResolveParty();
-        if (heroes == null || heroes.Count == 0)
-        {
-            Debug.LogWarning("[SpawnAndBattleZone] No heroes in party.");
-            yield break;
-        }
-
-        BeginBattle(heroes, spawned);
-    }
-
-    IReadOnlyList<Job> ResolveParty()
-    {
-        if (partyProvider is IHeroPartyProvider provider)
-            return provider.GetParty();
-        return fallbackParty;
-    }
-
-    void BeginBattle(IReadOnlyList<Job> heroes, IReadOnlyList<GameObject> enemies)
-    {
-        // 공용 컨텍스트에 주입(씬 로드 방식에서 사용)
-        BattleContext.Heroes  = new List<Job>(heroes);
-        BattleContext.Enemies = new List<GameObject>(enemies);
-
-        switch (battleStart)
-        {
-            case BattleStartMode.LoadSceneAdditive:
-                if (!string.IsNullOrEmpty(battleSceneName))
-                {
-                    if (loadSceneAdditively) SceneManager.LoadScene(battleSceneName, LoadSceneMode.Additive);
-                    else SceneManager.LoadScene(battleSceneName);
-                }
-                else Debug.LogWarning("[SpawnAndBattleZone] battleSceneName is empty.");
-                break;
-
-            case BattleStartMode.InvokeCSharpEvent:
-                OnBattleStart?.Invoke(heroes, enemies);
-                break;
-
-            case BattleStartMode.DoNothing:
-                // 외부 시스템이 BattleContext를 직접 읽어 사용하는 경우
-                break;
-        }
-    }
-
-    List<Vector3> FindSpawnPositions(List<EnemyCatalog.Entry> defs)
-    {
-        var result = new List<Vector3>();
-        if (box == null) return result;
-
-        var bounds = box.bounds; // 월드 좌표
-        int triesPerEnemy = 16;  // 시도 수 증가 시 밀집에서도 성공률↑
-
-        for (int i = 0; i < defs.Count; i++)
-        {
-            var def = defs[i];
-            float sep = (def != null ? def.separationRadius : 0.6f) + extraSeparation;
-
-            bool placed = false;
-            for (int t = 0; t < triesPerEnemy; t++)
+            Quaternion rot = baseRot;
+            if (i < enc.extraEulerPerMonster.Count)
             {
-                var p = RandomPointInBounds(bounds);
-
-                if (useNavMesh && NavMesh.SamplePosition(p, out var hit, navSampleRange, NavMesh.AllAreas))
-                    p = hit.position;
-
-                // 서로 간격 유지 + 장애물 충돌 확인
-                if (Physics.CheckSphere(p, sep, blockMask))
-                    continue;
-                if (result.Any(r => Vector3.SqrMagnitude(r - p) < sep * sep))
-                    continue;
-
-                result.Add(p);
-                placed = true;
-                break;
+                rot = rot * Quaternion.Euler(enc.extraEulerPerMonster[i]);
             }
 
-            // 공간 부족하면 남은 적 스킵(원하는 수만큼 못 채울 수 있음)
-            if (!placed) break;
+            var go = Instantiate(prefab, positions[i], rot, spawnParent ? spawnParent : null);
+            spawned.Add(go);
         }
-        return result;
+
+        _hasSpawned = true;
+        onSpawned?.Invoke(spawned);
+
+        if (disableAfterSpawn) gameObject.SetActive(false);
     }
 
-    static Vector3 RandomPointInBounds(Bounds b)
+    Encounter PickEncounter()
     {
-        return new Vector3(
-            Random.Range(b.min.x, b.max.x),
-            b.center.y,
-            Random.Range(b.min.z, b.max.z)
-        );
-    }
+        if (encounters == null || encounters.Count == 0) return null;
 
-    void OnDrawGizmos()
-    {
-        if (!showGizmos) return;
-        var c = Gizmos.color;
-        Gizmos.color = new Color(1f, 0.5f, 0.1f, 0.35f);
-        var col = GetComponent<BoxCollider>();
-        if (col)
+        // 강제 인덱스
+        if (forcedEncounterIndex >= 0 && forcedEncounterIndex < encounters.Count)
+            return encounters[forcedEncounterIndex];
+
+        // 가중치 랜덤
+        float sum = 0f;
+        foreach (var e in encounters) sum += Mathf.Max(0f, e.weight);
+        if (sum <= 0f) return encounters[UnityEngine.Random.Range(0, encounters.Count)];
+
+        float r = UnityEngine.Random.value * sum;
+        float acc = 0f;
+        foreach (var e in encounters)
         {
-            var m = Matrix4x4.TRS(transform.TransformPoint(col.center), transform.rotation, Vector3.Scale(transform.lossyScale, col.size));
-            Gizmos.matrix = m;
-            Gizmos.DrawCube(Vector3.zero, Vector3.one);
-            Gizmos.matrix = Matrix4x4.identity;
+            acc += Mathf.Max(0f, e.weight);
+            if (r <= acc) return e;
         }
-        Gizmos.color = c;
+        return encounters[encounters.Count - 1];
     }
+
+    void ComputeBasePose(Transform party, out Vector3 pos, out Quaternion rot)
+    {
+        // 기준 forward
+        Vector3 forward = Vector3.forward;
+        switch (facingMode)
+        {
+            case FacingMode.PartyForward:
+                forward = (party ? party.forward : transform.forward);
+                rot = Quaternion.LookRotation(SafeDir(forward), Vector3.up);
+                break;
+            case FacingMode.SpawnerForward:
+                forward = transform.forward;
+                rot = Quaternion.LookRotation(SafeDir(forward), Vector3.up);
+                break;
+            case FacingMode.FaceTowardsParty:
+                // pos 계산 후에 다시 회전 보정한다(아래에서 최종 rot에 적용).
+                rot = Quaternion.identity;
+                break;
+            case FacingMode.CustomDirection:
+                forward = customDirection.sqrMagnitude < 1e-6f ? Vector3.forward : customDirection.normalized;
+                rot = Quaternion.LookRotation(SafeDir(forward), Vector3.up);
+                break;
+            case FacingMode.FixedEuler:
+                rot = Quaternion.Euler(fixedEuler);
+                break;
+            default:
+                rot = Quaternion.identity;
+                break;
+        }
+
+        // 기준 위치
+        Transform o = (origin == SpawnOrigin.Party && party) ? party : transform;
+        Vector3 basisForward =
+            (origin == SpawnOrigin.Party && party) ? party.forward : transform.forward;
+
+        pos = o.position + SafeDir(basisForward) * spawnDistance + transform.TransformVector(extraOffset);
+
+        // FaceTowardsParty 모드면 여기서 회전 결정
+        if (facingMode == FacingMode.FaceTowardsParty && party)
+        {
+            Vector3 toParty = party.position - pos;
+            rot = Quaternion.LookRotation(SafeDir(toParty), Vector3.up);
+        }
+
+        // 추가 Yaw
+        rot = Quaternion.Euler(0f, yawOffsetDeg, 0f) * rot;
+    }
+
+    List<Vector3> BuildPositions(Encounter enc, Vector3 basePos, Quaternion baseRot, int count)
+    {
+        var list = new List<Vector3>(count);
+        bool hasCustom = enc.localPositions != null && enc.localPositions.Count > 0;
+
+        if (hasCustom)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                Vector3 local = i < enc.localPositions.Count ? enc.localPositions[i] : Vector3.zero;
+                list.Add(basePos + baseRot * local);
+            }
+        }
+        else
+        {
+            // 자동 일렬 배치: 전방을 바라본 상태에서 좌우로 펼침
+            // 예) -1.5, -0.5, +0.5, +1.5 … (간격 spacing)
+            float spacing = 1.2f;
+            float start = -(count - 1) * 0.5f * spacing;
+            for (int i = 0; i < count; i++)
+            {
+                Vector3 offset = new Vector3(start + i * spacing, 0f, 0f); // 로컬 X로 펼침
+                list.Add(basePos + baseRot * offset);
+            }
+        }
+        return list;
+    }
+
+    static Vector3 SafeDir(in Vector3 v)
+    {
+        if (v.sqrMagnitude < 1e-6f) return Vector3.forward;
+        var n = v.normalized;
+        // Up과 평행하면 LookRotation이 불안정할 수 있어 약간 기울여줌
+        if (Mathf.Abs(Vector3.Dot(n, Vector3.up)) > 0.999f)
+            n = (n + Vector3.forward * 0.001f).normalized;
+        return n;
+    }
+
+#if UNITY_EDITOR
+    private void OnDrawGizmosSelected()
+    {
+        // 에디터에서 예상 스폰 위치/방향 가시화
+        var party = FindPartyTransformForPreview(); // 대략적인 미리보기
+        ComputeBasePose(party, out var p, out var r);
+
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(p, 0.25f);
+
+        // 방향 화살표
+        Vector3 f = r * Vector3.forward;
+        Gizmos.DrawLine(p, p + f * 1.5f);
+
+        // 기본 4마리 가정하여 자동 배치 미리보기
+        int previewCount = 4;
+        var dummy = new Encounter();
+        var pos = BuildPositions(dummy, p, r, previewCount);
+        Gizmos.color = new Color(1f, 0.6f, 0.2f, 0.9f);
+        foreach (var pt in pos) Gizmos.DrawWireCube(pt, Vector3.one * 0.4f);
+    }
+
+    Transform FindPartyTransformForPreview()
+    {
+        // 단순 미리보기용: 씬에서 "Party" 태그 오브젝트가 있으면 사용
+        var go = GameObject.FindWithTag(partyTag);
+        return go ? go.transform : null;
+    }
+#endif
 }

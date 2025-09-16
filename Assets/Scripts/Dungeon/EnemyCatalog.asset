@@ -12,16 +12,39 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 217eab57292053441883c89829913ee0, type: 3}
   m_Name: EnemyCatalog
   m_EditorClassIdentifier: 
-  entries:
+  selectionMode: 1
+  entries: []
+  groups:
   - id: 1
-    prefab: {fileID: 3869950829267160702, guid: 62d8128b06d40174ab3bf8ee6a4f2f74, type: 3}
     weight: 60
-    separationRadius: 0
+    items:
+    - prefab: {fileID: 919132149155446097, guid: f19f891a692551a438c0ea664c465dca, type: 3}
+      count: 1
+      separationRadius: 0
+    - prefab: {fileID: 919132149155446097, guid: 012adf1a8ec867b409dda30c192096f6, type: 3}
+      count: 1
+      separationRadius: 0
+    - prefab: {fileID: 919132149155446097, guid: d5c50d1134f925247ac46a664e4cd270, type: 3}
+      count: 1
+      separationRadius: 0
   - id: 2
-    prefab: {fileID: 9007985987857132261, guid: 41668e31609f8ea4d87b9093c0cea452, type: 3}
-    weight: 40
-    separationRadius: 0
-  - id: 3
-    prefab: {fileID: 2613222439943160921, guid: f73a455c3b230d34aaaa375e8c9c11cf, type: 3}
     weight: 20
-    separationRadius: 0
+    items:
+    - prefab: {fileID: 9141942498074391310, guid: a967a310061a8eb4ca448d829bb907a8, type: 3}
+      count: 1
+      separationRadius: 0
+  - id: 3
+    weight: 40
+    items:
+    - prefab: {fileID: 919132149155446097, guid: ad8597aa438e62d459139fde66bdbaa7, type: 3}
+      count: 1
+      separationRadius: 0
+    - prefab: {fileID: 919132149155446097, guid: 73b37282c8ad6aa40afe8b9c0b693a60, type: 3}
+      count: 1
+      separationRadius: 0
+    - prefab: {fileID: 919132149155446097, guid: 538f0588ec18d0849ba4ac0e105f4cde, type: 3}
+      count: 1
+      separationRadius: 0
+    - prefab: {fileID: 919132149155446097, guid: d194e80f0244e1b4b9b1d98c47fbc265, type: 3}
+      count: 1
+      separationRadius: 0
