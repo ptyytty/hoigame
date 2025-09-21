@@ -19898,9 +19898,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1603131359}
-  - component: {fileID: 1603131358}
   - component: {fileID: 1603131360}
   - component: {fileID: 1603131361}
+  - component: {fileID: 1603131362}
   m_Layer: 0
   m_Name: Manager
   m_TagString: Untagged
@@ -19908,22 +19908,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1603131358
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1603131357}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dc39ab67eb24b0a49b96ade7eb0e9b83, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  jobData:
-    jobs: []
-  skillData:
-    skills: []
 --- !u!4 &1603131359
 Transform:
   m_ObjectHideFlags: 0
@@ -19969,6 +19953,18 @@ MonoBehaviour:
   inventory: {fileID: 516527265}
   inventoryPanel: {fileID: 516527262}
   inventoryActive: {fileID: 516527261}
+--- !u!114 &1603131362
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1603131357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bdca28ee3fdf864fb4103b0bb95bce7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1603343473
 GameObject:
   m_ObjectHideFlags: 0

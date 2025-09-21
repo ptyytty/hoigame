@@ -42,7 +42,8 @@ public class UIManager : MonoBehaviour
             return;
         else if (!ui.isOpen)
         {
-            ui.panelPos.DOAnchorPos(ui.visiblePos, ui.duration).SetEase(Ease.OutBack).SetUpdate(true);
+            ui.panelPos.DOKill(); // 이전 트윈 정리
+            ui.panelPos.DOAnchorPos(ui.visiblePos, ui.duration).SetEase(Ease.OutCubic).SetUpdate(true);
             ui.isOpen = true;
         }
     }
@@ -51,6 +52,7 @@ public class UIManager : MonoBehaviour
     {
         if (ui.isOpen)
         {
+            ui.panelPos.DOKill();
             ui.panelPos.DOAnchorPos(ui.hiddenPos, ui.duration).SetEase(Ease.OutCubic).SetUpdate(true);
             ui.isOpen = false;
         }

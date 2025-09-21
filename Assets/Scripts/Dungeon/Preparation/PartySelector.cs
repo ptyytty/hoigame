@@ -411,6 +411,7 @@ public class PartySelector : MonoBehaviour
 
     public void OnClickEnterDungeon()
     {
+        PartyBridge.Instance.SetParty(AssignedHeroes);
         SceneManager.LoadScene("Dungeon_Oratio");
     }
 

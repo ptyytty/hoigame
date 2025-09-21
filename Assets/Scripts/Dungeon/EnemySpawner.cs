@@ -1,263 +1,372 @@
-using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Events;
+using UnityEngine.AI;
 
-[DisallowMultipleComponent]
-public class EnemySpawnerV2 : MonoBehaviour
+[RequireComponent(typeof(BoxCollider))]
+public class EnemySpawner : MonoBehaviour
 {
-    [Header("Trigger")]
-    [Tooltip("이 콜라이더(또는 자식 콜라이더)에 Party가 들어오면 스폰합니다.")]
-    [SerializeField] private string partyTag = "Party";
-    [SerializeField] private bool oneShot = true;           // 한 번만 스폰
-    [SerializeField] private bool disableAfterSpawn = true; // 스폰 후 비활성화
+    // ===== Party =====
+    [SerializeField] private MonoBehaviour partyProvider; // IHeroPartyProvider 구현체(없으면 fallbackParty 사용)
+    [SerializeField] private List<Job> fallbackParty = new();
 
-    [Header("Spawn Distance / Position")]
-    [Tooltip("기준 지점(파티 또는 스포너)에서 앞으로 얼마나 떨어진 곳에 스폰할지(m).")]
-    [Min(0f)] public float spawnDistance = 4f;
-    [Tooltip("스폰 기준(거리/방향 계산용)")]
-    public SpawnOrigin origin = SpawnOrigin.Party; // Party 또는 Spawner
-    [Tooltip("생성 위치에 추가로 더할 로컬 오프셋(스포너 기준).")]
-    public Vector3 extraOffset = Vector3.zero;
+    // ===== Catalog (Formation 전용) =====
+    public EnemyCatalog catalog;
 
-    public enum SpawnOrigin { Party, Spawner }
+    // ===== Trigger =====
+    public string partyTag = "Party";   // trigger tag
+    public bool triggerOnce = true;     // 트리거 한 번만 발동
 
-    [Header("Facing (방향 설정)")]
-    public FacingMode facingMode = FacingMode.PartyForward;
-    public float yawOffsetDeg = 0f; // 추가 회전(Yaw)
-    public Vector3 customDirection = Vector3.forward;  // FacingMode.CustomDirection 일 때
-    public Vector3 fixedEuler = Vector3.zero;          // FacingMode.FixedEuler 일 때
+    // ===== Party Direction =====
+    public enum DirectionMode { Auto, Velocity, TransformForward, ApproachToSpawner }
+    [Tooltip("파티 정면 방향 계산 방식")]
+    public DirectionMode directionMode = DirectionMode.Auto;
+    [Tooltip("계산된 진행 방향을 반대로 뒤집습니다.")]
+    public bool invertDirection = false;
 
-    public enum FacingMode
+    // ===== Spawn Pivot =====
+    public enum PivotMode { ZoneCenter, PartyOffset }
+    public PivotMode pivot = PivotMode.PartyOffset;
+    [Tooltip("파티 전진 방향으로 얼마나 앞에 스폰할지(m)")]
+    public float forwardOffset = 6f;
+    public float verticalOffset = 0f;
+    [Tooltip("파티와의 최소 이격 거리. 이보다 가까우면 전방 오프셋을 자동 보정")]
+    public float minDistanceFromParty = 2f;
+
+    // ===== NavMesh 스냅(선택) =====
+    public bool useNavMesh = true;
+    public float navSampleRange = 2f;
+    public float navSnapMaxDistance = 0.75f;
+
+    // ===== Facing (고정: 파티 진행 반대) =====
+    [Tooltip("Yaw(수평)만 회전. 경사면에서도 고개를 들썩이지 않음")]
+    public bool yawOnly = true;
+    [Tooltip("추가 Yaw 오프셋(도). 0=정면, 180=등 돌리기")]
+    public float yawOffsetDeg = 0f;
+
+    // ===== Battle Start (고정: Invoke C# Event) =====
+    public static event System.Action<IReadOnlyList<Job>, IReadOnlyList<GameObject>> OnBattleStart;
+    public interface IHeroPartyProvider { IReadOnlyList<Job> GetParty(); }
+
+    public static class BattleContext
     {
-        PartyForward,     // 파티가 바라보는 방향
-        SpawnerForward,   // 스포너(이 오브젝트)가 바라보는 방향
-        FaceTowardsParty, // 파티를 향하도록
-        CustomDirection,  // 커스텀 벡터 방향
-        FixedEuler        // 정확한 오일러 각 고정
+        public static List<Job> Heroes;
+        public static List<GameObject> Enemies;
     }
 
-    [Header("Encounter (내가 고른 세트 중 하나)")]
-    [Tooltip("스폰 시 이 목록 중 하나의 세트를 선택해서 생성합니다.")]
-    public List<Encounter> encounters = new();
+    // ===== Debug =====
+    public bool showGizmos = true;
+    public bool debugLogs = false;
+    [Range(10, 2000)] public int debugMaxLogs = 200;
 
-    [Tooltip("강제로 이 인덱스의 세트를 사용 (-1이면 가중치 랜덤).")]
-    public int forcedEncounterIndex = -1;
+    private int dbgCount;
+    private BoxCollider box;
+    private bool consumed;
+    private Vector3 lastPartyForward = Vector3.forward;
+    private Transform lastPartyRoot;
 
-    [Header("Lifecycle / Events")]
-    [Tooltip("스폰된 몬스터들을 부모로 담아둘 컨테이너(없으면 계층 최상위 생성).")]
-    public Transform spawnParent;
-    public UnityEvent<List<GameObject>> onSpawned; // 스폰 직후 콜백
-
-    [Serializable]
-    public class Encounter
+    void D(string msg)
     {
-        public string name;
-        [Tooltip("이 세트에 포함될 몬스터 프리팹들(필수).")]
-        public List<GameObject> monsterPrefabs = new();
-
-        [Header("세트 선택 가중치")]
-        [Min(0f)] public float weight = 1f;
-
-        [Header("포메이션(선택)")]
-        [Tooltip("각 몬스터의 상대 위치(스폰 기준점 기준). 비워두면 자동으로 일렬 배치.")]
-        public List<Vector3> localPositions = new();
-
-        [Tooltip("각 몬스터의 추가 회전(옵션).")]
-        public List<Vector3> extraEulerPerMonster = new();
+        if (!debugLogs) return;
+        if (dbgCount++ >= debugMaxLogs) return;
+        Debug.Log($"[EnemySpawnerDBG] {msg}", this);
     }
 
-    bool _hasSpawned = false;
-
-    private void OnTriggerEnter(Collider other)
+    void Reset()
     {
-        if (!enabled) return;
-        if (oneShot && _hasSpawned) return;
-        if (!other || !other.CompareTag(partyTag)) return;
-
-        Transform party = other.attachedRigidbody ? other.attachedRigidbody.transform : other.transform;
-        Spawn(party);
+        box = GetComponent<BoxCollider>();
+        if (box) box.isTrigger = true;
+    }
+    void Awake()
+    {
+        box = GetComponent<BoxCollider>();
+        if (box && !box.isTrigger) box.isTrigger = true;
     }
 
-    /// <summary>원할 때 스크립트에서 수동으로 호출해도 됨.</summary>
-    public void Spawn(Transform party)
+    void OnTriggerEnter(Collider other)
     {
-        if (oneShot && _hasSpawned) return;
+        bool tagged = other.CompareTag(partyTag) || other.transform.root.CompareTag(partyTag);
+        D($"Trigger by {other.name}, tagOk={tagged}, other.tag={other.tag}, root.tag={other.transform.root.tag}");
+        if (!tagged) return;
+        if (triggerOnce && consumed) return;
 
-        // 1) 세트 고르기
-        var enc = PickEncounter();
-        if (enc == null || enc.monsterPrefabs == null || enc.monsterPrefabs.Count == 0)
+        lastPartyRoot = other.transform.root;
+        lastPartyForward = GetPartyDirection(directionMode, true);
+        D($"PartyRoot={lastPartyRoot.name}, partyDir={lastPartyForward}");
+
+        // ★★★ 스폰 계산 전에 파티 이동을 확정적으로 멈춤 ★★★
+        //FreezeParty(lastPartyRoot);
+        DungeonManager.instance?.StopMoveHard();
+
+        StartCoroutine(SpawnAndStartBattle());
+    }
+
+    IEnumerator SpawnAndStartBattle()
+    {
+        consumed = true;
+        if (catalog == null)
         {
-            Debug.LogWarning($"[EnemySpawnerV2] 사용할 Encounter가 없습니다. (게임오브젝트: {name})");
-            return;
+            Debug.LogWarning("[EnemySpawner] Catalog is null.");
+            yield break;
         }
 
-        // 2) 기준점/방향 계산
-        Vector3 basePos; Quaternion baseRot;
-        ComputeBasePose(party, out basePos, out baseRot);
-
-        // 3) 포메이션 위치들 계산
-        var positions = BuildPositions(enc, basePos, baseRot, enc.monsterPrefabs.Count);
-
-        // 4) 스폰
-        var spawned = new List<GameObject>(enc.monsterPrefabs.Count);
-        for (int i = 0; i < enc.monsterPrefabs.Count; i++)
+        // === Formation 전용 경로 ===
+        if (catalog.selectionMode != EnemyCatalog.SelectionMode.Formations)
         {
-            var prefab = enc.monsterPrefabs[i];
-            if (!prefab) continue;
+            Debug.LogWarning("[EnemySpawner] Catalog is not in Formations mode. Please set to Formations.");
+            yield break;
+        }
 
-            Quaternion rot = baseRot;
-            if (i < enc.extraEulerPerMonster.Count)
+        var f = catalog.PickFormation();
+        if (f == null || f.prefab == null)
+        {
+            Debug.LogWarning("[EnemySpawner] No formation prefab in catalog.");
+            yield break;
+        }
+
+        // 피벗 계산 (파티 기준 오프셋 또는 존 중심)
+        Vector3 pos = GetSpawnPivotWorld();
+
+        // (선택) NavMesh 스냅
+        if (useNavMesh && NavMesh.SamplePosition(pos, out var hit, navSampleRange, NavMesh.AllAreas))
+        {
+            if ((hit.position - pos).sqrMagnitude <= navSnapMaxDistance * navSnapMaxDistance)
+                pos = hit.position;
+        }
+
+        // Facing: 파티 진행 반대로 고정 (+ 추가 yaw)
+        Quaternion rot = ComputeFacingRotation_FacePartyForwardOpposite(pos);
+        if (!Mathf.Approximately(f.yawOffsetDeg, 0f)) rot *= Quaternion.Euler(0f, f.yawOffsetDeg, 0f);
+
+        // 프리팹 하나만 스폰 (내부가 이미 2x2 구성)
+        var root = Instantiate(f.prefab, pos, rot);
+        D($"Formation spawned at {pos}, rotY={rot.eulerAngles.y:F1}, yawAdd={f.yawOffsetDeg}");
+
+        // 적 리스트는 프리팹(및 자식)으로 수집
+        var enemies = CollectFormationEnemies(root);
+        if (enemies.Count == 0) enemies.Add(root);
+
+        // 파티 해석
+        var heroes = ResolveParty();
+        if (heroes == null || heroes.Count == 0)
+        {
+            Debug.LogWarning("[EnemySpawner] No heroes in party.");
+            yield break;
+        }
+
+        // 전투 시작 이벤트
+        BeginBattle_InvokeEvent(heroes, enemies);
+        yield break;
+    }
+
+    // IReadOnlyList<Job> ResolveParty()
+    // {
+    //     if (partyProvider is IHeroPartyProvider provider)
+    //         return provider.GetParty();
+
+    //     if (PartyInbox.Has)
+    //         return PartyInbox.Get();
+
+    //     return fallbackParty;
+    // }
+    private IReadOnlyList<Job> ResolveParty()
+    {
+        var bridge = PartyBridge.Instance;
+        if (bridge != null && bridge.HasParty())
+            return bridge.ActiveParty;
+
+        return System.Array.Empty<Job>();
+    }
+
+    // ===== 파티 정보 전달 =====
+    public static class PartyInbox
+    {
+        private static readonly List<Job> _incoming = new(4);
+
+        public static void Set(IEnumerable<Job> party)
+        {
+            _incoming.Clear();
+            if (party == null) return;
+            foreach (var h in party)
+                if (h != null) _incoming.Add(h);
+        }
+
+        public static bool Has => _incoming.Count > 0;
+        public static IReadOnlyList<Job> Get() => _incoming;
+        public static void Clear() => _incoming.Clear();
+    }
+
+    // ===== Battle Start: Invoke C# Event만 사용 =====
+    void BeginBattle_InvokeEvent(IReadOnlyList<Job> heroes, IReadOnlyList<GameObject> enemies)
+    {
+        BattleContext.Heroes = new List<Job>(heroes);
+        BattleContext.Enemies = new List<GameObject>(enemies);
+        int subs = OnBattleStart?.GetInvocationList()?.Length ?? 0;
+        Debug.Log($"[EnemySpawner] BeginBattle enter: heroes={heroes.Count}, enemies={enemies.Count}, subs={subs}");
+        OnBattleStart?.Invoke(heroes, enemies);
+    }
+
+    // ===== Facing 고정: '파티 진행 반대' =====
+    Quaternion ComputeFacingRotation_FacePartyForwardOpposite(Vector3 spawnPos)
+    {
+        Vector3 dir = -lastPartyForward;
+        if (yawOnly) dir.y = 0f;
+        if (dir.sqrMagnitude < 0.0001f) dir = transform.forward;
+
+        var look = Quaternion.LookRotation(dir.normalized, Vector3.up);
+        look *= Quaternion.Euler(0f, yawOffsetDeg, 0f);
+        return look;
+    }
+
+    // ===== Party Direction / Pivot =====
+    Vector3 GetPartyDirection(DirectionMode mode, bool refresh = false)
+    {
+        Vector3 dir = lastPartyForward;
+        if (lastPartyRoot)
+        {
+            Vector3 center = transform.TransformPoint(box ? box.center : Vector3.zero);
+            switch (mode)
             {
-                rot = rot * Quaternion.Euler(enc.extraEulerPerMonster[i]);
-            }
-
-            var go = Instantiate(prefab, positions[i], rot, spawnParent ? spawnParent : null);
-            spawned.Add(go);
-        }
-
-        _hasSpawned = true;
-        onSpawned?.Invoke(spawned);
-
-        if (disableAfterSpawn) gameObject.SetActive(false);
-    }
-
-    Encounter PickEncounter()
-    {
-        if (encounters == null || encounters.Count == 0) return null;
-
-        // 강제 인덱스
-        if (forcedEncounterIndex >= 0 && forcedEncounterIndex < encounters.Count)
-            return encounters[forcedEncounterIndex];
-
-        // 가중치 랜덤
-        float sum = 0f;
-        foreach (var e in encounters) sum += Mathf.Max(0f, e.weight);
-        if (sum <= 0f) return encounters[UnityEngine.Random.Range(0, encounters.Count)];
-
-        float r = UnityEngine.Random.value * sum;
-        float acc = 0f;
-        foreach (var e in encounters)
-        {
-            acc += Mathf.Max(0f, e.weight);
-            if (r <= acc) return e;
-        }
-        return encounters[encounters.Count - 1];
-    }
-
-    void ComputeBasePose(Transform party, out Vector3 pos, out Quaternion rot)
-    {
-        // 기준 forward
-        Vector3 forward = Vector3.forward;
-        switch (facingMode)
-        {
-            case FacingMode.PartyForward:
-                forward = (party ? party.forward : transform.forward);
-                rot = Quaternion.LookRotation(SafeDir(forward), Vector3.up);
-                break;
-            case FacingMode.SpawnerForward:
-                forward = transform.forward;
-                rot = Quaternion.LookRotation(SafeDir(forward), Vector3.up);
-                break;
-            case FacingMode.FaceTowardsParty:
-                // pos 계산 후에 다시 회전 보정한다(아래에서 최종 rot에 적용).
-                rot = Quaternion.identity;
-                break;
-            case FacingMode.CustomDirection:
-                forward = customDirection.sqrMagnitude < 1e-6f ? Vector3.forward : customDirection.normalized;
-                rot = Quaternion.LookRotation(SafeDir(forward), Vector3.up);
-                break;
-            case FacingMode.FixedEuler:
-                rot = Quaternion.Euler(fixedEuler);
-                break;
-            default:
-                rot = Quaternion.identity;
-                break;
-        }
-
-        // 기준 위치
-        Transform o = (origin == SpawnOrigin.Party && party) ? party : transform;
-        Vector3 basisForward =
-            (origin == SpawnOrigin.Party && party) ? party.forward : transform.forward;
-
-        pos = o.position + SafeDir(basisForward) * spawnDistance + transform.TransformVector(extraOffset);
-
-        // FaceTowardsParty 모드면 여기서 회전 결정
-        if (facingMode == FacingMode.FaceTowardsParty && party)
-        {
-            Vector3 toParty = party.position - pos;
-            rot = Quaternion.LookRotation(SafeDir(toParty), Vector3.up);
-        }
-
-        // 추가 Yaw
-        rot = Quaternion.Euler(0f, yawOffsetDeg, 0f) * rot;
-    }
-
-    List<Vector3> BuildPositions(Encounter enc, Vector3 basePos, Quaternion baseRot, int count)
-    {
-        var list = new List<Vector3>(count);
-        bool hasCustom = enc.localPositions != null && enc.localPositions.Count > 0;
-
-        if (hasCustom)
-        {
-            for (int i = 0; i < count; i++)
-            {
-                Vector3 local = i < enc.localPositions.Count ? enc.localPositions[i] : Vector3.zero;
-                list.Add(basePos + baseRot * local);
+                case DirectionMode.Velocity:
+                {
+                    var rb = lastPartyRoot.GetComponent<Rigidbody>();
+                    if (rb != null && rb.velocity.sqrMagnitude > 0.01f) { dir = rb.velocity; break; }
+                    var cc = lastPartyRoot.GetComponent<CharacterController>();
+                    if (cc != null && cc.velocity.sqrMagnitude > 0.01f) { dir = cc.velocity; break; }
+                    var agent = lastPartyRoot.GetComponent<NavMeshAgent>();
+                    if (agent != null && agent.velocity.sqrMagnitude > 0.01f) { dir = agent.velocity; break; }
+                    dir = lastPartyRoot.forward; break;
+                }
+                case DirectionMode.TransformForward:
+                    dir = lastPartyRoot.forward; break;
+                case DirectionMode.ApproachToSpawner:
+                    dir = (center - lastPartyRoot.position); break;
+                case DirectionMode.Auto:
+                default:
+                {
+                    var rb = lastPartyRoot.GetComponent<Rigidbody>();
+                    if (rb != null && rb.velocity.sqrMagnitude > 0.01f) dir = rb.velocity;
+                    else
+                    {
+                        var cc = lastPartyRoot.GetComponent<CharacterController>();
+                        if (cc != null && cc.velocity.sqrMagnitude > 0.01f) dir = cc.velocity;
+                        else
+                        {
+                            var agent = lastPartyRoot.GetComponent<NavMeshAgent>();
+                            if (agent != null && agent.velocity.sqrMagnitude > 0.01f) dir = agent.velocity;
+                            else
+                            {
+                                Vector3 appr = (center - lastPartyRoot.position);
+                                dir = (appr.sqrMagnitude > 0.0001f) ? appr : lastPartyRoot.forward;
+                            }
+                        }
+                    }
+                    break;
+                }
             }
         }
-        else
+        dir.y = 0f;
+        if (dir.sqrMagnitude < 0.0001f) dir = transform.forward;
+        dir = dir.normalized;
+
+        if (invertDirection) dir = -dir;
+        if (refresh) lastPartyForward = dir;
+        return dir;
+    }
+
+    Vector3 GetSpawnPivotWorld()
+    {
+        if (pivot == PivotMode.PartyOffset && lastPartyRoot)
         {
-            // 자동 일렬 배치: 전방을 바라본 상태에서 좌우로 펼침
-            // 예) -1.5, -0.5, +0.5, +1.5 … (간격 spacing)
-            float spacing = 1.2f;
-            float start = -(count - 1) * 0.5f * spacing;
-            for (int i = 0; i < count; i++)
-            {
-                Vector3 offset = new Vector3(start + i * spacing, 0f, 0f); // 로컬 X로 펼침
-                list.Add(basePos + baseRot * offset);
-            }
+            // 파티 전방 확보가 부족하면 forwardOffset 자동 보정
+            var f = GetPartyDirection(directionMode, false);
+            float needFwd = minDistanceFromParty + 0.1f;
+            if (forwardOffset < needFwd) forwardOffset = needFwd;
+
+            return lastPartyRoot.position + f * Mathf.Abs(forwardOffset) + Vector3.up * verticalOffset;
+        }
+        // 존 중심
+        return transform.TransformPoint(box ? box.center : Vector3.zero);
+    }
+
+    // 프리팹 및 자식에서 씬에 소속된 적 오브젝트 수집
+    List<GameObject> CollectFormationEnemies(GameObject root)
+    {
+        var list = new List<GameObject>();
+        var trs = root.GetComponentsInChildren<Transform>(true);
+        foreach (var t in trs)
+        {
+            if (t == null || t == root.transform) continue;
+            if (t.gameObject.scene.IsValid())
+                list.Add(t.gameObject);
         }
         return list;
     }
 
-    static Vector3 SafeDir(in Vector3 v)
+    // ★★★ 파티 이동 확정 정지(이벤트/리스너 없이 내부에서 즉시) ★★★
+    // void FreezeParty(Transform root)
+    // {
+    //     if (!root) return;
+    //     D($"FreezeParty root={root.name}");
+
+    //     // (1) NavMeshAgent 전부 정지
+    //     var agents = root.GetComponentsInChildren<NavMeshAgent>(true);
+    //     for (int i = 0; i < agents.Length; i++)
+    //     {
+    //         var ag = agents[i];
+    //         if (!ag) continue;
+    //         ag.isStopped = true;
+    //         ag.ResetPath();
+    //         ag.velocity = Vector3.zero;
+    //         ag.updateRotation = false; // 회전도 멈춤
+    //     }
+
+    //     // (2) Rigidbody 전부 정지(물리/루트모션로 밀리는 것 차단)
+    //     var rbs = root.GetComponentsInChildren<Rigidbody>(true);
+    //     for (int i = 0; i < rbs.Length; i++)
+    //     {
+    //         var rb = rbs[i];
+    //         if (!rb) continue;
+    //         rb.velocity = Vector3.zero;
+    //         rb.angularVelocity = Vector3.zero;
+    //         rb.isKinematic = true; // 전투 중 외력으로 움직이지 않게
+    //     }
+
+    //     // (3) 대표적인 입력/이동 스크립트 비활성화(이름 패턴 하드코딩)
+    //     string[] nameFilters = { "PlayerController", "PartyMover", "Input", "CharacterMove" };
+    //     var mbs = root.GetComponentsInChildren<MonoBehaviour>(true);
+    //     for (int i = 0; i < mbs.Length; i++)
+    //     {
+    //         var mb = mbs[i];
+    //         if (!mb) continue;
+    //         var typeName = mb.GetType().Name;
+    //         for (int k = 0; k < nameFilters.Length; k++)
+    //         {
+    //             if (!string.IsNullOrEmpty(nameFilters[k]) && typeName.Contains(nameFilters[k]))
+    //             {
+    //                 mb.enabled = false;
+    //                 D($"Disable behaviour: {typeName} on {mb.gameObject.name}");
+    //                 break;
+    //             }
+    //         }
+    //     }
+    // }
+
+    void OnDrawGizmos()
     {
-        if (v.sqrMagnitude < 1e-6f) return Vector3.forward;
-        var n = v.normalized;
-        // Up과 평행하면 LookRotation이 불안정할 수 있어 약간 기울여줌
-        if (Mathf.Abs(Vector3.Dot(n, Vector3.up)) > 0.999f)
-            n = (n + Vector3.forward * 0.001f).normalized;
-        return n;
+        if (!showGizmos) return;
+        var c = Gizmos.color;
+        var col = GetComponent<BoxCollider>();
+        if (col)
+        {
+            Gizmos.color = new Color(1f, 0.5f, 0.1f, 0.35f);
+            var m = Matrix4x4.TRS(transform.TransformPoint(col.center), transform.rotation, Vector3.Scale(transform.lossyScale, col.size));
+            Gizmos.matrix = m;
+            Gizmos.DrawCube(Vector3.zero, Vector3.one);
+            Gizmos.matrix = Matrix4x4.identity;
+        }
+        Gizmos.color = Color.red;
+        try { Gizmos.DrawSphere(GetSpawnPivotWorld(), 0.15f); } catch { }
+        Gizmos.color = c;
     }
-
-#if UNITY_EDITOR
-    private void OnDrawGizmosSelected()
-    {
-        // 에디터에서 예상 스폰 위치/방향 가시화
-        var party = FindPartyTransformForPreview(); // 대략적인 미리보기
-        ComputeBasePose(party, out var p, out var r);
-
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(p, 0.25f);
-
-        // 방향 화살표
-        Vector3 f = r * Vector3.forward;
-        Gizmos.DrawLine(p, p + f * 1.5f);
-
-        // 기본 4마리 가정하여 자동 배치 미리보기
-        int previewCount = 4;
-        var dummy = new Encounter();
-        var pos = BuildPositions(dummy, p, r, previewCount);
-        Gizmos.color = new Color(1f, 0.6f, 0.2f, 0.9f);
-        foreach (var pt in pos) Gizmos.DrawWireCube(pt, Vector3.one * 0.4f);
-    }
-
-    Transform FindPartyTransformForPreview()
-    {
-        // 단순 미리보기용: 씬에서 "Party" 태그 오브젝트가 있으면 사용
-        var go = GameObject.FindWithTag(partyTag);
-        return go ? go.transform : null;
-    }
-#endif
 }

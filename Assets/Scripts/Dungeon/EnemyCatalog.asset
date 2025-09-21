@@ -12,8 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 217eab57292053441883c89829913ee0, type: 3}
   m_Name: EnemyCatalog
   m_EditorClassIdentifier: 
-  selectionMode: 1
-  entries: []
+  selectionMode: 2
+  entries:
+  - id: 1
+    prefab: {fileID: 3085161200779696477, guid: dfa790a1a9780f94da01513ae7212ba0, type: 3}
+    weight: 60
+    separationRadius: 0
+  - id: 2
+    prefab: {fileID: 3305847795758521169, guid: 8b31af7b75269f640ba0df73dc88ed84, type: 3}
+    weight: 40
+    separationRadius: 0
+  - id: 3
+    prefab: {fileID: 7957492352594284339, guid: 35016ea9f6a5a0b478ab60be830e5188, type: 3}
+    weight: 20
+    separationRadius: 0
   groups:
   - id: 1
     weight: 60
@@ -22,6 +34,9 @@ MonoBehaviour:
       count: 1
       separationRadius: 0
     - prefab: {fileID: 919132149155446097, guid: 012adf1a8ec867b409dda30c192096f6, type: 3}
+      count: 1
+      separationRadius: 0
+    - prefab: {fileID: 919132149155446097, guid: d5c50d1134f925247ac46a664e4cd270, type: 3}
       count: 1
       separationRadius: 0
     - prefab: {fileID: 919132149155446097, guid: d5c50d1134f925247ac46a664e4cd270, type: 3}
@@ -48,3 +63,19 @@ MonoBehaviour:
     - prefab: {fileID: 919132149155446097, guid: d194e80f0244e1b4b9b1d98c47fbc265, type: 3}
       count: 1
       separationRadius: 0
+  formations:
+  - id: 1
+    prefab: {fileID: 3085161200779696477, guid: dfa790a1a9780f94da01513ae7212ba0, type: 3}
+    weight: 60
+    usePrefabRotation: 0
+    yawOffsetDeg: 0
+  - id: 2
+    prefab: {fileID: 3305847795758521169, guid: 8b31af7b75269f640ba0df73dc88ed84, type: 3}
+    weight: 40
+    usePrefabRotation: 0
+    yawOffsetDeg: 0
+  - id: 3
+    prefab: {fileID: 7957492352594284339, guid: 35016ea9f6a5a0b478ab60be830e5188, type: 3}
+    weight: 20
+    usePrefabRotation: 0
+    yawOffsetDeg: 0

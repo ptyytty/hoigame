@@ -33,6 +33,19 @@ public class EnemyCatalog : ScriptableObject
         public List<GroupItem> items = new();     // 이 조합에 포함될 몬스터들
     }
 
+    // ===== 포메이션(부모 프리팹) 모드 =====
+    [System.Serializable]
+    public class FormationEntry
+    {
+        public string id;                         // 포메이션 이름
+        public GameObject prefab;                 // 부모 프리팹(자식에 몬스터 배치)
+        [Range(1, 100)] public int weight = 10;   // 선택 가중치
+        [Tooltip("프리팹의 원래 회전을 유지(=true) / 스포너의 페이싱 규칙으로 회전(=false)")]
+        public bool usePrefabRotation = false;
+        [Tooltip("추가 Yaw 오프셋(도)")]
+        public float yawOffsetDeg = 0f;
+    }
+
     // ===== 스폰 아이템(스폰러에 넘길 최종 형태) =====
     [System.Serializable]
     public class SpawnItem
@@ -42,7 +55,7 @@ public class EnemyCatalog : ScriptableObject
         public SpawnItem(GameObject prefab, float sep) { this.prefab = prefab; separationRadius = sep; }
     }
 
-    public enum SelectionMode { Entries /*개별*/, Groups /*조합*/ }
+    public enum SelectionMode { Entries /*개별*/, Groups /*조합*/, Formations /*부모 프리팹*/ }
     [Header("Selection Mode")]
     public SelectionMode selectionMode = SelectionMode.Entries;
 
@@ -52,6 +65,8 @@ public class EnemyCatalog : ScriptableObject
     [Header("Groups (조합 풀)")]
     public List<Group> groups = new();
 
+    [Header("Formations (부모 프리팹)")]
+    public List<FormationEntry> formations = new();
     // ========== 공개 API ==========
     public List<SpawnItem> BuildSpawnList(int wantCount)
     {
@@ -60,12 +75,22 @@ public class EnemyCatalog : ScriptableObject
             : BuildFromEntries(wantCount);
     }
 
-    // ========== 내부 구현 ==========
+    public FormationEntry PickFormation()
+    {
+        if (formations == null || formations.Count == 0) return null;
+        int total = 0; foreach (var f in formations) total += Mathf.Max(1, f.weight);
+        int r = Random.Range(0, total);
+        foreach (var f in formations)
+        {
+            r -= Mathf.Max(1, f.weight);
+            if (r < 0) return f;
+        }
+        return formations.Count > 0 ? formations[^1] : null;
+    }
     List<SpawnItem> BuildFromEntries(int want)
     {
         var result = new List<SpawnItem>(want);
         if (entries == null || entries.Count == 0) return result;
-
         for (int i = 0; i < want; i++)
         {
             var e = PickOneEntry();
@@ -79,10 +104,8 @@ public class EnemyCatalog : ScriptableObject
     {
         var result = new List<SpawnItem>();
         if (groups == null || groups.Count == 0) return result;
-
         var g = PickOneGroup();
         if (g == null || g.items == null || g.items.Count == 0) return result;
-
         foreach (var gi in g.items)
         {
             if (gi?.prefab == null || gi.count <= 0) continue;
@@ -93,7 +116,7 @@ public class EnemyCatalog : ScriptableObject
         return result;
     }
 
-    Entry PickOneEntry()
+    EnemyCatalog.Entry PickOneEntry()
     {
         int total = 0;
         foreach (var e in entries) total += Mathf.Max(1, e.weight);

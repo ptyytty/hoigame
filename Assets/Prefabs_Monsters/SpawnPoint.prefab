@@ -66,42 +66,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d80ca98a73590154786c34732e4b3ad6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  partyProvider: {fileID: 0}
+  fallbackParty: []
+  catalog: {fileID: 0}
   partyTag: Party
-  oneShot: 1
-  disableAfterSpawn: 1
-  spawnDistance: 0
-  origin: 1
-  extraOffset: {x: 0, y: 0, z: -40}
-  facingMode: 0
+  triggerOnce: 1
+  directionMode: 0
+  invertDirection: 0
+  pivot: 1
+  forwardOffset: 45
+  verticalOffset: 0
+  minDistanceFromParty: 2
+  useNavMesh: 1
+  navSampleRange: 2
+  navSnapMaxDistance: 0.75
+  yawOnly: 1
   yawOffsetDeg: 0
-  customDirection: {x: 0, y: 0, z: 1}
-  fixedEuler: {x: 0, y: 0, z: 0}
-  encounters:
-  - name: eyeball
-    monsterPrefabs:
-    - {fileID: 4686566065884594070, guid: c8a4eac749ecba340ac30362ab7968b8, type: 3}
-    - {fileID: 1197636347973416371, guid: 2d0e6b4f542d1964c9a9a967377b9ae1, type: 3}
-    - {fileID: 527711534638013576, guid: 07b0a0338e1aa3f43b149bb9b5912f12, type: 3}
-    weight: 40
-    localPositions: []
-    extraEulerPerMonster: []
-  - name: manequin
-    monsterPrefabs:
-    - {fileID: 8135131151273548250, guid: a8975144b00b8b442a3455e976763b25, type: 3}
-    weight: 20
-    localPositions: []
-    extraEulerPerMonster: []
-  - name: computer
-    monsterPrefabs:
-    - {fileID: 5840785721415108788, guid: d2dcb6de0a98e5c4b8608a3af543af92, type: 3}
-    - {fileID: 5049789706711503226, guid: a12265b065a27ff40b52e57c8bcf1582, type: 3}
-    - {fileID: 3547963414984491455, guid: 26c05e3d205b1f649847aedd34c237af, type: 3}
-    - {fileID: 970819717833502525, guid: af8d3c5199d300d4380ee0a97eb71faa, type: 3}
-    weight: 60
-    localPositions: []
-    extraEulerPerMonster: []
-  forcedEncounterIndex: -1
-  spawnParent: {fileID: 0}
-  onSpawned:
-    m_PersistentCalls:
-      m_Calls: []
+  showGizmos: 1
+  debugLogs: 0
+  debugMaxLogs: 200
