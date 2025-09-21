@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class CameraManager : MonoBehaviour
 {
+    [Header("Cinemachine Camera")]
     [SerializeField] private CinemachineVirtualCamera dungeonCam;
     public float speed = 3f;
 

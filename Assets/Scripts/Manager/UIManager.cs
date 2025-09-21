@@ -33,9 +33,20 @@ public class UIManager : MonoBehaviour
                     OpenDrawer(uiList[index]);
             });
         }
-
     }
 
+    //======= 외부 공개 API =======
+    public void Open(UIinfo ui){
+        if (ui == null || ui.panelPos ==null) return;
+        OpenDrawer(ui);
+    }
+
+    public void Close(UIinfo ui){
+        if(ui ==null || ui.panelPos == null) return;
+        CloseDrawer(ui);
+    }
+
+    //===============================
     void OpenDrawer(UIinfo ui)
     {
         if (ui.isOpen)

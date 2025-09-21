@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
+// Party 이동 제어, 전투 UI 제어
 public class DungeonManager : MonoBehaviour
 {
     public static DungeonManager instance {get; private set;}

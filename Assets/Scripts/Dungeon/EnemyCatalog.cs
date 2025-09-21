@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
+// 몬스터 종류 카탈로그
 [CreateAssetMenu(menuName = "Game/Enemies/Enemy Catalog", fileName = "EnemyCatalog")]
 public class EnemyCatalog : ScriptableObject
 {

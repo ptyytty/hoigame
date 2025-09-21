@@ -20,12 +20,12 @@ public static class SkillCatalog
             { 3, skills.boxerSkills },
             { 4, skills.archerSkills },
             { 5, skills.hunterSkills },
-            { 6, skills.ninzaSkills },
-            { 7, skills.GeneralWizardSkills }, // Fire/Ice/Electric
-            { 8, skills.ShamanSkills },
-            { 9, skills.BomberSkills },
-            { 10, skills.ClericSkills },
-            { 11, skills.DoctorSkills }
+            // { 6, skills.ninzaSkills },
+            // { 7, skills.GeneralWizardSkills }, // Fire/Ice/Electric
+            // { 8, skills.ShamanSkills },
+            // { 9, skills.BomberSkills },
+            { 6, skills.ClericSkills },
+            { 7, skills.DoctorSkills }
         };
 
         built = true;

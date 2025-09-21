@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
+// 몬스터 스포너
 [RequireComponent(typeof(BoxCollider))]
 public class EnemySpawner : MonoBehaviour
 {
@@ -159,16 +160,6 @@ public class EnemySpawner : MonoBehaviour
         yield break;
     }
 
-    // IReadOnlyList<Job> ResolveParty()
-    // {
-    //     if (partyProvider is IHeroPartyProvider provider)
-    //         return provider.GetParty();
-
-    //     if (PartyInbox.Has)
-    //         return PartyInbox.Get();
-
-    //     return fallbackParty;
-    // }
     private IReadOnlyList<Job> ResolveParty()
     {
         var bridge = PartyBridge.Instance;

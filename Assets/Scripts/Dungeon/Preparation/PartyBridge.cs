@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 
+// Party 정보 전달
 public sealed class PartyBridge : MonoBehaviour
 {
     public static PartyBridge Instance { get; private set; }
