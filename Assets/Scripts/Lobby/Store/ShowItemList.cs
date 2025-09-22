@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-
+// 로컬 상점 상품 생성
 public class ShowItemList : MonoBehaviour
 {
     List<ConsumeItem> showConsumeItem;

@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
+// 상품 정렬 드롭다운
 public class SortedDropdown : MonoBehaviour
 {
     [System.Serializable]
@@ -148,7 +149,7 @@ public class SortedDropdown : MonoBehaviour
     {
         if (lastSelected != null)
             lastSelected.isOn = false;
-            
+
         sortedItemDropdowns[0].toggle.isOn = true;
         sortButtonText.text = sortedItemDropdowns[0].label.text;
         lastSelected = sortedItemDropdowns[0].toggle;

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+//보유 아이템 확인 및 추가
 public class PlayerItemManager : MonoBehaviour
 {
     public static PlayerItemManager instance;

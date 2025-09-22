@@ -70,6 +70,7 @@ public class InventoryUIManager : MonoBehaviour
     }
 
 
+    // 인벤토리 패널 true
     public void OpenInventoryPanel()
     {
         inventoryActive.SetActive(true);      // 패널을 보여주고
