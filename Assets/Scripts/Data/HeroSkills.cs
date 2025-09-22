@@ -55,7 +55,7 @@ public class HeroSkills
             target = Target.Enemy,
             loc = Loc.Front,
             area = Area.Single,
-            heroId = 1,
+            heroId = 2,
             type = SkillType.Damage,
             effects = new List<SkillEffect>{
                 new DamageEffect {damage = 18},
@@ -68,7 +68,7 @@ public class HeroSkills
             target = Target.Enemy,
             loc = Loc.Front,
             area = Area.Row,
-            heroId = 1,
+            heroId = 2,
             type = SkillType.Damage,
             correctionHit = -15,
             effects = new List<SkillEffect>{
@@ -82,7 +82,7 @@ public class HeroSkills
             target = Target.Self,
             loc = Loc.Front,
             area = Area.Single,
-            heroId = 1,
+            heroId = 2,
             type = SkillType.Buff,
             effects = new List<SkillEffect>{
                 new AbilityBuff{duration = 2, value = 2, ability = BuffType.Speed},
@@ -99,7 +99,7 @@ public class HeroSkills
             target = Target.Enemy,
             loc = Loc.Front,
             area = Area.Single,
-            heroId = 2,
+            heroId = 1,
             type = SkillType.Damage,
             effects = new List<SkillEffect>{
                 new DamageEffect {damage = 22}
@@ -111,7 +111,7 @@ public class HeroSkills
             target = Target.Self,
             loc = Loc.Front,
             area = Area.Single,
-            heroId = 2,
+            heroId = 1,
             type = SkillType.Buff,
             effects = new List<SkillEffect>{
                 new AbilityBuff{duration = 1, value = 15, ability = BuffType.Hit},
@@ -124,7 +124,7 @@ public class HeroSkills
             target = Target.Self,
             loc = Loc.Front,
             area = Area.Single,
-            heroId = 2,
+            heroId = 1,
             type = SkillType.Buff,
             effects = new List<SkillEffect>{
                 new AbilityBuff{duration = 2, value = 5, ability = BuffType.Defense}

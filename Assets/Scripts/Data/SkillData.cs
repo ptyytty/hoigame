@@ -83,6 +83,28 @@ public class Buff
 
 public enum StackMode { Refresh, StackValue, Ignore }       // 버프 및 효과 추가 관련 변수
 
+public static class ReturnText
+{
+    public static string ReturnDamage(int damage)
+        => damage > 0 ? damage.ToString() : "-";
+
+    public static string ReturnTarget(int target) => target switch   // 스킬 대상 string
+    {
+        0 => "몬스터",
+        1 => "아군",
+        2 => "자신",
+        _ => "대상 오류"
+    };
+
+    public static string ReturnArea(int area) => area switch       // 스킬 범위 string
+    {
+        0 => "단일",
+        1 => "광역",
+        2 => "전체",
+        _ => "범위 오류"
+    };
+}
+
 public enum Target
 {
     Enemy = 0,
@@ -90,7 +112,8 @@ public enum Target
     Self = 2
 }
 
-public enum Loc{
+public enum Loc
+{
     None = 0,
     Front = 1,
     Back = 2
