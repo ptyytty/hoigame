@@ -4,7 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-
+// 던전에서 사용하는 인벤토리
 public class DungeonInventory : MonoBehaviour
 {
     private const int maxSlotCount = 6;
