@@ -673,7 +673,7 @@ public class HeroSkills
         }
     };
 
-    // 영웅 스킬 외부 호출
+    // 영웅 기본 스킬 외부 호출
     public IEnumerable<Skill> GetHeroSkills(Job job)
     {
         switch (job.id_job)

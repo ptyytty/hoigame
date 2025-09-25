@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Spawner에 영웅 목록 전달
+/// </summary>
 public class PartyAdapter : MonoBehaviour,
     EnemySpawner.IHeroPartyProvider      // 파티(영웅) 목록 제공
 {

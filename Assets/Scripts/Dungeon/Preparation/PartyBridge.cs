@@ -3,7 +3,10 @@ using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 
-// Party 정보 전달
+///<summary>
+/// 씬 간 Party 정보 전달
+/// ActiveParty로 외부에서 읽기
+/// </summary>
 public sealed class PartyBridge : MonoBehaviour
 {
     public static PartyBridge Instance { get; private set; }

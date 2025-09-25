@@ -6,9 +6,12 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-
+///<summary>
+/// 상품 오브젝트
+/// </summary>
 public class Product : MonoBehaviour
 {
+    [Header("Product Info")]
     [SerializeField] private TMP_Text productName;
     [SerializeField] private TMP_Text productPrice;
     [SerializeField] private Image productImage;
@@ -18,6 +21,18 @@ public class Product : MonoBehaviour
     [SerializeField] private List<JobSpritePair> selectedSpritePairs;
 
     private static Product currentSelectedProduct;
+    public static Product CurrentSelected => currentSelectedProduct;
+
+    public bool IsConsume => boundConsume != null;
+    public bool IsEquip => boundEquip != null;
+    public int Price => boundPrice;
+    public ConsumeItem BoundConsume => boundConsume;
+    public EquipItem BoundEquip => boundEquip;
+
+    private ConsumeItem boundConsume;
+    private EquipItem boundEquip;
+    private int boundPrice;
+
     private Dictionary<JobCategory, Sprite> spriteDict;
     private Dictionary<JobCategory, Sprite> selectedSpriteDict;
     private Image slotImage;
@@ -48,6 +63,10 @@ public class Product : MonoBehaviour
         productPrice.text = $"{item.price}";
         productImage.sprite = item.icon;
 
+        boundConsume = item;
+        boundEquip = null;
+        boundPrice = item.price;
+
         defaultSprite = defaultGeneralImage;
 
         GetComponent<Button>().onClick.RemoveAllListeners();
@@ -77,6 +96,10 @@ public class Product : MonoBehaviour
         productName.text = item.name_item;
         productPrice.text = $"{item.price}";
         productImage.sprite = item.icon;
+
+        boundConsume = null;
+        boundEquip = item;
+        boundPrice = item.price;
 
         GetComponent<Button>().onClick.RemoveAllListeners();
         GetComponent<Button>().onClick.AddListener(() =>

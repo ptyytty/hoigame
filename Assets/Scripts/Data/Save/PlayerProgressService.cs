@@ -8,6 +8,7 @@ using System.Linq;
 
 /// <summary>
 /// 런타임 ↔ Save DTO 변환, 저장 타이밍 관리, 싱글턴 서비스
+/// 런타임 데이터 필요할 시 이용
 /// </summary>
 public class PlayerProgressService : MonoBehaviour
 {

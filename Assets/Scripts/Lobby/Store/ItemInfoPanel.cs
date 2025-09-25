@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Linq;
 
+// 아이템 정보창 관리
 public class ItemInfoPanel : MonoBehaviour
 {
     public static ItemInfoPanel instance;  // 싱글톤

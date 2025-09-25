@@ -7,6 +7,11 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// 던전 UI 애니메이션 제어
+/// 스킬 텍스트 삽입
+/// </summary>
+
 [Serializable]
 public class UIinfo
 {

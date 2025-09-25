@@ -4,6 +4,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
+// 상점 UI 제어
 public class StoreManager : MonoBehaviour
 {
     [System.Serializable]
@@ -18,18 +19,28 @@ public class StoreManager : MonoBehaviour
         public Color defaultTextcolor = new Color(1f, 1f, 1f, 1f);
     }
 
+    [Header("Toggle Images")]
     public List<ToggleImagepair> itemTypeToggleImagePairs;  // 아이템 종류 토글
     public List<ToggleImagepair> storeTypeToggleImagePairs; // 상점 토글
     public List<ToggleImagepair> changeBuyOrSellToggle;     // 구매 판매 토글
 
+    [Header("Panels")]
     [SerializeField] private GameObject localStore, onlineStore;
     [SerializeField] private GameObject itemToggleGroup;
     [SerializeField] private GameObject onlineBackground;
+
+    [Header("Toggle Group")]
     [SerializeField] GameObject onlineToggleGroup, onlineSell, onlineBuy;
 
     private Toggle lastSelectedItemType = null;
     private Toggle lastSelectedStoreType = null;
     private Toggle lastSelectedOnlineStoreMode = null;
+
+    [Header("Button")]
+    [SerializeField] Button applyBtn;
+
+    [Header("Dependencies")]
+    [SerializeField] private InventoryRuntime inventory;
 
     void Start()
     {
