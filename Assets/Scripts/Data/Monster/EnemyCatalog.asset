@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 217eab57292053441883c89829913ee0, type: 3}
+  m_Name: EnemyCatalog
+  m_EditorClassIdentifier: 
+  formations:
+  - name: Eyeballs
+    prefab: {fileID: 3085161200779696477, guid: dfa790a1a9780f94da01513ae7212ba0, type: 3}
+    yawOffsetDeg: 0
+    childObjects:
+    - {fileID: 6567916305988671156, guid: dfa790a1a9780f94da01513ae7212ba0, type: 3}
+    - {fileID: 4148888686674371858, guid: dfa790a1a9780f94da01513ae7212ba0, type: 3}
+    - {fileID: 5053540989309253563, guid: dfa790a1a9780f94da01513ae7212ba0, type: 3}
+    monsterSlots:
+    - {fileID: 11400000, guid: 2fbac0b6ebc8b534faecbd708107b104, type: 2}
+    - {fileID: 11400000, guid: 78c8592b2e4f63143a26e066688cd0a4, type: 2}
+    - {fileID: 11400000, guid: 3e6c85d5cc4d48347a35493202540a55, type: 2}
+  - name: Manequin
+    prefab: {fileID: 3305847795758521169, guid: 8b31af7b75269f640ba0df73dc88ed84, type: 3}
+    yawOffsetDeg: 0
+    childObjects:
+    - {fileID: 8727456277589147832, guid: 8b31af7b75269f640ba0df73dc88ed84, type: 3}
+    monsterSlots:
+    - {fileID: 11400000, guid: 73ba222be5005ca42b1ccfe500186539, type: 2}
+  - name: Desktop
+    prefab: {fileID: 7957492352594284339, guid: 35016ea9f6a5a0b478ab60be830e5188, type: 3}
+    yawOffsetDeg: 0
+    childObjects:
+    - {fileID: 5166601787701662297, guid: 35016ea9f6a5a0b478ab60be830e5188, type: 3}
+    - {fileID: 3565622668616989413, guid: 35016ea9f6a5a0b478ab60be830e5188, type: 3}
+    - {fileID: 8557534732422661009, guid: 35016ea9f6a5a0b478ab60be830e5188, type: 3}
+    - {fileID: 2610809797148397214, guid: 35016ea9f6a5a0b478ab60be830e5188, type: 3}
+    monsterSlots:
+    - {fileID: 11400000, guid: 2aaa731c098f8f041b7e65c220f523de, type: 2}
+    - {fileID: 11400000, guid: ea597c8a10d0fda499e5a5784e4679af, type: 2}
+    - {fileID: 11400000, guid: 6d5806eb55c27844db893a3de12600c1, type: 2}
+    - {fileID: 11400000, guid: 620fb62cfd51eef4b81c07748fdd196d, type: 2}

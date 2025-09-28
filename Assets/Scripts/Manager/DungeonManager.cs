@@ -3,11 +3,14 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+/// <summary>
+/// PartyManager
+/// Party 이동 제어, 전투 UI 제어
+/// </summary>
 
-// Party 이동 제어, 전투 UI 제어
 public class DungeonManager : MonoBehaviour
 {
-    public static DungeonManager instance {get; private set;}
+    public static DungeonManager instance { get; private set; }
 
     [Header("Dungeon UI")]
     public GameObject moveLeft;
@@ -35,13 +38,13 @@ public class DungeonManager : MonoBehaviour
         // 🔒 누수 방지
         EnemySpawner.OnBattleStart -= HandleBattleStart;
     }
-    
+
     public Transform partyTransform;
     public float moveSpeed = 50f;  // 이동 속도
     private bool isMoving = false;
     private bool isInFrontRow = true; // 앞열인지 뒷열인지 구분하는 변수
 
-    public MoveDirection currentDir{get; private set;}
+    public MoveDirection currentDir { get; private set; }
 
     // ─────────────────────────────────────
     // ▼ 전투 시작 신호를 받으면 '즉시' 멈춘다
@@ -59,7 +62,8 @@ public class DungeonManager : MonoBehaviour
 
     void Update()
     {
-        if (isMoving){
+        if (isMoving)
+        {
             Vector3 dir = GetMoveVector(currentDir);
             partyTransform.Translate(dir * moveSpeed * Time.deltaTime);
         }
@@ -82,10 +86,10 @@ public class DungeonManager : MonoBehaviour
         }
     }
 
-    public void StopMove()             { isMoving = false; }
-    public void StopMoveHard()         { isMoving = false; /* 필요 시 추가로 속도/트위닝도 여기서 끊기 */ }
-    public void ResumeMove()           { isMoving = true; }           // 전투 끝나고 다시 움직일 때 호출
-    public void ResumeMoveIfNeeded()   { /* 조건부 재개가 필요하면 여기에 로직 */ }
+    public void StopMove() { isMoving = false; }
+    public void StopMoveHard() { isMoving = false; /* 필요 시 추가로 속도/트위닝도 여기서 끊기 */ }
+    public void ResumeMove() { isMoving = true; }           // 전투 끝나고 다시 움직일 때 호출
+    public void ResumeMoveIfNeeded() { /* 조건부 재개가 필요하면 여기에 로직 */ }
 
     Vector3 GetMoveVector(MoveDirection dir)
     {

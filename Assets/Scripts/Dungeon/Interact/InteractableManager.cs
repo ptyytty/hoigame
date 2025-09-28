@@ -12,20 +12,23 @@ public class InteractableManager : MonoBehaviour
 
     void Awake()
     {
-        if(instance == null){
+        if (instance == null)
+        {
             instance = this;
-        }else{
+        }
+        else
+        {
             Destroy(this.gameObject);
         }
     }
-    
+
     [SerializeField] private List<GameObject> candidates; // 상호작용 가능 오브젝트 목록
     [SerializeField] private List<GameObject> stairs;   // 계단 목록
     [SerializeField] private float interactionChance = 0.1f;    // 상호작용 적용 확률
 
-    
+
     [SerializeField] private string[] nameFilters = { "Cabinet", "vending machine V2", "water purifier" };
-    [SerializeField] private string[] stairFilters = {"UpStairs", "DownStairs"};
+    [SerializeField] private string[] stairFilters = { "UpStairs", "DownStairs" };
 
     [Header("Object")]
     public GameObject party;
@@ -35,6 +38,13 @@ public class InteractableManager : MonoBehaviour
     public Button interactionUp;
     public Button interactionDown;
     public GameObject interactionObj;
+
+    // 아웃라인 공통 설정
+    [Header("Outline Settings (Common)")]
+    public Material outlineMaterial;
+    public Color outlineColor = Color.black;
+    [Range(0.01f, 0.5f)] public float outlineWidth = 0.1f;
+
     void Start()
     {
         AutoFindFloorAndScan();
@@ -52,19 +62,18 @@ public class InteractableManager : MonoBehaviour
             if (Random.value <= interactionChance)
             {
                 if (!obj.TryGetComponent(out Interactable interactable))
-                {
                     obj.AddComponent<Interactable>();
 
-                }
+                EnsureOutlineSetup(obj);
             }
         }
 
         foreach (GameObject obj in stairs)
         {
             if (!obj.TryGetComponent(out Interactable interactable))
-            {
                 obj.AddComponent<Interactable>();
-            }
+
+            EnsureOutlineSetup(obj);
         }
     }
     /// <summary>
@@ -85,7 +94,7 @@ public class InteractableManager : MonoBehaviour
 
         foreach (GameObject floor in floorObject)
         {
-             foreach (Transform child in floor.transform)
+            foreach (Transform child in floor.transform)
             {
                 string objName = child.name.ToLower();
 
@@ -110,7 +119,20 @@ public class InteractableManager : MonoBehaviour
                 }
             }
         }
-        Debug.Log($"✅ 자동 등록 완료: 상호작용 오브젝트 {objCount}개, 계단 {stairCount}개");
+        //Debug.Log($"✅ 자동 등록 완료: 상호작용 오브젝트 {objCount}개, 계단 {stairCount}개");
+    }
+    
+    // ✅ 추가: 대상 오브젝트에 OutlineDuplicator 구성
+    void EnsureOutlineSetup(GameObject obj)
+    {
+        if (!outlineMaterial) return; // 머티리얼 미지정 시 스킵
+
+        if (!obj.TryGetComponent(out OutlineDuplicator od))
+            od = obj.AddComponent<OutlineDuplicator>();
+
+        od.outlineMaterial = outlineMaterial;
+        od.SetProperties(outlineColor, outlineWidth);
+        od.EnableOutline(false); // 기본 OFF
     }
 }
 

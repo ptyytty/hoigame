@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 3085161200779696477}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 18, y: 0, z: -34}
+  m_LocalPosition: {x: 56.485085, y: 11.475655, z: -79.80668}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -45,6 +45,8 @@ GameObject:
   - component: {fileID: 3663679309529005992}
   - component: {fileID: 394024828801363981}
   - component: {fileID: 2491383635403556039}
+  - component: {fileID: 4626069632819224339}
+  - component: {fileID: 3876111281952575653}
   m_Layer: 0
   m_Name: eyeball_green
   m_TagString: Untagged
@@ -119,6 +121,58 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &4626069632819224339
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4148888686674371858}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2e506a2ab6d5d24680097d1702b37d3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  side: 1
+  baseSpeed: 0
+  maxHp: 0
+  currentHp: 0
+  hero:
+    id_job: 0
+    name_job: 
+    level: 0
+    exp: 0
+    hp: 0
+    def: 0
+    res: 0
+    spd: 0
+    hit: 0
+    loc: 0
+    category: 0
+    jobCategory: 0
+  monsterData: {fileID: 11400000, guid: 78c8592b2e4f63143a26e066688cd0a4, type: 2}
+  currentLoc: 1
+--- !u!65 &3876111281952575653
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4148888686674371858}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.07, y: 0.07, z: 0.07}
+  m_Center: {x: -0.0007253606, y: -0.00000005401671, z: -0.000000006519258}
 --- !u!1 &5053540989309253563
 GameObject:
   m_ObjectHideFlags: 0
@@ -130,6 +184,8 @@ GameObject:
   - component: {fileID: 5578297948625120513}
   - component: {fileID: 8846692515527008932}
   - component: {fileID: 6710702856502564462}
+  - component: {fileID: 189513540699978707}
+  - component: {fileID: 9130565635155876057}
   m_Layer: 0
   m_Name: eyeball_red
   m_TagString: Untagged
@@ -146,7 +202,7 @@ Transform:
   m_GameObject: {fileID: 5053540989309253563}
   serializedVersion: 2
   m_LocalRotation: {x: -0.5, y: 0.5, z: 0.5, w: 0.5}
-  m_LocalPosition: {x: 3, y: 1.5, z: -3}
+  m_LocalPosition: {x: -3, y: 1.5, z: -4.29}
   m_LocalScale: {x: 100, y: 100, z: 100}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -204,6 +260,58 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &189513540699978707
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5053540989309253563}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2e506a2ab6d5d24680097d1702b37d3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  side: 1
+  baseSpeed: 0
+  maxHp: 0
+  currentHp: 0
+  hero:
+    id_job: 0
+    name_job: 
+    level: 0
+    exp: 0
+    hp: 0
+    def: 0
+    res: 0
+    spd: 0
+    hit: 0
+    loc: 0
+    category: 0
+    jobCategory: 0
+  monsterData: {fileID: 11400000, guid: 3e6c85d5cc4d48347a35493202540a55, type: 2}
+  currentLoc: 1
+--- !u!65 &9130565635155876057
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5053540989309253563}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.07, y: 0.07, z: 0.07}
+  m_Center: {x: -0.000725301, y: 0.0000000055879354, z: -0.000000006519258}
 --- !u!1 &6567916305988671156
 GameObject:
   m_ObjectHideFlags: 0
@@ -215,6 +323,8 @@ GameObject:
   - component: {fileID: 5795637632671353870}
   - component: {fileID: 7476509937901503403}
   - component: {fileID: 4622119717155174241}
+  - component: {fileID: 8789091579947340988}
+  - component: {fileID: 3498462554843895123}
   m_Layer: 0
   m_Name: eyeball_brown
   m_TagString: Untagged
@@ -289,3 +399,55 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &8789091579947340988
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6567916305988671156}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2e506a2ab6d5d24680097d1702b37d3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  side: 1
+  baseSpeed: 0
+  maxHp: 0
+  currentHp: 0
+  hero:
+    id_job: 0
+    name_job: 
+    level: 0
+    exp: 0
+    hp: 0
+    def: 0
+    res: 0
+    spd: 0
+    hit: 0
+    loc: 0
+    category: 0
+    jobCategory: 0
+  monsterData: {fileID: 11400000, guid: 2fbac0b6ebc8b534faecbd708107b104, type: 2}
+  currentLoc: 1
+--- !u!65 &3498462554843895123
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6567916305988671156}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.07, y: 0.07, z: 0.07}
+  m_Center: {x: -0.0007253606, y: 0.0000000055879354, z: -0.000000006519258}

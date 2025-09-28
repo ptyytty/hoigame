@@ -27,8 +27,14 @@ public sealed class PartyBridge : MonoBehaviour
     {
         _activeParty.Clear();
         if (party == null) return;
+
+        int idx = 0;
         foreach (var h in party)
+        {
             if (h != null) _activeParty.Add(h);
+            Debug.Log($"[Party:Bridge-Set] {idx} -> {(h != null ? $"{h.name_job} (id:{h.id_job}, loc:{(Loc)h.loc})" : "(empty)")}");
+            idx++;
+        }
     }
 
     /// <summary> 파티가 비었는지 간단 체크. </summary>

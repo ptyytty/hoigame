@@ -7,11 +7,7 @@ using UnityEngine.AI;
 [RequireComponent(typeof(BoxCollider))]
 public class EnemySpawner : MonoBehaviour
 {
-    // ===== Party =====
-    [SerializeField] private MonoBehaviour partyProvider; // IHeroPartyProvider 구현체(없으면 fallbackParty 사용)
-    [SerializeField] private List<Job> fallbackParty = new();
-
-    // ===== Catalog (Formation 전용) =====
+    // ===== 몬스터 카탈로그 =====
     public EnemyCatalog catalog;
 
     // ===== Trigger =====
@@ -19,17 +15,17 @@ public class EnemySpawner : MonoBehaviour
     public bool triggerOnce = true;     // 트리거 한 번만 발동
 
     // ===== Party Direction =====
-    public enum DirectionMode { Auto, Velocity, TransformForward, ApproachToSpawner }
+    public enum DirectionMode { Auto, Velocity, TransformForward, ApproachToSpawner }   // 움직이는 속도 / 트랜스폼 벡터 / 스포너 중심을 향하는 벡터
     [Tooltip("파티 정면 방향 계산 방식")]
     public DirectionMode directionMode = DirectionMode.Auto;
     [Tooltip("계산된 진행 방향을 반대로 뒤집습니다.")]
-    public bool invertDirection = false;
+    [SerializeField] bool invertDirection = false;
 
     // ===== Spawn Pivot =====
-    public enum PivotMode { ZoneCenter, PartyOffset }
+    public enum PivotMode { ZoneCenter, PartyOffset }       // 스포너 중심 / 파티 앞쪽 오프셋
     public PivotMode pivot = PivotMode.PartyOffset;
     [Tooltip("파티 전진 방향으로 얼마나 앞에 스폰할지(m)")]
-    public float forwardOffset = 6f;
+    public float forwardOffset = 6f;                        // 스폰 위치 거리
     public float verticalOffset = 0f;
     [Tooltip("파티와의 최소 이격 거리. 이보다 가까우면 전방 오프셋을 자동 보정")]
     public float minDistanceFromParty = 2f;
@@ -49,6 +45,7 @@ public class EnemySpawner : MonoBehaviour
     public static event System.Action<IReadOnlyList<Job>, IReadOnlyList<GameObject>> OnBattleStart;
     public interface IHeroPartyProvider { IReadOnlyList<Job> GetParty(); }
 
+    // 히어로, 몬스터 리스트 정적 보관
     public static class BattleContext
     {
         public static List<Job> Heroes;
@@ -63,8 +60,8 @@ public class EnemySpawner : MonoBehaviour
     private int dbgCount;
     private BoxCollider box;
     private bool consumed;
-    private Vector3 lastPartyForward = Vector3.forward;
-    private Transform lastPartyRoot;
+    private Vector3 lastPartyForward = Vector3.forward;     // 트랜스폼 저장 시 진행 방향
+    private Transform lastPartyRoot;                        // 파티 트랜스폼
 
     void D(string msg)
     {
@@ -73,17 +70,20 @@ public class EnemySpawner : MonoBehaviour
         Debug.Log($"[EnemySpawnerDBG] {msg}", this);
     }
 
+    // 에디터에서 Trigger 강제 리셋
     void Reset()
     {
         box = GetComponent<BoxCollider>();
         if (box) box.isTrigger = true;
     }
+    
     void Awake()
     {
         box = GetComponent<BoxCollider>();
         if (box && !box.isTrigger) box.isTrigger = true;
     }
 
+    // 1) 태그 확인 (이미 소비된 스포너, triggerOnce => 무시)
     void OnTriggerEnter(Collider other)
     {
         bool tagged = other.CompareTag(partyTag) || other.transform.root.CompareTag(partyTag);
@@ -95,30 +95,19 @@ public class EnemySpawner : MonoBehaviour
         lastPartyForward = GetPartyDirection(directionMode, true);
         D($"PartyRoot={lastPartyRoot.name}, partyDir={lastPartyForward}");
 
-        // ★★★ 스폰 계산 전에 파티 이동을 확정적으로 멈춤 ★★★
-        //FreezeParty(lastPartyRoot);
+        // 파티 이동 정지
         DungeonManager.instance?.StopMoveHard();
 
         StartCoroutine(SpawnAndStartBattle());
     }
 
+    // 2) 몬스터 스폰 및 전투 시작
     IEnumerator SpawnAndStartBattle()
     {
-        consumed = true;
-        if (catalog == null)
-        {
-            Debug.LogWarning("[EnemySpawner] Catalog is null.");
-            yield break;
-        }
+        consumed = true;        // 스포너 소비 확인
 
-        // === Formation 전용 경로 ===
-        if (catalog.selectionMode != EnemyCatalog.SelectionMode.Formations)
-        {
-            Debug.LogWarning("[EnemySpawner] Catalog is not in Formations mode. Please set to Formations.");
-            yield break;
-        }
+        var f = catalog.PickFormation();        // f = 카탈로그 내 선택된 몬스터 (스폰될 몬스터)
 
-        var f = catalog.PickFormation();
         if (f == null || f.prefab == null)
         {
             Debug.LogWarning("[EnemySpawner] No formation prefab in catalog.");
@@ -139,9 +128,10 @@ public class EnemySpawner : MonoBehaviour
         Quaternion rot = ComputeFacingRotation_FacePartyForwardOpposite(pos);
         if (!Mathf.Approximately(f.yawOffsetDeg, 0f)) rot *= Quaternion.Euler(0f, f.yawOffsetDeg, 0f);
 
-        // 프리팹 하나만 스폰 (내부가 이미 2x2 구성)
+        // 프리팹 하나만 스폰
         var root = Instantiate(f.prefab, pos, rot);
         D($"Formation spawned at {pos}, rotY={rot.eulerAngles.y:F1}, yawAdd={f.yawOffsetDeg}");
+
 
         // 적 리스트는 프리팹(및 자식)으로 수집
         var enemies = CollectFormationEnemies(root);
@@ -160,6 +150,7 @@ public class EnemySpawner : MonoBehaviour
         yield break;
     }
 
+    // PartyBridge.Instance로 파티 정보 수집
     private IReadOnlyList<Job> ResolveParty()
     {
         var bridge = PartyBridge.Instance;
@@ -167,46 +158,6 @@ public class EnemySpawner : MonoBehaviour
             return bridge.ActiveParty;
 
         return System.Array.Empty<Job>();
-    }
-
-    // ===== 파티 정보 전달 =====
-    public static class PartyInbox
-    {
-        private static readonly List<Job> _incoming = new(4);
-
-        public static void Set(IEnumerable<Job> party)
-        {
-            _incoming.Clear();
-            if (party == null) return;
-            foreach (var h in party)
-                if (h != null) _incoming.Add(h);
-        }
-
-        public static bool Has => _incoming.Count > 0;
-        public static IReadOnlyList<Job> Get() => _incoming;
-        public static void Clear() => _incoming.Clear();
-    }
-
-    // ===== Battle Start: Invoke C# Event만 사용 =====
-    void BeginBattle_InvokeEvent(IReadOnlyList<Job> heroes, IReadOnlyList<GameObject> enemies)
-    {
-        BattleContext.Heroes = new List<Job>(heroes);
-        BattleContext.Enemies = new List<GameObject>(enemies);
-        int subs = OnBattleStart?.GetInvocationList()?.Length ?? 0;
-        Debug.Log($"[EnemySpawner] BeginBattle enter: heroes={heroes.Count}, enemies={enemies.Count}, subs={subs}");
-        OnBattleStart?.Invoke(heroes, enemies);
-    }
-
-    // ===== Facing 고정: '파티 진행 반대' =====
-    Quaternion ComputeFacingRotation_FacePartyForwardOpposite(Vector3 spawnPos)
-    {
-        Vector3 dir = -lastPartyForward;
-        if (yawOnly) dir.y = 0f;
-        if (dir.sqrMagnitude < 0.0001f) dir = transform.forward;
-
-        var look = Quaternion.LookRotation(dir.normalized, Vector3.up);
-        look *= Quaternion.Euler(0f, yawOffsetDeg, 0f);
-        return look;
     }
 
     // ===== Party Direction / Pivot =====
@@ -219,41 +170,41 @@ public class EnemySpawner : MonoBehaviour
             switch (mode)
             {
                 case DirectionMode.Velocity:
-                {
-                    var rb = lastPartyRoot.GetComponent<Rigidbody>();
-                    if (rb != null && rb.velocity.sqrMagnitude > 0.01f) { dir = rb.velocity; break; }
-                    var cc = lastPartyRoot.GetComponent<CharacterController>();
-                    if (cc != null && cc.velocity.sqrMagnitude > 0.01f) { dir = cc.velocity; break; }
-                    var agent = lastPartyRoot.GetComponent<NavMeshAgent>();
-                    if (agent != null && agent.velocity.sqrMagnitude > 0.01f) { dir = agent.velocity; break; }
-                    dir = lastPartyRoot.forward; break;
-                }
+                    {
+                        var rb = lastPartyRoot.GetComponent<Rigidbody>();
+                        if (rb != null && rb.velocity.sqrMagnitude > 0.01f) { dir = rb.velocity; break; }
+                        var cc = lastPartyRoot.GetComponent<CharacterController>();
+                        if (cc != null && cc.velocity.sqrMagnitude > 0.01f) { dir = cc.velocity; break; }
+                        var agent = lastPartyRoot.GetComponent<NavMeshAgent>();
+                        if (agent != null && agent.velocity.sqrMagnitude > 0.01f) { dir = agent.velocity; break; }
+                        dir = lastPartyRoot.forward; break;
+                    }
                 case DirectionMode.TransformForward:
                     dir = lastPartyRoot.forward; break;
                 case DirectionMode.ApproachToSpawner:
                     dir = (center - lastPartyRoot.position); break;
                 case DirectionMode.Auto:
                 default:
-                {
-                    var rb = lastPartyRoot.GetComponent<Rigidbody>();
-                    if (rb != null && rb.velocity.sqrMagnitude > 0.01f) dir = rb.velocity;
-                    else
                     {
-                        var cc = lastPartyRoot.GetComponent<CharacterController>();
-                        if (cc != null && cc.velocity.sqrMagnitude > 0.01f) dir = cc.velocity;
+                        var rb = lastPartyRoot.GetComponent<Rigidbody>();
+                        if (rb != null && rb.velocity.sqrMagnitude > 0.01f) dir = rb.velocity;
                         else
                         {
-                            var agent = lastPartyRoot.GetComponent<NavMeshAgent>();
-                            if (agent != null && agent.velocity.sqrMagnitude > 0.01f) dir = agent.velocity;
+                            var cc = lastPartyRoot.GetComponent<CharacterController>();
+                            if (cc != null && cc.velocity.sqrMagnitude > 0.01f) dir = cc.velocity;
                             else
                             {
-                                Vector3 appr = (center - lastPartyRoot.position);
-                                dir = (appr.sqrMagnitude > 0.0001f) ? appr : lastPartyRoot.forward;
+                                var agent = lastPartyRoot.GetComponent<NavMeshAgent>();
+                                if (agent != null && agent.velocity.sqrMagnitude > 0.01f) dir = agent.velocity;
+                                else
+                                {
+                                    Vector3 appr = (center - lastPartyRoot.position);
+                                    dir = (appr.sqrMagnitude > 0.0001f) ? appr : lastPartyRoot.forward;
+                                }
                             }
                         }
+                        break;
                     }
-                    break;
-                }
             }
         }
         dir.y = 0f;
@@ -265,6 +216,30 @@ public class EnemySpawner : MonoBehaviour
         return dir;
     }
 
+    // ===== 몬스터 스폰 방향 지정 (파티 진행 반대 방향으로 회전) =====
+    Quaternion ComputeFacingRotation_FacePartyForwardOpposite(Vector3 spawnPos)
+    {
+        Vector3 dir = -lastPartyForward;
+        if (yawOnly) dir.y = 0f;
+        if (dir.sqrMagnitude < 0.0001f) dir = transform.forward;
+
+        var look = Quaternion.LookRotation(dir.normalized, Vector3.up);
+        look *= Quaternion.Euler(0f, yawOffsetDeg, 0f);
+        return look;
+    }
+
+    // ===== Battle Start: Invoke C# Event만 사용 =====
+    // BattleManager, DungeonManager가 구독해서 전투 구현
+    void BeginBattle_InvokeEvent(IReadOnlyList<Job> heroes, IReadOnlyList<GameObject> enemies)
+    {
+        BattleContext.Heroes = new List<Job>(heroes);
+        BattleContext.Enemies = new List<GameObject>(enemies);
+        int subs = OnBattleStart?.GetInvocationList()?.Length ?? 0;
+        Debug.Log($"[EnemySpawner] BeginBattle enter: heroes={heroes.Count}, enemies={enemies.Count}, subs={subs}");
+        OnBattleStart?.Invoke(heroes, enemies);     // event 시작
+    }
+
+    // 몬스터 스폰 지점 계산
     Vector3 GetSpawnPivotWorld()
     {
         if (pivot == PivotMode.PartyOffset && lastPartyRoot)
@@ -294,55 +269,7 @@ public class EnemySpawner : MonoBehaviour
         return list;
     }
 
-    // ★★★ 파티 이동 확정 정지(이벤트/리스너 없이 내부에서 즉시) ★★★
-    // void FreezeParty(Transform root)
-    // {
-    //     if (!root) return;
-    //     D($"FreezeParty root={root.name}");
-
-    //     // (1) NavMeshAgent 전부 정지
-    //     var agents = root.GetComponentsInChildren<NavMeshAgent>(true);
-    //     for (int i = 0; i < agents.Length; i++)
-    //     {
-    //         var ag = agents[i];
-    //         if (!ag) continue;
-    //         ag.isStopped = true;
-    //         ag.ResetPath();
-    //         ag.velocity = Vector3.zero;
-    //         ag.updateRotation = false; // 회전도 멈춤
-    //     }
-
-    //     // (2) Rigidbody 전부 정지(물리/루트모션로 밀리는 것 차단)
-    //     var rbs = root.GetComponentsInChildren<Rigidbody>(true);
-    //     for (int i = 0; i < rbs.Length; i++)
-    //     {
-    //         var rb = rbs[i];
-    //         if (!rb) continue;
-    //         rb.velocity = Vector3.zero;
-    //         rb.angularVelocity = Vector3.zero;
-    //         rb.isKinematic = true; // 전투 중 외력으로 움직이지 않게
-    //     }
-
-    //     // (3) 대표적인 입력/이동 스크립트 비활성화(이름 패턴 하드코딩)
-    //     string[] nameFilters = { "PlayerController", "PartyMover", "Input", "CharacterMove" };
-    //     var mbs = root.GetComponentsInChildren<MonoBehaviour>(true);
-    //     for (int i = 0; i < mbs.Length; i++)
-    //     {
-    //         var mb = mbs[i];
-    //         if (!mb) continue;
-    //         var typeName = mb.GetType().Name;
-    //         for (int k = 0; k < nameFilters.Length; k++)
-    //         {
-    //             if (!string.IsNullOrEmpty(nameFilters[k]) && typeName.Contains(nameFilters[k]))
-    //             {
-    //                 mb.enabled = false;
-    //                 D($"Disable behaviour: {typeName} on {mb.gameObject.name}");
-    //                 break;
-    //             }
-    //         }
-    //     }
-    // }
-
+    //============ 트리거 박스, 스폰 피봇 확인 ==============
     void OnDrawGizmos()
     {
         if (!showGizmos) return;

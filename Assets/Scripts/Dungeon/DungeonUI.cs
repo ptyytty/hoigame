@@ -5,6 +5,9 @@ using UnityEngine.UI;
 using DG.Tweening;
 using TMPro;
 
+/// <summary>
+/// 삭제 예정 스크립트
+/// </summary>
 public class DungeonUI : MonoBehaviour
 {
 
@@ -70,7 +73,8 @@ public class DungeonUI : MonoBehaviour
         isOpen = true;
         currentOpenDrawer = this; // 현재 열린 패널 저장
 
-        if(currentSkill == null){
+        if (currentSkill == null)
+        {
             Debug.LogWarning("현재 스킬이 설정되지 않았습니다.");
             return;
         }
@@ -78,7 +82,8 @@ public class DungeonUI : MonoBehaviour
         Target type = (Target)currentSkill.target;
 
         //스킬 대상 확인
-        switch(type){
+        switch (type)
+        {
             case Target.Enemy:
                 Debug.Log("대상: 적");
                 OpenEnemyPanel();
@@ -107,10 +112,12 @@ public class DungeonUI : MonoBehaviour
         {
             currentOpenDrawer = null;
         }
-        if(isEnemyPanelOpen){
+        if (isEnemyPanelOpen)
+        {
             CloseEnemyPanel();
         }
-        if(isPartyPanelOpen){
+        if (isPartyPanelOpen)
+        {
             ClosePartyPanel();
         }
     }

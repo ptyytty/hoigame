@@ -5,10 +5,12 @@ using UnityEngine;
 // 상호작용 오브젝트 자동 부착
 public class Interactable : MonoBehaviour
 {
+    OutlineDuplicator _outline;
+
     void Start()
     {
         gameObject.layer = LayerMask.NameToLayer("Interactable");
-        Debug.Log($"{gameObject.name}은 상호작용 가능 오브젝트입니다.");
+        //Debug.Log($"{gameObject.name}은 상호작용 가능 오브젝트입니다.");
 
         InteractableManager.instance.interactionUp.onClick.RemoveAllListeners();
         InteractableManager.instance.interactionDown.onClick.RemoveAllListeners();
@@ -34,6 +36,8 @@ public class Interactable : MonoBehaviour
             posCam.x += 150f;
             InteractableManager.instance.partyCam.transform.position = posCam;
         });
+
+        TryGetComponent(out _outline);
     }
 
     public void ShowUI(bool show)
@@ -46,5 +50,7 @@ public class Interactable : MonoBehaviour
         else if (gameObject.CompareTag("Untagged"))
             InteractableManager.instance.interactionObj.gameObject.SetActive(show);
         // 오브젝트 UI
+
+        if (_outline != null) _outline.EnableOutline(show);
     }
 }

@@ -111,7 +111,7 @@ public class PartySelector : MonoBehaviour
     {
         for (int i = 0; i < partySlots.Count; i++)
         {
-            Debug.Log($"🧩 partySlots.Count = {partySlots.Count}");
+            //Debug.Log($"🧩 partySlots.Count = {partySlots.Count}");
             int index = i;
             Button btn = partySlots[i].GetComponent<Button>();
             Image slotImage = partySlots[i].GetComponent<Image>();
@@ -152,7 +152,7 @@ public class PartySelector : MonoBehaviour
         // 슬롯 우선 선택
         else if (currentSlot != null)
         {
-            Debug.Log($"{index}, 영웅 있음 여부 {assignedHeroes[index] != null}");
+            //Debug.Log($"{index}, 영웅 있음 여부 {assignedHeroes[index] != null}");
             Image prevImage = currentSlot.GetComponent<Image>();
             prevImage.sprite = changedImage.defaultImage;
             heroListUp.ShowHeroInfo(assignedHeroes[index]);

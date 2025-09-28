@@ -32,16 +32,59 @@ public class Job
     // 성장 확인
     public Dictionary<int, int> skillLevels = new();        // ★ key = heroId * BASE(100) + localSkillId
 
-    // 버프 적용
+
+    /// <summary>
+    /// 버프 추가
+    /// </summary>
+    /// <param name="type"> BuffType </param>
+    /// <param name="duration"> Int </param>
     public void AddBuff(BuffType type, int duration)
     {
-        if (activeDebuffs.ContainsKey(type))
-        {
-            activeDebuffs[type] += duration;
-        }
+        if (duration <= 0) duration = 1;
+        if (activeBuffs.TryGetValue(type, out var cur))
+            activeBuffs[type] = Math.Max(cur, duration);
         else
+            activeBuffs[type] = duration;
+    }
+
+    // ✅ 디버프 추가 (새로 추가)
+    public void AddDebuff(BuffType type, int duration)
+    {
+        if (duration <= 0) duration = 1;
+        if (activeDebuffs.TryGetValue(type, out var cur))
+            activeDebuffs[type] = Math.Max(cur, duration);
+        else
+            activeDebuffs[type] = duration;
+    }
+
+    // ✅ 조회 (Combatant.HasBuff에서 호출)
+    public bool HasBuff(BuffType type)
+    {
+        return activeBuffs.TryGetValue(type, out var remain) && remain > 0;
+    }
+
+    // (선택) 디버프 조회도 있으면 편함
+    public bool HasDebuff(BuffType type)
+    {
+        return activeDebuffs.TryGetValue(type, out var remain) && remain > 0;
+    }
+
+    // (선택) 턴 종료 시 지속턴 감소용 - 필요할 때 호출
+    public void TickStatuses()
+    {
+        TickDict(activeBuffs);
+        TickDict(activeDebuffs);
+
+        static void TickDict(Dictionary<BuffType,int> dict)
         {
-            activeDebuffs.Add(type, duration);
+            if (dict.Count == 0) return;
+            // 키 목록을 복사해서 안전하게 순회
+            var keys = new List<BuffType>(dict.Keys);
+            foreach (var k in keys)
+            {
+                dict[k] = dict[k] - 1;
+                if (dict[k] <= 0) dict.Remove(k);
+            }
         }
     }
 }
