@@ -202,11 +202,10 @@ public class BattleManager : MonoBehaviour
 
         // 사망/이탈 정리
         initiative = initiative.Where(u => u != null && u.IsAlive).ToList();
-        if (initiative.Count == 0)
-        {
-            Debug.LogWarning("[Battle] No alive units.");
-            return;
-        }
+
+        // 도트(출혈, 중독) 피해 사망 시 전투 종료
+        TryEndBattleIfEnemiesDefeated();
+        if (initiative.Count == 0) return;
 
         turnIndex = (turnIndex + 1) % initiative.Count; // 턴 무한 순회
         var actor = initiative[turnIndex];
@@ -249,9 +248,8 @@ public class BattleManager : MonoBehaviour
         uiManager.ShowHeroInfo(hero);
     }
 
-    /// <summary>
-    /// 스킬 UI 클릭
-    /// </summary>
+
+    // =================== 스킬 사용 =================
     // 스킬 클릭 시 반응
     public void OnSkillClickedFromUI(Skill skill)
     {
@@ -350,6 +348,28 @@ public class BattleManager : MonoBehaviour
         catch (Exception e) { Debug.LogException(e, this); }
     }
 
+    // 사망 유닛 오브젝트 제거
+    private void DestroyDeadUnit()
+    {
+        // 현재 씬의 Combatant 중 죽은 오브젝트가 아직 살아있다면 정리
+        var all = FindObjectsOfType<Combatant>(true);
+        foreach (var c in all)
+        {
+            if (c == null) continue;
+            if (!c.IsAlive && c.gameObject) // 혹시 남아있다면 안전하게 제거
+            {
+                Destroy(c.gameObject);
+            }
+        }
+
+        // 2) 이니셔티브에서도 제거 (턴 순서 리스트)
+        if (initiative != null)
+            initiative = initiative.Where(u => u != null && u.IsAlive).ToList();
+
+        // 전멸 확인 => 전투 종료
+        TryEndBattleIfEnemiesDefeated();
+    }
+
     // ========== 공통 유틸 ==========
     // 시전자 위치 조건(Loc) 만족?
     bool IsCastableFromLoc(Combatant caster, Skill s)
@@ -384,7 +404,7 @@ public class BattleManager : MonoBehaviour
         };
     }
 
-    // ✅ 공통 스킬 실행 파이프라인
+    // 공통 스킬 실행 파이프라인
     void ExecuteSkill(Combatant caster, Skill s, Combatant seedTarget = null)
     {
         if (!caster || s == null) return;
@@ -413,11 +433,47 @@ public class BattleManager : MonoBehaviour
             foreach (var eff in s.effects)
                 eff?.Apply(caster, t);
 
-        // (선택) 하이라이트 연동: 타격된 대상 표시/플로팅 텍스트 등
-        //SkillTargetHighlighter.Instance?.HighlightForSkill(caster, finalTargets);
+        DestroyDeadUnit();
     }
 
-    // ===== 몬스터 AI(무작위) =====
+    // 몬스터 생존 확인
+    bool AnyEnemiesAlive()
+    {
+        var all = FindObjectsOfType<Combatant>(true);
+        foreach (var c in all)
+            if (c && c.side == Side.Enemy && c.IsAlive)
+                return true;
+        return false;
+    }
+
+    // 몬스터 전멸 시 호출
+    void TryEndBattleIfEnemiesDefeated()
+    {
+        if (AnyEnemiesAlive()) return;
+        EndBattle_Victory();
+    }
+
+    // 전투 승리 후 전투 패널 초기화 / 이동 UI 전환
+    void EndBattle_Victory()
+    {
+        // 1) 타게팅/하이라이트/UI 정리
+        SkillTargetHighlighter.Instance?.ClearAll();
+        CancelTargeting();                   // 대상 지정 상태 강제 종료
+        uiManager?.ClearSkillSelection();
+        uiManager?.CloseAll();               // UIManager에 있는 통합 닫기
+
+        // 2) 내부 턴 상태 초기화
+        initiative?.Clear();
+        turnIndex = -1;
+
+        // 3) 던전 UI 복구(중앙집중)
+        if (DungeonManager.instance)
+            DungeonManager.instance.ShowDungeonUIAfterBattle();     // UI 복구 및 보상 UI
+
+        Debug.Log("[Battle] Victory → 전투 종료 및 던전 이동 UI 복구");
+    }
+
+    // ============ 몬스터 AI ===========
     void TryUseSkill_EnemyAI_Random(UnitEntry actor)
     {
         var caster = actor.combatant;
@@ -448,6 +504,8 @@ public class BattleManager : MonoBehaviour
 
         // 3) 실행
         ExecuteSkill(caster, pick, seed);
+
+        DestroyDeadUnit();
 
         // 4) 다음 턴
         NextTurn();

@@ -16,8 +16,10 @@ public class Combatant : MonoBehaviour
     public int baseSpeed;      // 기본 SPD
     public int maxHp;           // 최대 체력
     public int currentHp;
-    public bool IsAlive => currentHp > 0;
+    public bool IsAlive => !_dead && currentHp > 0;
+    public event Action<Combatant> OnDied;
     public event Action<int, int> OnHpChanged;   // current, max
+    private bool _dead = false;
 
     [Header("영웅 데이터")]
     public Job hero;           // side == Hero 일 때 연결
@@ -140,8 +142,25 @@ public class Combatant : MonoBehaviour
     {
         int a = Mathf.Max(0, amount);
         currentHp = Mathf.Max(0, currentHp - a);
-        if (side == Side.Hero && hero != null) hero.hp = currentHp; // DTO 동기화
+        if (side == Side.Hero && hero != null) hero.hp = currentHp; // DTO 동기화 (영웅일 때)
         OnHpChanged?.Invoke(currentHp, maxHp);
+
+        if (currentHp <= 0 && !_dead)
+            Die();
+    }
+
+    private void Die()
+    {
+        if (_dead) return;
+        _dead = true;
+
+        try { OnDied?.Invoke(this); } catch { }
+
+        // 아웃라인 제거
+        var od = GetComponent<OutlineDuplicator>();
+        if (od) od.EnableOutline(false);
+
+        Destroy(gameObject);
     }
 
     // 체력 회복

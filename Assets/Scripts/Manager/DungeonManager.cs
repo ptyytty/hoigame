@@ -47,7 +47,7 @@ public class DungeonManager : MonoBehaviour
     public MoveDirection currentDir { get; private set; }
 
     // ─────────────────────────────────────
-    // ▼ 전투 시작 신호를 받으면 '즉시' 멈춘다
+    // ▼ 전투 시작 => 이동 정지, UI 전환
     void HandleBattleStart(IReadOnlyList<Job> heroes, IReadOnlyList<GameObject> enemies)
     {
         StopMoveHard();        // 이동 중이면 즉시 정지
@@ -57,6 +57,16 @@ public class DungeonManager : MonoBehaviour
         moveRight.SetActive(false);
 
         battleUI.SetActive(true);
+    }
+
+    // 전투 종료 => UI 전환
+    public void ShowDungeonUIAfterBattle()
+    {
+        // TODO: 전투 보상 화면 추가
+        
+        if (battleUI) battleUI.SetActive(false);
+        if (moveLeft) moveLeft.SetActive(true);
+        if (moveRight) moveRight.SetActive(true);
     }
     // ─────────────────────────────────────
 
