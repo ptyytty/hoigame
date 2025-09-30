@@ -7,7 +7,7 @@ using System.Collections.Generic;
 public class Job
 {
     public int id_job;
-    public string name_job;
+    public string name_job;     // 영웅 이름
     public int level;
     public int exp;
     public int hp;
@@ -15,8 +15,8 @@ public class Job
     public int res;
     public int spd;
     public int hit;
-    public int loc;
-    public int category;
+    public int loc;             // 영웅 파티 위치
+    public int category;        // 영웅 카테고리
     public JobCategory jobCategory;
     [NonSerialized] public EquipItem equippedItem;
     [NonSerialized] public string instanceId;

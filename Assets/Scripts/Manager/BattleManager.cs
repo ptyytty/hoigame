@@ -50,7 +50,9 @@ public class BattleManager : MonoBehaviour
 
     // === [대상 지정 상태] ===
     private Skill _pendingSkill = null;
+    public Skill PendingSkill => _pendingSkill;
     private Combatant _pendingCaster = null;
+    public Combatant PendingCaster => _pendingCaster;
     private int _pendingSkillKey;
     int GetSkillKey(Skill s) => s != null ? s.skillId : -1;   // ← ID 기반 키
     private bool _isTargeting = false;
@@ -320,24 +322,27 @@ public class BattleManager : MonoBehaviour
     public void NotifyCombatantClicked(Combatant clicked)
     {
         if (!_isTargeting || _pendingCaster == null || _pendingSkill == null) return;
+        if (clicked == null || !clicked.IsAlive) return;
 
-        // 타겟 유효성 체크(스킬 대상 규칙)
-        var pool = GatherByTarget(_pendingCaster, _pendingSkill.target);
-        if (!pool.Contains(clicked) && _pendingSkill.target != Target.Self)
+        if (!SkillTargeting.IsCandidate(_pendingCaster, clicked, _pendingSkill))
         {
-            Debug.Log("[Targeting] 잘못된 대상");
-            CancelTargeting();
+            Debug.Log("[BM] Invalid target for current skill");
             return;
         }
 
-        Debug.Log($"[Cast] {_pendingCaster.DisplayName} uses {_pendingSkill.skillName} → {clicked.DisplayName}");
+        var all = FindObjectsOfType<Combatant>(includeInactive: false)
+              .Where(c => c != null && c.IsAlive);
 
-        // 실행: Area에 맞게 확장해서 효과 적용
-        ExecuteSkill(_pendingCaster, _pendingSkill, clicked);
+        var targets = SkillTargeting.GetExecutionTargets(_pendingCaster, clicked, all, _pendingSkill);
+        if (targets == null || targets.Count == 0)
+        {
+            Debug.Log("[BM] No resolved targets");
+            return;
+        }
+
+        CastSkillResolved(_pendingCaster, _pendingSkill, targets);
 
         RaiseSkillCommitted();
-
-        // 마무리
         CancelTargeting();
         NextTurn();
     }
@@ -436,6 +441,23 @@ public class BattleManager : MonoBehaviour
         DestroyDeadUnit();
     }
 
+    void CastSkillResolved(Combatant caster, Skill skill, List<Combatant> finalTargets)
+    {
+        if (!caster || skill == null) return;
+
+        if (finalTargets == null || finalTargets.Count == 0)
+        {
+            Debug.Log("[Skill] 최종 대상 없음");
+            return;
+        }
+
+        foreach (var t in finalTargets)
+            foreach (var eff in skill.effects)
+                eff?.Apply(caster, t);
+
+        DestroyDeadUnit();
+    }
+
     // 몬스터 생존 확인
     bool AnyEnemiesAlive()
     {
@@ -483,31 +505,38 @@ public class BattleManager : MonoBehaviour
         var skills = caster.GetSkills(heroSkills)?.ToList();
         if (skills == null || skills.Count == 0) { NextTurn(); return; }
 
+        var all = FindObjectsOfType<Combatant>(includeInactive: false)
+                  .Where(x => x && x.IsAlive).ToList();
+
+        // 사용 가능 스킬 필터 (시전지 위치 제약)
         var usable = new List<Skill>();
         foreach (var s in skills)
         {
-            if (!IsCastableFromLoc(caster, s)) continue;
-            var pool = GatherByTarget(caster, s.target);
-            if (pool.Count == 0 && s.target != Target.Self) continue;
-            usable.Add(s);
+            if (s.loc != Loc.None && caster.currentLoc != s.loc) continue;
+
+            // 후보가 1명 이상인지 간단히 확인: 적/아군 풀에서 IsCandidate로 한 번이라도 true가 있으면 OK
+            bool anyCandidate = all.Any(c => SkillTargeting.IsCandidate(caster, c, s));
+            if (anyCandidate) usable.Add(s);
         }
         if (usable.Count == 0) { NextTurn(); return; }
 
         // 2) 완전 무작위 선택
         var pick = usable[UnityEngine.Random.Range(0, usable.Count)];
-        List<Combatant> pool2 = GatherByTarget(caster, pick.target);
-        Combatant seed = pick.target == Target.Self
-            ? caster
-            : (pool2.Count > 0 ? pool2[UnityEngine.Random.Range(0, pool2.Count)] : null);
 
-        Debug.Log($"[AI] {caster.DisplayName} uses {pick.skillName} ({pick.target}/{pick.area})");
+        // 클릭 시뮬레이션
+        var candidates = all.Where(c => SkillTargeting.IsCandidate(caster, c, pick)).ToList();
+        if (candidates.Count == 0) { NextTurn(); return; }
+        var click = candidates[UnityEngine.Random.Range(0, candidates.Count)];
 
-        // 3) 실행
-        ExecuteSkill(caster, pick, seed);
+        // 4) 최종 실행 대상 확정
+        var targets = SkillTargeting.GetExecutionTargets(caster, click, all, pick);
+        if (targets.Count == 0) { NextTurn(); return; }
 
-        DestroyDeadUnit();
+        Debug.Log($"[AI] {caster.DisplayName} uses {pick.skillName} → {targets.Count} target(s)");
+        // 5) 실행
+        CastSkillResolved(caster, pick, targets);
 
-        // 4) 다음 턴
+        // 6) 다음 턴
         NextTurn();
     }
 }

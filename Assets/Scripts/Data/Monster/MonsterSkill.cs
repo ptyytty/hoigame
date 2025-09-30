@@ -6,6 +6,7 @@ public static class MonsterSkill
 {
     private static readonly Dictionary<int, List<Skill>> monsterSkillDB = new()
     {
+        // Mouse
         [1001] = new List<Skill>
         {
             new Skill {
@@ -13,6 +14,7 @@ public static class MonsterSkill
                 skillName = "단일 공격",
                 target = Target.Enemy,     // 시전자 기준: 적(=영웅 진영)
                 loc = Loc.Front,
+                targetLoc = Loc.None,
                 area = Area.Single,
                 monsterId = 1001,
                 type = SkillType.Damage,
@@ -22,13 +24,16 @@ public static class MonsterSkill
                 }
             }
         },
+
+        // Keyboard
         [1002] = new List<Skill>
         {
             new Skill {
                 skillId = 1,
                 skillName = "도발",
-                target = Target.Enemy,     // 시전자 기준: 적(=영웅 진영)
+                target = Target.Enemy,
                 loc = Loc.Front,
+                targetLoc = Loc.None,
                 area = Area.Single,
                 monsterId = 1002,
                 type = SkillType.Buff,
@@ -40,8 +45,9 @@ public static class MonsterSkill
             new Skill {
                 skillId = 2,
                 skillName = "단일 공격",
-                target = Target.Enemy,     // 시전자 기준: 적(=영웅 진영)
-                loc = Loc.Back,
+                target = Target.Enemy,
+                loc = Loc.Front,
+                targetLoc = Loc.None,
                 area = Area.Single,
                 monsterId = 1002,
                 type = SkillType.Damage,
@@ -52,13 +58,15 @@ public static class MonsterSkill
             }
         },
 
+        // Monitor
         [1003] = new List<Skill>
         {
             new Skill {
                 skillId = 1,
                 skillName = "광역 공격",
-                target = Target.Enemy,     // 시전자 기준: 적(=영웅 진영)
+                target = Target.Enemy,
                 loc = Loc.Back,
+                targetLoc = Loc.None,
                 area = Area.Row,
                 monsterId = 1003,
                 type = SkillType.Damage,
@@ -69,13 +77,15 @@ public static class MonsterSkill
             }
         },
 
+        // Computer
         [1004] = new List<Skill>
         {
             new Skill {
                 skillId = 1,
                 skillName = "아군 전체 데미지 증가",
-                target = Target.Ally,     // 시전자 기준: 적(=영웅 진영)
+                target = Target.Ally,
                 loc = Loc.Back,
+                targetLoc = Loc.None,
                 area = Area.Entire,
                 monsterId = 1004,
                 type = SkillType.Buff,
@@ -87,8 +97,9 @@ public static class MonsterSkill
             new Skill {
                 skillId = 2,
                 skillName = "단일 공격",
-                target = Target.Enemy,     // 시전자 기준: 적(=영웅 진영)
+                target = Target.Enemy,
                 loc = Loc.Back,
+                targetLoc = Loc.None,
                 area = Area.Single,
                 monsterId = 1004,
                 type = SkillType.Damage,
@@ -99,13 +110,15 @@ public static class MonsterSkill
             }
         },
 
+        // Manequin
         [1005] = new List<Skill>
         {
             new Skill {
                 skillId = 1,
                 skillName = "기절",
-                target = Target.Enemy,     // 시전자 기준: 적(=영웅 진영)
+                target = Target.Enemy,
                 loc = Loc.Front,
+                targetLoc = Loc.None,
                 area = Area.Single,
                 monsterId = 1005,
                 type = SkillType.Debuff,
@@ -117,8 +130,9 @@ public static class MonsterSkill
             new Skill {
                 skillId = 2,
                 skillName = "단일 공격",
-                target = Target.Enemy,     // 시전자 기준: 적(=영웅 진영)
+                target = Target.Enemy,
                 loc = Loc.Front,
+                targetLoc = Loc.None,
                 area = Area.Single,
                 monsterId = 1005,
                 type = SkillType.Damage,
@@ -135,8 +149,9 @@ public static class MonsterSkill
             new Skill {
                 skillId = 1,
                 skillName = "단일 공격",
-                target = Target.Enemy,     // 시전자 기준: 적(=영웅 진영)
+                target = Target.Enemy,
                 loc = Loc.Front,
+                targetLoc = Loc.None,
                 area = Area.Single,
                 monsterId = 1006,
                 type = SkillType.Damage,
@@ -153,8 +168,9 @@ public static class MonsterSkill
             new Skill {
                 skillId = 1,
                 skillName = "중독 공격",
-                target = Target.Enemy,     // 시전자 기준: 적(=영웅 진영)
+                target = Target.Enemy,
                 loc = Loc.Front,
+                targetLoc = Loc.None,
                 area = Area.Single,
                 monsterId = 1007,
                 type = SkillType.Buff,
@@ -166,13 +182,15 @@ public static class MonsterSkill
             }
         },
 
+        // Red Eyeball
         [1008] = new List<Skill>
         {
             new Skill {
                 skillId = 1,
                 skillName = "노려보기",
-                target = Target.Enemy,     // 시전자 기준: 적(=영웅 진영)
+                target = Target.Enemy,
                 loc = Loc.Back,
+                targetLoc = Loc.None,
                 area = Area.Single,
                 monsterId = 1008,
                 type = SkillType.Debuff,
@@ -184,8 +202,9 @@ public static class MonsterSkill
             new Skill {
                 skillId = 2,
                 skillName = "광역 공격",
-                target = Target.Enemy,     // 시전자 기준: 적(=영웅 진영)
+                target = Target.Enemy,
                 loc = Loc.Back,
+                targetLoc = Loc.None,
                 area = Area.Row,
                 monsterId = 1008,
                 type = SkillType.SignDamage,

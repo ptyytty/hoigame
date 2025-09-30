@@ -20,7 +20,6 @@ public class SkillTargetHighlighter : MonoBehaviour
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
-        Debug.Log("[HL] Awake set Instance");
     }
 
     /// <summary>
@@ -28,27 +27,27 @@ public class SkillTargetHighlighter : MonoBehaviour
     /// </summary>
     public void HighlightForSkill(Combatant user, Skill skill)
     {
+        // 아웃라인 머테리얼 확인
         if (!outlineMaterial) { Debug.LogWarning("[Highlighter] outlineMaterial 미할당"); return; }
         ClearAll();
 
+        // Combatant 컴포넌트 수집
         var all = FindObjectsOfType<Combatant>(includeInactive: true);
-        Debug.Log($"[HL] candidates: {all.Length}, user={user?.name}");
+        int enabled = 0;
 
-        int enabledCount = 0;
         foreach (var c in all)
         {
-            if (!c || !c.IsAlive) continue;
-            if (!IsValidByTarget(user, c, skill)) continue;
-            if (!IsValidByAreaPlaceholder(user, c, skill)) continue; // Row/Entire 구조가 생기면 이곳 확장
+            if (c == null || !c.IsAlive) continue;
+            if (!SkillTargeting.IsCandidate(user, c, skill)) continue;
 
             var od = GetOrAddOutline(c.gameObject);
-            if (od == null) continue;
-
-            od.outlineMaterial = outlineMaterial; // 동적 주입 허용
+            if (!od) continue;
+            od.outlineMaterial = outlineMaterial;
             od.SetProperties(outlineColor, outlineWidth);
             od.EnableOutline(true);
+            enabled++;
         }
-        Debug.Log($"[HL] enabled outlines: {enabledCount}");
+        Debug.Log($"[HL] enabled outlines: {enabled}");
     }
 
     /// <summary>
@@ -77,33 +76,53 @@ public class SkillTargetHighlighter : MonoBehaviour
         return od;
     }
 
-    // 대상 처리
+    //=============== 대상 판정 ================
+    // 적 / 아군 / 자신 필터
     private static bool IsValidByTarget(Combatant user, Combatant cand, Skill skill)
     {
         switch (skill.target)
         {
             case Target.Enemy: return cand.side != user.side;
-            case Target.Ally: return cand.side == user.side && cand != user;
+            case Target.Ally: return cand.side == user.side;
             case Target.Self: return cand == user;
             default: return false;
         }
     }
 
-    // 범위 처리
-    // TODO: 자리/열 정보가 생기면 여기에 실제 Row/Entire 판정 로직을 추가
-    private static bool IsValidByAreaPlaceholder(Combatant user, Combatant cand, Skill skill)
+    // Front / Back 필터
+    private static bool IsValidByTargetLoc(Combatant cand, Skill skill)
     {
-        // 지금은 Row/Entire도 "선택 가능한 모든 대상"을 하이라이트
-        // Single도 일단은 후보 전부 하이라이트(선택 시 1명을 집어주면 됨)
-        return true;
+        if (skill.targetLoc == Loc.None) return true;
+
+        if (cand.currentLoc == Loc.None) return false;
+
+        return cand.currentLoc == skill.targetLoc;
     }
 
-    // (선택) 외부에서 Job만 넘어오는 경우를 대비
-    public void HighlightForSkill(Job actingHero, Skill skill)
+    // 범위(Single / Row / Entire) 처리
+    private static bool IsValidByAreaPreselect(Combatant cand, Skill skill)
     {
-        var user = FindObjectsOfType<Combatant>(true)
-                   .FirstOrDefault(c => c.side == Side.Hero && c.hero == actingHero);
-        if (!user) { Debug.LogWarning("[Highlighter] Acting hero Combatant 못찾음"); return; }
-        HighlightForSkill(user, skill);
+        switch (skill.area)
+        {
+            case Area.Single:
+                // 단일은 선택 전 프리뷰 단계에서 "선택 가능한 후보"만 밝히면 됨
+                return true;
+
+            case Area.Row:
+                // Row는 '행 단위'로 맞춰야 하므로, targetLoc이 지정되면 해당 행만 하이라이트.
+                // targetLoc이 None이면 두 행 모두 후보(선택 시 행 확정).
+                if (skill.targetLoc == Loc.None) return true;
+
+                if (cand.currentLoc == Loc.None) return false;
+                return cand.currentLoc == skill.targetLoc;
+
+            case Area.Entire:
+                // Entire는 행 무관 전체 적용. 다만 target(적/아군/자신)만 필터.
+                // 보통 targetLoc은 None으로 두지만 혹시 세팅했다면 무시하는 편이 자연스러움.
+                return true;
+
+            default:
+                return true;
+        }
     }
 }

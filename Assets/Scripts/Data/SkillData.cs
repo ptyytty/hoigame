@@ -8,6 +8,7 @@ public class Skill
     public string skillName;
     public Target target;       //스킬 대상 0: 적     1: 아군     2: 자신
     public Loc loc;             //사용 위치 0: 상관없음   1: 전열     2: 후열
+    public Loc targetLoc;       //대상 위치
     public Area area;           //사용 범위 0: 단일     1: 같은 열     3: 전체
     public int heroId;
     public int monsterId;

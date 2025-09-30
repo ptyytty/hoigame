@@ -13,9 +13,9 @@ public class Combatant : MonoBehaviour
 {
     [Header("공통 속성")]
     public Side side;
-    public int baseSpeed;      // 기본 SPD
+    public int baseSpeed;       // 기본 SPD
     public int maxHp;           // 최대 체력
-    public int currentHp;
+    public int currentHp;       // 현재 체력
     public bool IsAlive => !_dead && currentHp > 0;
     public event Action<Combatant> OnDied;
     public event Action<int, int> OnHpChanged;   // current, max
@@ -67,7 +67,7 @@ public class Combatant : MonoBehaviour
         }
         else if (side == Side.Enemy)
         {
-            // ✅ MonsterData가 들고 있는 고유 id를 키로 사용
+            // MonsterData가 들고 있는 고유 id를 키로 사용
             int id = (monsterData != null) ? monsterData.id : 0;
 
             // 코드 라이브러리 우선 사용
@@ -173,7 +173,7 @@ public class Combatant : MonoBehaviour
     }
 
     /// <summary>
-    /// Tag = Party일 시 Hero
+    /// Tag = Party일 시 Hero / 아닐 시 Monster
     /// </summary>
     public void AutoInitByHierarchy(Job heroCandidate = null, MonsterData mdCandidate = null)
     {
