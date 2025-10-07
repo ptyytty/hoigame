@@ -35,17 +35,18 @@ public class DamageEffect : SkillEffect
 public class SignDamageEffect : SkillEffect
 {
     public int damage;
-    public int bonusOnSign = 6;     // 표식 추가 피해
+    public float bonusOnSign = 0.15f;     // 표식 추가 피해
 
     public override void Apply(Combatant user, Combatant target)
     {
-        if (target == null) return;
-        int dmg = damage;
+        if(!target || !target.IsAlive) return;
 
-        if (target.HasBuff(BuffType.Sign))
-            dmg += bonusOnSign;
+        bool marked = target.HasDebuff(BuffType.Sign) || target.Marked;
+        int final = marked ? Mathf.RoundToInt(damage * (1f + bonusOnSign)) : damage;
 
-        target.ApplyDamage(dmg);
+        target.ApplyDamage(final);
+
+        Debug.Log("[Sign Damage] Apply Sign Damage");
     }
 }
 
@@ -60,23 +61,10 @@ public class AbilityBuff : SkillEffect
 
     public override void Apply(Combatant user, Combatant target)
     {
+        if(!target) return;
+
         // 최소 동작: 영웅이면 Job에 위임(몬스터는 추후 확장)
-        target?.AddBuff(ability, duration);
-    }
-
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 임의 콜백형 스킬 (기존 코드 호환용)
-// ─────────────────────────────────────────────────────────────────────────────
-[Serializable]
-public class SpecialSkillEffect : SkillEffect
-{
-    public Action<Job, Job> onApply;
-
-    public override void Apply(Combatant user, Combatant target)
-    {
-        onApply?.Invoke(user != null ? user.hero : null, target != null ? target.hero : null);
+        target?.AddBuff(ability, duration); // 능력치 버프는 Buff
     }
 
 }
@@ -96,11 +84,28 @@ public abstract class DebuffEffect : SkillEffect
         if (UnityEngine.Random.value > probability) return;
 
         // 기본 적용: 영웅이면 Job 버프로 위임 (몬스터는 필요 시 확장)
-        target.AddBuff(DebuffType, duration);
+        target.AddDebuff(DebuffType, duration);
         // 몬스터 쪽 세부 로직은 추후 Combatant에 버프 시스템 도입 시 반영
     }
 
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 임의 콜백형 스킬 (기존 코드 호환용)
+// ─────────────────────────────────────────────────────────────────────────────
+[Serializable]
+public class SpecialSkillEffect : SkillEffect
+{
+    public Action<Job, Job> onApply;
+
+    public override void Apply(Combatant user, Combatant target)
+    {
+        onApply?.Invoke(user != null ? user.hero : null, target != null ? target.hero : null);
+    }
+
+}
+
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 개별 디버프 타입들 — 최소한 "타입만" 명시 (세부 효과는 추후 확장)
@@ -108,6 +113,8 @@ public abstract class DebuffEffect : SkillEffect
 [Serializable] public class PoisonEffect : DebuffEffect { public override BuffType DebuffType => BuffType.Poison; }
 [Serializable] public class BleedingEffect : DebuffEffect { public override BuffType DebuffType => BuffType.Bleeding; }
 [Serializable] public class BurnEffect : DebuffEffect { public override BuffType DebuffType => BuffType.Burn; }
+//------------------------------------------------------------------------------------
+
 [Serializable] public class SignEffect : DebuffEffect { public override BuffType DebuffType => BuffType.Sign; }
 [Serializable] public class FaintEffect : DebuffEffect { public override BuffType DebuffType => BuffType.Faint; }
 // 도발: 현재는 "버프 타입만" 부여. 강제 타겟팅 등의 세부는 추후 Combatant/AI에서 처리.

@@ -34,42 +34,29 @@ public class Job
     // 성장 확인
     public Dictionary<int, int> skillLevels = new();        // ★ key = heroId * BASE(100) + localSkillId
 
-
-    /// <summary>
-    /// 버프 추가
-    /// </summary>
-    /// <param name="type"> BuffType </param>
-    /// <param name="duration"> Int </param>
-    public void AddBuff(BuffType type, int duration)
+    // 상태 추가
+    public void AddStatus(BuffType type, int duration)
     {
         if (duration <= 0) duration = 1;
-        if (activeBuffs.TryGetValue(type, out var cur))
-            activeBuffs[type] = Math.Max(cur, duration);
+
+        var target = BuffGroups.IsDebuff(type) ? activeDebuffs : activeBuffs;
+        if (target.TryGetValue(type, out var cur))
+            target[type] = Math.Max(cur, duration);  // 갱신 정책: 더 긴 쪽 우선
         else
-            activeBuffs[type] = duration;
+            target[type] = duration;
     }
 
-    // ✅ 디버프 추가 (새로 추가)
-    public void AddDebuff(BuffType type, int duration)
+    public bool HasStatus(BuffType type)
     {
-        if (duration <= 0) duration = 1;
-        if (activeDebuffs.TryGetValue(type, out var cur))
-            activeDebuffs[type] = Math.Max(cur, duration);
-        else
-            activeDebuffs[type] = duration;
+        var target = BuffGroups.IsDebuff(type) ? activeDebuffs : activeBuffs;
+        return target.TryGetValue(type, out var remain) && remain > 0;
     }
 
-    // ✅ 조회 (Combatant.HasBuff에서 호출)
-    public bool HasBuff(BuffType type)
-    {
-        return activeBuffs.TryGetValue(type, out var remain) && remain > 0;
-    }
-
-    // (선택) 디버프 조회도 있으면 편함
-    public bool HasDebuff(BuffType type)
-    {
-        return activeDebuffs.TryGetValue(type, out var remain) && remain > 0;
-    }
+    // 필요 시 유지 (호출부 점진 전환용)
+    public void AddBuff(BuffType t, int d) => AddStatus(t, d);
+    public void AddDebuff(BuffType t, int d) => AddStatus(t, d);
+    public bool HasBuff(BuffType t) => !BuffGroups.IsDebuff(t) && HasStatus(t);
+    public bool HasDebuff(BuffType t) => BuffGroups.IsDebuff(t) && HasStatus(t);
 
 }
 

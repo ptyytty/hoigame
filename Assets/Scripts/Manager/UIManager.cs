@@ -185,9 +185,17 @@ public class UIManager : MonoBehaviour
                 var skill = _currentSkills[i];
 
                 // ===== 텍스트 채우기 =====
-                int damage = skill.effects?.OfType<DamageEffect>().Sum(s => s.damage) ?? 0;
+                int displayDamage = 0;
+                if(skill?.effects != null){
+                    var d = skill.effects.OfType<DamageEffect>().FirstOrDefault();
+                    if(d != null) displayDamage = Mathf.Max(0, d.damage);
+                    else{
+                        var sd = skill.effects.OfType<SignDamageEffect>().FirstOrDefault();
+                        displayDamage = Mathf.Max(0, sd?.damage ?? 0);
+                    }
+                }
                 if (slot.skillName) slot.skillName.text = skill.skillName;
-                if (slot.skillDamage) slot.skillDamage.text = $"피해: {ReturnText.ReturnDamage(damage)}";
+                if (slot.skillDamage) slot.skillDamage.text = $"피해: {ReturnText.ReturnDamage(displayDamage)}";
                 if (slot.skillTarget) slot.skillTarget.text = $"대상: {ReturnText.ReturnTarget((int)skill.target)}";
                 if (slot.skillRange) slot.skillRange.text = $"범위: {ReturnText.ReturnArea((int)skill.area)}";
 

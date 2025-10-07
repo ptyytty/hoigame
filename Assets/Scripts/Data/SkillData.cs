@@ -60,12 +60,16 @@ public static class BuffGroups
     public static readonly HashSet<BuffType> StatBuffs = new()
     { BuffType.Defense, BuffType.Resistance, BuffType.Speed, BuffType.Hit, BuffType.Damage, BuffType.Heal };
 
+    public static readonly HashSet<BuffType> StatDebuffs = new()
+    { BuffType.Defense, BuffType.Resistance, BuffType.Speed, BuffType.Hit, BuffType.Damage, BuffType.Heal };
+
     public static readonly HashSet<BuffType> DotDebuffs = new()
     { BuffType.Poison, BuffType.Bleeding, BuffType.Burn };
 
     public static readonly HashSet<BuffType> CrowdControls = new()
     { BuffType.Faint, BuffType.Taunt };
 
+    // 버프/디버프 구별
     public static bool IsDebuff(BuffType t) =>
         DotDebuffs.Contains(t) || CrowdControls.Contains(t) || t == BuffType.Sign;
 }

@@ -199,7 +199,7 @@ public class HeroSkills
             heroId = 4,
             type = SkillType.SignDamage,
             effects = new List<SkillEffect>{
-                new DamageEffect {damage = 20},
+                new SignDamageEffect {damage = 18},
             }
         },
         new Skill{
@@ -242,7 +242,7 @@ public class HeroSkills
             heroId = 5,
             type = SkillType.SignDamage,
             effects = new List<SkillEffect>{
-                new DamageEffect {damage = 24},
+                new SignDamageEffect {damage = 20},
             }
         },
         new Skill{

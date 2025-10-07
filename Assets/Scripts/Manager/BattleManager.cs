@@ -40,6 +40,11 @@ public class BattleManager : MonoBehaviour
     [Header("UI Control")]
     [SerializeField] private UIManager uiManager;
 
+    [Header("Dot Damage")]
+    [SerializeField] private float BLEED_RATE = 0.05f;
+    [SerializeField] private float POISON_RATE = 0.07f;
+    [SerializeField] private int BURN_FIXED = 5;
+
     // 스킬 사용이 실제로 커밋된 시점(대상에게 적용된 뒤) 알림
     public event Action OnSkillCommitted;
     // 대상 선택 이벤트
@@ -61,10 +66,12 @@ public class BattleManager : MonoBehaviour
     public bool IsTargeting => _isTargeting;
 
     // 도트 데미지 임시 테이블
-    public static readonly Dictionary<BuffType, int> DOT_DAMAGE = new()
+    public static readonly Dictionary<BuffType, int> DOT_AT_Start = new()
     {
+        { BuffType.Bleeding, 2 }
+    };
+    public static readonly Dictionary<BuffType, int> DOT_AT_END = new(){
         { BuffType.Poison,   3 },
-        { BuffType.Bleeding, 2 },
         { BuffType.Burn,     4 },
     };
 
@@ -338,14 +345,6 @@ public class BattleManager : MonoBehaviour
             : actor.combatant;
         if (!actingC) { Debug.LogWarning("[BM] acting Combatant not found"); return; }
 
-        // if (!actingC.IsAlive)    // 사망 상태 디버그
-        // {
-        //     Debug.Log("[BM] 사망한 유닛은 스킬 사용 불가 → 턴 스킵");
-        //     CancelTargeting();
-        //     NextTurn();
-        //     return;
-        // }
-
         int clickedKey = GetSkillKey(skill);
 
         // 같은 스킬을 다시 클릭 → 타게팅 해제(토글)
@@ -443,8 +442,11 @@ public class BattleManager : MonoBehaviour
         if (!actor || !actor.IsAlive) return false;
 
         int dotSum = 0;
-        foreach (var kv in DOT_DAMAGE)
-            if (actor.HasBuff(kv.Key)) dotSum += kv.Value;
+        if(actor.HasBuff(BuffType.Bleeding)){
+            int lost = Mathf.Max(0, actor.maxHp - actor.currentHp);
+            int bleedDmg = PercentOf(lost, BLEED_RATE);
+            dotSum += bleedDmg;
+        }
 
         if (dotSum > 0)
         {
@@ -456,7 +458,7 @@ public class BattleManager : MonoBehaviour
         if (actor.HasBuff(BuffType.Faint))
         {
             Debug.Log($"[CC] {actor.DisplayName} 기절로 턴 스킵", actor);
-            actor.TickStatuses();
+            actor.TickStatuses();   // 턴 소모
             DestroyDeadUnit();      //<=????
             return false;           // 행동 X
         }
@@ -468,8 +470,22 @@ public class BattleManager : MonoBehaviour
     private void ApplyEndOfTurnTick(Combatant actor)
     {
         if (!actor) return;
+
+        int dotSum = 0;
+        if(actor.HasBuff(BuffType.Burn)) dotSum += BURN_FIXED;
+        if(actor.HasBuff(BuffType.Poison)) dotSum += PercentOf(actor.currentHp, POISON_RATE);
+
+        if(dotSum > 0) actor.ApplyDamage(dotSum);
+
         actor.TickStatuses();
         DestroyDeadUnit();
+    }
+
+    // 체력 비례 데미지 계산
+    /// 
+    private static int PercentOf(int hp, float rate){
+        var dmg = Mathf.FloorToInt(hp * rate);
+        return Mathf.Max(1, dmg);
     }
 
     // 사망 유닛 오브젝트 제거

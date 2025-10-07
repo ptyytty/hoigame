@@ -27,6 +27,9 @@ public class Combatant : MonoBehaviour
 
     [Header("몬스터 데이터")]
     public MonsterData monsterData;   // side == Enemy 일 때 연결
+    private readonly Dictionary<BuffType, int> _monsterBuffTurns = new();
+    private readonly Dictionary<BuffType, int> _monsterDebuffTurns = new();
+    public bool Marked => HasDebuff(BuffType.Sign);
 
     /// <summary>
     /// 턴 정렬에 사용하는 spd (버프/디버프 적용 시 수정 가능)
@@ -178,6 +181,7 @@ public class Combatant : MonoBehaviour
         {
             // 몬스터: 기존 Combatant 딕셔너리 틱
             TickDict(_monsterBuffTurns);
+            TickDict(_monsterDebuffTurns);
         }
     }
 
@@ -225,16 +229,47 @@ public class Combatant : MonoBehaviour
     }
 
     // === Buff/CC 브리지: 영웅은 Job으로, 몬스터는 내부로(추후 확장) ===
-    private readonly Dictionary<BuffType,int> _monsterBuffTurns = new();
 
+    // 능력치 버프 수치 조정
+    public void AddStatus(BuffType type, int duration)
+    {
+        if (duration <= 0) duration = 1;
+
+        if (hero != null)
+        {
+            // 영웅: Job 내부 딕셔너리로 위임
+            if (BuffGroups.IsDebuff(type))      // 버프/디버프 확인
+                hero.AddDebuff(type, duration);
+            else
+                hero.AddBuff(type, duration);
+            return;
+        }
+
+        if(BuffGroups.IsDebuff(type)) AddDebuff(type, duration);
+        else                          AddBuff(type, duration);
+    }
+    
     public void AddBuff(BuffType type, int duration)
     {
         if (hero != null) { hero.AddBuff(type, duration); return; }   // 영웅은 기존 Job 로직 사용
         // 몬스터는 간단히 지속 턴만 저장(수치 반영은 추후 확장)
-        if (duration <= 0) duration = 1;
-        _monsterBuffTurns[type] = Mathf.Max(_monsterBuffTurns.TryGetValue(type, out var cur) ? cur : 0, duration);
+        
+        int cur = _monsterBuffTurns.TryGetValue(type, out var v) ? v : 0;
+        _monsterBuffTurns[type] = Mathf.Max(cur, duration);
     }
 
-    public bool HasBuff(BuffType type) =>
-        hero != null ? hero.HasBuff(type) : _monsterBuffTurns.ContainsKey(type);
+    public void AddDebuff(BuffType type, int duration){
+        if(duration <= 0) duration = 1;
+
+        if(hero != null) { hero.AddDebuff(type, duration); return; }
+
+        int cur = _monsterDebuffTurns.TryGetValue(type, out var v) ? v : 0;
+        _monsterDebuffTurns[type] = Mathf.Max(cur, duration);
+    }
+
+    public bool HasBuff(BuffType type)
+        => hero != null ? hero.HasBuff(type) : _monsterBuffTurns.ContainsKey(type);
+
+    public bool HasDebuff(BuffType type)
+        => hero != null ? hero.HasDebuff(type) : _monsterDebuffTurns.ContainsKey(type);
 }
