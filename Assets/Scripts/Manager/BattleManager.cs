@@ -22,14 +22,16 @@ public class BattleManager : MonoBehaviour
         public Combatant combatant;      // 적(또는 영웅)에 붙은 Combatant(있으면)
         public int spd;                  // 정렬용 속도 (영웅=job.spd, 몬스터=monsterData.spd 또는 폴백)
         public string label;             // 디버그 출력용 이름
-        public bool IsAlive =>
-            isHero ? hero != null /*추후 HP 검사로 대체*/ :
-            (combatant != null ? combatant.IsAlive : (go != null));
+        public bool IsAlive => combatant != null && combatant.IsAlive;
     }
 
     // 턴 순서 리스트
     private List<UnitEntry> initiative = new();
     private int turnIndex = -1;
+
+    // ==== 프레임 중복 실행 차단 ====
+    private int _lastTurnFrame = -1;
+    private bool _nextTurnScheduled = false;
 
     [Header("Enemy")]
     [SerializeField] private EnemyCatalog enemyCatalog;  // 에디터에서 Catalog 드롭
@@ -57,6 +59,14 @@ public class BattleManager : MonoBehaviour
     int GetSkillKey(Skill s) => s != null ? s.skillId : -1;   // ← ID 기반 키
     private bool _isTargeting = false;
     public bool IsTargeting => _isTargeting;
+
+    // 도트 데미지 임시 테이블
+    public static readonly Dictionary<BuffType, int> DOT_DAMAGE = new()
+    {
+        { BuffType.Poison,   3 },
+        { BuffType.Bleeding, 2 },
+        { BuffType.Burn,     4 },
+    };
 
     void OnEnable()
     {
@@ -123,7 +133,7 @@ public class BattleManager : MonoBehaviour
     }
 
     /// <summary>
-    /// SPD 내림차순으로 모든 유닛(영웅+몬스터)을 정렬한다.
+    /// SPD 순으로 턴 정렬 (파티, 몬스터)
     /// </summary>
     private void BuildInitiative(IReadOnlyList<Job> heroes, IReadOnlyList<GameObject> enemies)
     {
@@ -134,12 +144,17 @@ public class BattleManager : MonoBehaviour
         {
             foreach (var h in heroes.Where(h => h != null))
             {
+                var ch = Combatant.FindByHero(h);
+                if (!ch) continue;
+
                 list.Add(new UnitEntry
                 {
                     isHero = true,
                     hero = h,
-                    spd = h.spd,
-                    label = $"H:{h.name_job}"
+                    combatant = ch,
+                    go = ch.gameObject,
+                    spd = ch.EffectiveSpeed,    // Combatant 기준 속도
+                    label = $"H:{ch.DisplayName}"
                 });
             }
         }
@@ -190,8 +205,24 @@ public class BattleManager : MonoBehaviour
             .ToList();
     }
 
-    // 턴 진행
+    // 턴 진행 1 => 프레임 중복 금지 + 다음 프레임으로 미루기
+    // NextTurn은 여러 곳에서 호출되기 때문에 같은 프레임에서 최대 1회 호출 필요 (안하면 무한 호출됨)
     private void NextTurn()
+    {
+        // 같은 프레임 2회 이상 호출되면 무시
+        if (_lastTurnFrame == Time.frameCount) return;
+        _lastTurnFrame = Time.frameCount;
+
+        // 다음 프레임 호출 예정 시 중복 X
+        if (_nextTurnScheduled) return;
+
+        // 다음 프레임으로 딜레이(같은 프레임 재귀 루프 근원 차단)
+        _nextTurnScheduled = true;
+        StartCoroutine(NextTurnDeferred());
+    }
+
+    // 턴 진행 2 => 턴 진행 상세 내용
+    private void NextTurnCore()
     {
         SkillTargetHighlighter.Instance?.ClearAll();    // 아웃라인 제거
         uiManager?.ClearSkillSelection();
@@ -203,7 +234,7 @@ public class BattleManager : MonoBehaviour
         }
 
         // 사망/이탈 정리
-        initiative = initiative.Where(u => u != null && u.IsAlive).ToList();
+        initiative = initiative.Where(u => u != null && u.IsAlive && u.combatant).ToList();
 
         // 도트(출혈, 중독) 피해 사망 시 전투 종료
         TryEndBattleIfEnemiesDefeated();
@@ -211,6 +242,20 @@ public class BattleManager : MonoBehaviour
 
         turnIndex = (turnIndex + 1) % initiative.Count; // 턴 무한 순회
         var actor = initiative[turnIndex];
+
+        if (actor.combatant == null || !actor.combatant.IsAlive)
+        {
+            Debug.Log("[TurnSkip] 사망 유닛 건너뜀");
+            NextTurn();
+            return;
+        }
+
+        // 턴 시작 시 상태 처리
+        if (!ApplyStartOfTurnStatues(actor.combatant))
+        {
+            NextTurn();         // 죽거나 기절이 -> 다음 턴
+            return;
+        }
 
         // 디버그 출력
         Debug.Log($"[Turn] {actor.label}, SPD: {actor.spd}");
@@ -227,17 +272,46 @@ public class BattleManager : MonoBehaviour
             }
 
             ShowHeroSkill(hero);
+            OnSkillCommitted += EndTickOnce;
         }
         else
         {
             TryUseSkill_EnemyAI_Random(actor);
+            ApplyEndOfTurnTick(actor.combatant);
         }
+    }
+
+    // 턴 진행 3 => 딜레이 코루틴
+    private System.Collections.IEnumerator NextTurnDeferred()
+    {
+        yield return null;              // 다음 프레임까지 대기
+        _nextTurnScheduled = false;
+        NextTurnCore();                 // 실제 턴 진행 본문 호출
+    }
+
+    // 스킬 사용 커밋 => 턴 종료 틱 1회 적용
+    private void EndTickOnce()
+    {
+        OnSkillCommitted -= EndTickOnce;
+        if (initiative == null || initiative.Count == 0) return;
+        if (turnIndex < 0 || turnIndex >= initiative.Count) return;
+
+        var actor = initiative.ElementAtOrDefault(turnIndex);
+        if (actor == null || actor.combatant == null) return;
+
+        ApplyEndOfTurnTick(actor.combatant);
     }
 
     // 스킬 표시 (영웅 턴 전용)
     private void ShowHeroSkill(Job hero)
     {
         var c = Combatant.FindByHero(hero);
+        // if (!c || !c.IsAlive)    // 사망 상태 디버그
+        // {
+        //     Debug.Log($"[SkillUI] {hero?.name_job} 은(는) 사망/무효 상태 → 턴 스킵");
+        //     NextTurn();
+        //     return;
+        // }
         var skills = (c ? c.GetSkills(heroSkills) : heroSkills.GetHeroSkills(hero)).ToList();
 
         if (skills.Count == 0)
@@ -263,6 +337,14 @@ public class BattleManager : MonoBehaviour
             ? FindObjectsOfType<Combatant>(true).FirstOrDefault(c => c.hero == actor.hero)
             : actor.combatant;
         if (!actingC) { Debug.LogWarning("[BM] acting Combatant not found"); return; }
+
+        // if (!actingC.IsAlive)    // 사망 상태 디버그
+        // {
+        //     Debug.Log("[BM] 사망한 유닛은 스킬 사용 불가 → 턴 스킵");
+        //     CancelTargeting();
+        //     NextTurn();
+        //     return;
+        // }
 
         int clickedKey = GetSkillKey(skill);
 
@@ -349,8 +431,45 @@ public class BattleManager : MonoBehaviour
 
     void RaiseSkillCommitted()
     {
+        if (initiative == null || initiative.Count == 0) return;
+        
         try { OnSkillCommitted?.Invoke(); }
         catch (Exception e) { Debug.LogException(e, this); }
+    }
+
+    // 턴 시작 시 버프 상태 (도트, 지속 턴 등)
+    private bool ApplyStartOfTurnStatues(Combatant actor)
+    {
+        if (!actor || !actor.IsAlive) return false;
+
+        int dotSum = 0;
+        foreach (var kv in DOT_DAMAGE)
+            if (actor.HasBuff(kv.Key)) dotSum += kv.Value;
+
+        if (dotSum > 0)
+        {
+            Debug.Log($"[DOT] {actor.DisplayName} -{dotSum} (Poison/Bleed/Burn)", actor);
+            actor.ApplyDamage(dotSum);
+            if (!actor.IsAlive) return false;   // 도트로 사망 -> 행동 불가
+        }
+
+        if (actor.HasBuff(BuffType.Faint))
+        {
+            Debug.Log($"[CC] {actor.DisplayName} 기절로 턴 스킵", actor);
+            actor.TickStatuses();
+            DestroyDeadUnit();      //<=????
+            return false;           // 행동 X
+        }
+
+        return true;
+    }
+
+    // 턴 종료 시 버프 상태
+    private void ApplyEndOfTurnTick(Combatant actor)
+    {
+        if (!actor) return;
+        actor.TickStatuses();
+        DestroyDeadUnit();
     }
 
     // 사망 유닛 오브젝트 제거
@@ -484,6 +603,8 @@ public class BattleManager : MonoBehaviour
         uiManager?.ClearSkillSelection();
         uiManager?.CloseAll();               // UIManager에 있는 통합 닫기
 
+        OnSkillCommitted = null;
+
         // 2) 내부 턴 상태 초기화
         initiative?.Clear();
         turnIndex = -1;
@@ -500,6 +621,15 @@ public class BattleManager : MonoBehaviour
     {
         var caster = actor.combatant;
         if (!caster || !caster.IsAlive) { NextTurn(); return; }
+
+        if (caster.HasBuff(BuffType.Faint))
+        {
+            Debug.Log($"[AI] {caster.DisplayName} 기절로 행동 불가");
+            caster.TickStatuses();       // 턴 소비
+            DestroyDeadUnit();
+            NextTurn();
+            return;
+        }
 
         // 1) 사용 가능한 스킬 수집(위치 조건 충족 + 대상 존재)
         var skills = caster.GetSkills(heroSkills)?.ToList();

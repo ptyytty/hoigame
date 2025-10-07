@@ -13,14 +13,7 @@ public class SkillEffect
 {
     public int duration;
 
-    // 레거시(기존) 경로 — 비워둠(에러 방지용)
-    public virtual void Apply(Job user, Job target) { }
-
-    // 신규(런타임 공통) 경로 — 기본은 Job 버전으로 브리지
-    public virtual void Apply(Combatant user, Combatant target)
-    {
-        Apply(user != null ? user.hero : null, target != null ? target.hero : null);
-    }
+    public virtual void Apply(Combatant user, Combatant target){}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -33,26 +26,26 @@ public class DamageEffect : SkillEffect
 
     public override void Apply(Combatant user, Combatant target)
     {
-        if (target == null) return;
+        if (!target || !target.IsAlive) return;
         // 전투 런타임 경로(권장)
-        target.ApplyDamage(damage);
-    }
-
-    public override void Apply(Job user, Job target)
-    {
-        // 레거시 경로(최소 동작)
-        if (target == null) return;
-        target.hp = Mathf.Max(0, target.hp - Mathf.Max(0, damage));
+        target.ApplyDamage(Mathf.Max(0, damage));
     }
 }
 
 public class SignDamageEffect : SkillEffect
 {
     public int damage;
+    public int bonusOnSign = 6;     // 표식 추가 피해
 
     public override void Apply(Combatant user, Combatant target)
     {
-        base.Apply(user, target);
+        if (target == null) return;
+        int dmg = damage;
+
+        if (target.HasBuff(BuffType.Sign))
+            dmg += bonusOnSign;
+
+        target.ApplyDamage(dmg);
     }
 }
 
@@ -71,10 +64,6 @@ public class AbilityBuff : SkillEffect
         target?.AddBuff(ability, duration);
     }
 
-    public override void Apply(Job user, Job target)
-    {
-        target?.AddBuff(ability, duration);
-    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -90,10 +79,6 @@ public class SpecialSkillEffect : SkillEffect
         onApply?.Invoke(user != null ? user.hero : null, target != null ? target.hero : null);
     }
 
-    public override void Apply(Job user, Job target)
-    {
-        onApply?.Invoke(user, target);
-    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -115,13 +100,6 @@ public abstract class DebuffEffect : SkillEffect
         // 몬스터 쪽 세부 로직은 추후 Combatant에 버프 시스템 도입 시 반영
     }
 
-    public override void Apply(Job user, Job target)
-    {
-        if (target == null) return;
-        if (UnityEngine.Random.value > probability) return;
-
-        target.AddBuff(DebuffType, duration);
-    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

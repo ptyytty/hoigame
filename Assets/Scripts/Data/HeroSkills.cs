@@ -77,7 +77,7 @@ public class HeroSkills
             correctionHit = -15,
             effects = new List<SkillEffect>{
                 new DamageEffect {damage = 10},
-                new FaintEffect {duration = 2, probability = 0.8f}
+                new BleedingEffect {duration = 2, probability = 0.8f}
             }
         },
         new Skill{

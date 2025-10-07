@@ -55,6 +55,8 @@ public class Combatant : MonoBehaviour
     public Loc currentLoc = Loc.Front;               // 기본 전열
     public int RowIndex => currentLoc == Loc.Back ? 1 : 0;
 
+    // ======= 전투 세팅 =======
+
     /// <summary>
     /// 유닛이 사용할 수 있는 스킬 반환
     /// </summary>
@@ -101,7 +103,7 @@ public class Combatant : MonoBehaviour
     }
 
     /// <summary>
-    /// 초기화용: 몬스터 Combatant 세팅
+    /// 몬스터 Combatant 세팅
     /// </summary>
     public void InitMonster(MonsterData md)
     {
@@ -137,6 +139,8 @@ public class Combatant : MonoBehaviour
            : FindObjectsOfType<Combatant>(true)
                .FirstOrDefault(c => c.side == Side.Enemy && c.monsterData == m);
 
+    // ======= 전투 진행 ======
+
     // 체력 감소 (데미지)
     public void ApplyDamage(int amount)
     {
@@ -149,10 +153,41 @@ public class Combatant : MonoBehaviour
             Die();
     }
 
+    // 지속턴 1감소, 0이하 제거
+    static void TickDict(IDictionary<BuffType, int> turns)
+    {
+        if (turns == null || turns.Count == 0) return;
+        var keys = new List<BuffType>(turns.Keys);
+        foreach (var k in keys)
+        {
+            turns[k] = turns[k] - 1;
+            if (turns[k] <= 0) turns.Remove(k);
+        }
+    }
+
+    // 지속 효과 영웅/몬스터 공통 처리
+    public void TickStatuses()
+    {
+        if (hero != null)
+        {
+            // 영웅: JobData 내부 딕셔너리 직접 틱
+            TickDict(hero.BuffsDict);
+            TickDict(hero.DebuffsDict);
+        }
+        else
+        {
+            // 몬스터: 기존 Combatant 딕셔너리 틱
+            TickDict(_monsterBuffTurns);
+        }
+    }
+
     private void Die()
     {
         if (_dead) return;
         _dead = true;
+
+        // 사망 디버그
+        Debug.Log($"[Death] {DisplayName} 사망 (Side={side}, HP={currentHp}/{maxHp})", this);
 
         try { OnDied?.Invoke(this); } catch { }
 

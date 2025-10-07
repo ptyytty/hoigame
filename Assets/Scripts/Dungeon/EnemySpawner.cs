@@ -43,6 +43,7 @@ public class EnemySpawner : MonoBehaviour
 
     // ===== Battle Start (고정: Invoke C# Event) =====
     public static event System.Action<IReadOnlyList<Job>, IReadOnlyList<GameObject>> OnBattleStart;
+    public static event System.Action<Vector3, Quaternion, float> OnEnemyFocusHint;     // VCam_Enemy 전용
     public interface IHeroPartyProvider { IReadOnlyList<Job> GetParty(); }
 
     // 히어로, 몬스터 리스트 정적 보관
@@ -132,6 +133,11 @@ public class EnemySpawner : MonoBehaviour
         var root = Instantiate(f.prefab, pos, rot);
         D($"Formation spawned at {pos}, rotY={rot.eulerAngles.y:F1}, yawAdd={f.yawOffsetDeg}");
 
+        var renderBounds = ComputeBoundsFromRenderers(root);
+        var center = renderBounds.center;
+        float ortho = OrthoFromBounds(renderBounds, 1.2f); // 패딩은 상황 보며 1.1~1.3
+
+        OnEnemyFocusHint?.Invoke(center, rot, ortho);
 
         // 적 리스트는 프리팹(및 자식)으로 수집
         var enemies = CollectFormationEnemies(root);
@@ -267,6 +273,26 @@ public class EnemySpawner : MonoBehaviour
                 list.Add(t.gameObject);
         }
         return list;
+    }
+
+    // ========== Camaer OrthoSize 계산 ============
+    static Bounds ComputeBoundsFromRenderers(GameObject root, float minExpand = 2f)
+    {
+        var rs = root.GetComponentsInChildren<Renderer>(true);
+        if (rs == null || rs.Length == 0)
+            return new Bounds(root.transform.position, new Vector3(minExpand, minExpand, 0f));
+        Bounds b = rs[0].bounds;
+        for (int i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
+        // 너무 얇을 때 대비한 소량 확장
+        b.Expand(new Vector3(minExpand, minExpand, 0f));
+        return b;
+    }
+
+    static float OrthoFromBounds(Bounds b, float padding = 1.2f)
+    {
+        float aspect = (Screen.height == 0) ? 1f : (float)Screen.width / Screen.height;
+        float needed = Mathf.Max(b.extents.y, b.extents.x / aspect) * padding;
+        return Mathf.Max(needed, 1f);
     }
 
     //============ 트리거 박스, 스폰 피봇 확인 ==============

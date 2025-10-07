@@ -28,6 +28,8 @@ public class Job
     [NonSerialized] public Job ForcedTarget;
     private Dictionary<BuffType, int> activeBuffs = new();
     private Dictionary<BuffType, int> activeDebuffs = new();
+    internal Dictionary<BuffType, int> BuffsDict => activeBuffs;
+    internal Dictionary<BuffType, int> DebuffsDict => activeDebuffs;
 
     // 성장 확인
     public Dictionary<int, int> skillLevels = new();        // ★ key = heroId * BASE(100) + localSkillId
@@ -69,24 +71,6 @@ public class Job
         return activeDebuffs.TryGetValue(type, out var remain) && remain > 0;
     }
 
-    // (선택) 턴 종료 시 지속턴 감소용 - 필요할 때 호출
-    public void TickStatuses()
-    {
-        TickDict(activeBuffs);
-        TickDict(activeDebuffs);
-
-        static void TickDict(Dictionary<BuffType,int> dict)
-        {
-            if (dict.Count == 0) return;
-            // 키 목록을 복사해서 안전하게 순회
-            var keys = new List<BuffType>(dict.Keys);
-            foreach (var k in keys)
-            {
-                dict[k] = dict[k] - 1;
-                if (dict[k] <= 0) dict.Remove(k);
-            }
-        }
-    }
 }
 
 [System.Serializable]
