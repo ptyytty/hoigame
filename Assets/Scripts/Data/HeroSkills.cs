@@ -24,7 +24,7 @@ public class HeroSkills
         new Skill{
             skillId = 2,
             skillName = "아군 보호",
-            target = Target.Ally,
+            target = Target.Self,
             loc = Loc.Front,
             targetLoc = Loc.None,
             area = Area.Single,
@@ -282,7 +282,7 @@ public class HeroSkills
             heroId = 6,
             type = SkillType.Heal,
             effects = new List<SkillEffect>{
-                new AbilityBuff{ value = 10, ability = BuffType.Heal}
+                new HealEffect{ amount = 10}
             }
         },
         new Skill{
@@ -294,7 +294,7 @@ public class HeroSkills
             heroId = 6,
             type = SkillType.Heal,
             effects = new List<SkillEffect>{
-                new AbilityBuff{value = 6, ability = BuffType.Heal}
+                new HealEffect{ amount = 6 }
             }
         },
         new Skill{
@@ -322,7 +322,7 @@ public class HeroSkills
             heroId = 7,
             type = SkillType.Heal,
             effects = new List<SkillEffect>{
-                new AbilityBuff{value = 16, ability = BuffType.Heal},
+                new HealEffect{ amount = 16 },
                 new BleedingEffect{duration = 3}
             }
         },

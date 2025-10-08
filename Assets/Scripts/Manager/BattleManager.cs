@@ -32,6 +32,8 @@ public class BattleManager : MonoBehaviour
     // ==== 프레임 중복 실행 차단 ====
     private int _lastTurnFrame = -1;
     private bool _nextTurnScheduled = false;
+    private int _pendingTurnRequests = 0;           // 대기 중 턴 요청 수
+    private UnitEntry _lastActorRef = null;
 
     [Header("Enemy")]
     [SerializeField] private EnemyCatalog enemyCatalog;  // 에디터에서 Catalog 드롭
@@ -44,6 +46,9 @@ public class BattleManager : MonoBehaviour
     [SerializeField] private float BLEED_RATE = 0.05f;
     [SerializeField] private float POISON_RATE = 0.07f;
     [SerializeField] private int BURN_FIXED = 5;
+
+    private Combatant _tauntHeroSide = null;
+    private Combatant _tauntEnemySide = null;
 
     // 스킬 사용이 실제로 커밋된 시점(대상에게 적용된 뒤) 알림
     public event Action OnSkillCommitted;
@@ -216,9 +221,8 @@ public class BattleManager : MonoBehaviour
     // NextTurn은 여러 곳에서 호출되기 때문에 같은 프레임에서 최대 1회 호출 필요 (안하면 무한 호출됨)
     private void NextTurn()
     {
-        // 같은 프레임 2회 이상 호출되면 무시
-        if (_lastTurnFrame == Time.frameCount) return;
-        _lastTurnFrame = Time.frameCount;
+        // 여러 곳에서 NextTurn()이 연속 호출돼도 최소 1회는 실행되도록 병합
+        _pendingTurnRequests++;
 
         // 다음 프레임 호출 예정 시 중복 X
         if (_nextTurnScheduled) return;
@@ -240,22 +244,40 @@ public class BattleManager : MonoBehaviour
             return;
         }
 
-        // 사망/이탈 정리
+        // 1) 정리 전, 직전 배우(anchor) 참조 확보
+        UnitEntry anchor = _lastActorRef;
+        Combatant anchorC = anchor != null ? anchor.combatant : null;
+
+        // 2) 사망/이탈 정리 (여기 '한 곳'에서만 수행)
         initiative = initiative.Where(u => u != null && u.IsAlive && u.combatant).ToList();
 
-        // 도트(출혈, 중독) 피해 사망 시 전투 종료
+        // 3) 전멸/빈 리스트 처리
         TryEndBattleIfEnemiesDefeated();
         if (initiative.Count == 0) return;
 
-        turnIndex = (turnIndex + 1) % initiative.Count; // 턴 무한 순회
+        // 4) anchor의 '새 인덱스' 찾기 (오브젝트가 같으면 같은 참조)
+        int baseIdx = -1;
+        if (anchorC != null)
+        {
+            baseIdx = initiative.FindIndex(u => u.combatant == anchorC);
+        }
+
+        // 5) 다음 배우로 이동 (anchor 뒤로 한 칸)
+        //    - anchor가 사라졌거나 첫 턴이면 baseIdx == -1 → 0부터 시작하도록 처리
+        turnIndex = ((baseIdx < 0 ? -1 : baseIdx) + 1) % initiative.Count;
         var actor = initiative[turnIndex];
 
         if (actor.combatant == null || !actor.combatant.IsAlive)
         {
-            Debug.Log("[TurnSkip] 사망 유닛 건너뜀");
+            Debug.Log("[TurnSkip] 사망/무효 유닛 건너뜀");
             NextTurn();
             return;
         }
+
+        // ★ 여기서 '이번 턴 배우'를 다음 루프의 anchor로 기록
+        _lastActorRef = actor;
+
+        ClearTauntIfOwnerTurnStarts(actor.combatant);       // actor가 도발 유닛일 경우 해제
 
         // 턴 시작 시 상태 처리
         if (!ApplyStartOfTurnStatues(actor.combatant))
@@ -291,9 +313,17 @@ public class BattleManager : MonoBehaviour
     // 턴 진행 3 => 딜레이 코루틴
     private System.Collections.IEnumerator NextTurnDeferred()
     {
-        yield return null;              // 다음 프레임까지 대기
+        // 다음 프레임로 미뤄 모든 동시 호출을 코얼레싱
+        yield return null;
+
         _nextTurnScheduled = false;
-        NextTurnCore();                 // 실제 턴 진행 본문 호출
+
+        // 누적 요청 1회만 처리(과도한 중복 방지)
+        if (_pendingTurnRequests > 0)
+        {
+            _pendingTurnRequests = 0;
+            NextTurnCore();
+        }
     }
 
     // 스킬 사용 커밋 => 턴 종료 틱 1회 적용
@@ -313,12 +343,6 @@ public class BattleManager : MonoBehaviour
     private void ShowHeroSkill(Job hero)
     {
         var c = Combatant.FindByHero(hero);
-        // if (!c || !c.IsAlive)    // 사망 상태 디버그
-        // {
-        //     Debug.Log($"[SkillUI] {hero?.name_job} 은(는) 사망/무효 상태 → 턴 스킵");
-        //     NextTurn();
-        //     return;
-        // }
         var skills = (c ? c.GetSkills(heroSkills) : heroSkills.GetHeroSkills(hero)).ToList();
 
         if (skills.Count == 0)
@@ -431,7 +455,7 @@ public class BattleManager : MonoBehaviour
     void RaiseSkillCommitted()
     {
         if (initiative == null || initiative.Count == 0) return;
-        
+
         try { OnSkillCommitted?.Invoke(); }
         catch (Exception e) { Debug.LogException(e, this); }
     }
@@ -442,9 +466,11 @@ public class BattleManager : MonoBehaviour
         if (!actor || !actor.IsAlive) return false;
 
         int dotSum = 0;
-        if(actor.HasBuff(BuffType.Bleeding)){
+        if (actor.HasDebuff(BuffType.Bleeding))
+        {
             int lost = Mathf.Max(0, actor.maxHp - actor.currentHp);
             int bleedDmg = PercentOf(lost, BLEED_RATE);
+            Debug.Log($"[DOT/Bleed@Start] {actor.DisplayName}: lost={lost}, rate={BLEED_RATE}, dmg={bleedDmg}");
             dotSum += bleedDmg;
         }
 
@@ -455,11 +481,11 @@ public class BattleManager : MonoBehaviour
             if (!actor.IsAlive) return false;   // 도트로 사망 -> 행동 불가
         }
 
-        if (actor.HasBuff(BuffType.Faint))
+        if (actor.HasDebuff(BuffType.Faint))
         {
             Debug.Log($"[CC] {actor.DisplayName} 기절로 턴 스킵", actor);
             actor.TickStatuses();   // 턴 소모
-            DestroyDeadUnit();      //<=????
+            DestroyDeadUnit();      // 사망 시 정리
             return false;           // 행동 X
         }
 
@@ -472,20 +498,128 @@ public class BattleManager : MonoBehaviour
         if (!actor) return;
 
         int dotSum = 0;
-        if(actor.HasBuff(BuffType.Burn)) dotSum += BURN_FIXED;
-        if(actor.HasBuff(BuffType.Poison)) dotSum += PercentOf(actor.currentHp, POISON_RATE);
+        if (actor.HasDebuff(BuffType.Burn))
+        {
+            Debug.Log($"[DOT/Burn@End] {actor.DisplayName}: +{BURN_FIXED}");
+            dotSum += BURN_FIXED;
+        }
+        if (actor.HasDebuff(BuffType.Poison))
+        {
+            int p = PercentOf(actor.currentHp, POISON_RATE);
+            Debug.Log($"[DOT/Poison@End] {actor.DisplayName}: hpNow={actor.currentHp}, rate={POISON_RATE}, dmg={p}");
+            dotSum += p;
+        }
 
-        if(dotSum > 0) actor.ApplyDamage(dotSum);
+        if (dotSum > 0) actor.ApplyDamage(dotSum);
 
         actor.TickStatuses();
         DestroyDeadUnit();
     }
 
     // 체력 비례 데미지 계산
-    /// 
-    private static int PercentOf(int hp, float rate){
+    private static int PercentOf(int hp, float rate)
+    {
         var dmg = Mathf.FloorToInt(hp * rate);
         return Mathf.Max(1, dmg);
+    }
+
+    // ========================= 도발 기능 ======================
+    // 도발 시작 (스킬 효과에서 호출)
+    public void BeginTaunt(Combatant protector)
+    {
+        if (!protector || !protector.IsAlive) return;
+
+        if (protector.side == Side.Hero) _tauntHeroSide = protector;
+        else _tauntEnemySide = protector;
+
+        protector.OnDied += ClearTauntOnDeath;
+
+        Debug.Log($"[Taunt] {protector.DisplayName}가 도발 시작 (진영:{protector.side})");
+    }
+
+    // 도발 유닛 사망 시 호출
+    private void ClearTauntOnDeath(Combatant dead)
+    {
+        if (dead == _tauntHeroSide) _tauntHeroSide = null;
+        if (dead == _tauntEnemySide) _tauntEnemySide = null;
+        if (dead != null) dead.OnDied -= ClearTauntOnDeath;
+        Debug.Log($"[Taunt] {dead?.DisplayName} 사망으로 도발 해제");
+    }
+
+    // 턴 순환 후 도발 해제
+    private void ClearTauntIfOwnerTurnStarts(Combatant actor)
+    {
+        if (!actor) return;
+        if (actor == _tauntHeroSide) { _tauntHeroSide = null; actor.OnDied -= ClearTauntOnDeath; Debug.Log("[Taunt] 아군 도발 해제(턴 시작)"); }
+        if (actor == _tauntEnemySide) { _tauntEnemySide = null; actor.OnDied -= ClearTauntOnDeath; Debug.Log("[Taunt] 적군 도발 해제(턴 시작)"); }
+    }
+
+    // 도발 기능 (적대적 스킬 효과 대상 재지정)
+    private Combatant RedirectPerEffectIfTaunt(Combatant caster, SkillEffect eff, Combatant originalTarget)
+    {
+        if (caster == null || eff == null || originalTarget == null) return originalTarget;
+
+        // (a) 캐스터와 대상이 같은 진영 → 우호 효과: 리다이렉트 금지
+        if (caster.side == originalTarget.side) return originalTarget;
+
+        // (b) 적대적 효과 확인
+        if (!IsHostileEffect(eff)) return originalTarget;
+
+        // (c) 도발 유닛으로 재지정
+        var taunter = (originalTarget.side == Side.Hero) ? _tauntHeroSide : _tauntEnemySide;
+        if (taunter != null && taunter.IsAlive && taunter != originalTarget)
+        {
+            Debug.Log($"[Taunt] {originalTarget.DisplayName} → {taunter.DisplayName} (효과:{eff.GetType().Name})");
+            return taunter;
+        }
+
+        return originalTarget;
+    }
+
+    // 적대적 효과 구분
+    private bool IsHostileEffect(SkillEffect eff)
+    {
+        // 타입 이름 기준
+        if (eff is DamageEffect) return true;
+        if (eff is DebuffEffect) return true;
+
+        if (eff.GetType().Name.Contains("Damage", StringComparison.OrdinalIgnoreCase)) return true;        // 이름에 "Damage"가 들어간 효과는 전부 적대적 효과 처리
+
+        // AbilityBuff(+/-)를 쓰고 있으니 값으로 판정
+        if (eff is AbilityBuff ab) return ab.value < 0;
+
+        if (eff is HealEffect) return false;
+        // (있다면) HealEffect, Pure BuffEffect 등은 우호적으로 처리
+        // 필요시 추가: if (eff is HealEffect) return false; ...
+
+        return false; // 기본은 Friendly 취급
+    }
+
+    // 6) 한 스킬이 중복 적용되는 것 방지
+    private void ApplySkillEffectsWithTaunt(Combatant caster, Skill skill, List<Combatant> finalTargets)
+    {
+        if (caster == null || skill == null || finalTargets == null || finalTargets.Count == 0) return;
+
+        foreach (var eff in skill.effects)
+        {
+            Debug.Log($"[Skill/Apply] {caster.DisplayName} uses '{skill.skillName}' → Effect={eff.GetType().Name}, Targets={finalTargets.Count}");
+
+            var appliedOnce = new HashSet<Combatant>(); // 같은 이펙트가 같은 대상에 여러 번 들어가는 것 방지
+            foreach (var tgt in finalTargets)
+            {
+                if (tgt == null || !tgt.IsAlive) continue;
+
+                var realTarget = RedirectPerEffectIfTaunt(caster, eff, tgt);
+                if (!appliedOnce.Add(realTarget))
+                {
+                    Debug.Log($"[Skill/SkipDuplicate] Effect={eff.GetType().Name} already applied to {realTarget.DisplayName}");
+                    continue; // 같은 이펙트가 같은 타깃에 중복 적용되는 것 차단
+                }
+
+                Debug.Log($"[Skill/Effect→Target] {eff.GetType().Name} → {realTarget.DisplayName}");
+                eff?.Apply(caster, realTarget);
+            }
+        }
     }
 
     // 사망 유닛 오브젝트 제거
@@ -501,10 +635,6 @@ public class BattleManager : MonoBehaviour
                 Destroy(c.gameObject);
             }
         }
-
-        // 2) 이니셔티브에서도 제거 (턴 순서 리스트)
-        if (initiative != null)
-            initiative = initiative.Where(u => u != null && u.IsAlive).ToList();
 
         // 전멸 확인 => 전투 종료
         TryEndBattleIfEnemiesDefeated();
@@ -544,38 +674,7 @@ public class BattleManager : MonoBehaviour
         };
     }
 
-    // 공통 스킬 실행 파이프라인
-    void ExecuteSkill(Combatant caster, Skill s, Combatant seedTarget = null)
-    {
-        if (!caster || s == null) return;
-        if (!IsCastableFromLoc(caster, s))
-        {
-            Debug.Log($"[Skill] {caster.DisplayName}는 현재 위치({caster.currentLoc})에서 {s.skillName} 사용 불가(요구 {s.loc})");
-            return;
-        }
-
-        // 1) 대상 풀 수집
-        var pool = GatherByTarget(caster, s.target);
-
-        // 2) 시드 대상(없으면 무작위)
-        if (seedTarget == null)
-        {
-            if (pool.Count == 0) { Debug.Log("[Skill] 대상 없음"); return; }
-            seedTarget = pool[UnityEngine.Random.Range(0, pool.Count)];
-        }
-
-        // 3) Area에 따른 확장
-        var finalTargets = ExpandByArea(s.area, seedTarget, pool);
-        if (finalTargets.Count == 0) { Debug.Log("[Skill] 최종 대상 없음"); return; }
-
-        // 4) 이펙트 적용
-        foreach (var t in finalTargets)
-            foreach (var eff in s.effects)
-                eff?.Apply(caster, t);
-
-        DestroyDeadUnit();
-    }
-
+    // 스킬 사용
     void CastSkillResolved(Combatant caster, Skill skill, List<Combatant> finalTargets)
     {
         if (!caster || skill == null) return;
@@ -586,10 +685,7 @@ public class BattleManager : MonoBehaviour
             return;
         }
 
-        foreach (var t in finalTargets)
-            foreach (var eff in skill.effects)
-                eff?.Apply(caster, t);
-
+        ApplySkillEffectsWithTaunt(caster, skill, finalTargets);
         DestroyDeadUnit();
     }
 
@@ -638,10 +734,10 @@ public class BattleManager : MonoBehaviour
         var caster = actor.combatant;
         if (!caster || !caster.IsAlive) { NextTurn(); return; }
 
-        if (caster.HasBuff(BuffType.Faint))
+        if (caster.HasDebuff(BuffType.Faint))
         {
             Debug.Log($"[AI] {caster.DisplayName} 기절로 행동 불가");
-            caster.TickStatuses();       // 턴 소비
+            caster.TickStatuses();       // 턴 소모
             DestroyDeadUnit();
             NextTurn();
             return;

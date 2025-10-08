@@ -173,12 +173,16 @@ public class Combatant : MonoBehaviour
     {
         if (hero != null)
         {
+            Debug.Log($"[Tick] {DisplayName} (HeroDict)");
+
             // 영웅: JobData 내부 딕셔너리 직접 틱
             TickDict(hero.BuffsDict);
             TickDict(hero.DebuffsDict);
         }
         else
         {
+            Debug.Log($"[Tick] {DisplayName} (MonsterDict)");
+            
             // 몬스터: 기존 Combatant 딕셔너리 틱
             TickDict(_monsterBuffTurns);
             TickDict(_monsterDebuffTurns);
@@ -248,23 +252,33 @@ public class Combatant : MonoBehaviour
         if(BuffGroups.IsDebuff(type)) AddDebuff(type, duration);
         else                          AddBuff(type, duration);
     }
-    
+
     public void AddBuff(BuffType type, int duration)
     {
+        if (hero != null) { hero.AddBuff(type, duration); Debug.Log($"[Buff/Add] {DisplayName}: +{type} ({duration}T, HeroDict)"); return; }
+
         if (hero != null) { hero.AddBuff(type, duration); return; }   // 영웅은 기존 Job 로직 사용
-        // 몬스터는 간단히 지속 턴만 저장(수치 반영은 추후 확장)
-        
+                                                                      // 몬스터는 간단히 지속 턴만 저장(수치 반영은 추후 확장)
+
         int cur = _monsterBuffTurns.TryGetValue(type, out var v) ? v : 0;
         _monsterBuffTurns[type] = Mathf.Max(cur, duration);
+        
+        Debug.Log($"[Buff/Add] {DisplayName}: +{type} ({duration}T, MonsterDict)");
+
     }
 
-    public void AddDebuff(BuffType type, int duration){
-        if(duration <= 0) duration = 1;
+    public void AddDebuff(BuffType type, int duration)
+    {
+        if (hero != null) { hero.AddDebuff(type, duration); Debug.Log($"[Debuff/Add] {DisplayName}: +{type} ({duration}T, HeroDict)"); return; }
 
-        if(hero != null) { hero.AddDebuff(type, duration); return; }
+        if (duration <= 0) duration = 1;
+
+        if (hero != null) { hero.AddDebuff(type, duration); return; }
 
         int cur = _monsterDebuffTurns.TryGetValue(type, out var v) ? v : 0;
         _monsterDebuffTurns[type] = Mathf.Max(cur, duration);
+        
+        Debug.Log($"[Debuff/Add] {DisplayName}: +{type} ({duration}T, MonsterDict)");
     }
 
     public bool HasBuff(BuffType type)

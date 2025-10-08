@@ -17,7 +17,7 @@ public class SkillEffect
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Damage
+// Damage / Heal
 // ─────────────────────────────────────────────────────────────────────────────
 [Serializable]
 public class DamageEffect : SkillEffect
@@ -27,8 +27,11 @@ public class DamageEffect : SkillEffect
     public override void Apply(Combatant user, Combatant target)
     {
         if (!target || !target.IsAlive) return;
+        int before = target.currentHp;                // 디버그용 나중에 삭제
         // 전투 런타임 경로(권장)
         target.ApplyDamage(Mathf.Max(0, damage));
+
+        Debug.Log($"[Effect/Damage] {user?.DisplayName} → {target.DisplayName} : -{damage} HP ({before}→{target.currentHp})");
     }
 }
 
@@ -39,14 +42,42 @@ public class SignDamageEffect : SkillEffect
 
     public override void Apply(Combatant user, Combatant target)
     {
-        if(!target || !target.IsAlive) return;
+        if (!target || !target.IsAlive) return;
 
         bool marked = target.HasDebuff(BuffType.Sign) || target.Marked;
         int final = marked ? Mathf.RoundToInt(damage * (1f + bonusOnSign)) : damage;
 
+        int before = target.currentHp;                // 디버그용 나중에 삭제
+
         target.ApplyDamage(final);
 
-        Debug.Log("[Sign Damage] Apply Sign Damage");
+        Debug.Log($"[Effect/SignDamage] {user?.DisplayName} → {target.DisplayName} : base={damage}, marked={marked}, -{final} ({before}→{target.currentHp})");
+
+    }
+}
+
+[Serializable]
+public class HealEffect : SkillEffect
+{
+    public int amount;
+    public bool percent = false;        // 퍼센트 회복 사용 여부
+    public float rate = 0.0f;           // percent == true일 때 사용
+
+    public override void Apply(Combatant user, Combatant target)
+    {
+        if (!target || !target.IsAlive) return;
+
+        int heal = amount;
+
+        if (percent)
+        {
+            heal = Mathf.Max(1, Mathf.FloorToInt(target.maxHp * rate));
+        }
+
+        int before = target.currentHp;                // 디버그용 나중에 삭제
+
+        target.HealHp(heal);
+        Debug.Log($"[Effect/Heal] {user?.DisplayName} → {target.DisplayName} : +{heal} HP ({before}→{target.currentHp})");
     }
 }
 
@@ -61,10 +92,12 @@ public class AbilityBuff : SkillEffect
 
     public override void Apply(Combatant user, Combatant target)
     {
-        if(!target) return;
+        if (!target) return;
 
         // 최소 동작: 영웅이면 Job에 위임(몬스터는 추후 확장)
         target?.AddBuff(ability, duration); // 능력치 버프는 Buff
+        
+        Debug.Log($"[Effect/Buff] {user?.DisplayName} → {target.DisplayName} : +{ability} ({duration}T)");
     }
 
 }
@@ -81,11 +114,14 @@ public abstract class DebuffEffect : SkillEffect
     public override void Apply(Combatant user, Combatant target)
     {
         if (target == null) return;
-        if (UnityEngine.Random.value > probability) return;
-
-        // 기본 적용: 영웅이면 Job 버프로 위임 (몬스터는 필요 시 확장)
+        float r = UnityEngine.Random.value;
+        if (r > probability)
+        {
+            Debug.Log($"[Effect/Debuff:MISS] {user?.DisplayName} → {target.DisplayName} : {DebuffType} (p={probability:F2}, roll={r:F2})");
+            return;
+        }
         target.AddDebuff(DebuffType, duration);
-        // 몬스터 쪽 세부 로직은 추후 Combatant에 버프 시스템 도입 시 반영
+        Debug.Log($"[Effect/Debuff] {user?.DisplayName} → {target.DisplayName} : {DebuffType} ({duration}T, p={probability:F2}, roll={r:F2})");
     }
 
 }
@@ -118,4 +154,18 @@ public class SpecialSkillEffect : SkillEffect
 [Serializable] public class SignEffect : DebuffEffect { public override BuffType DebuffType => BuffType.Sign; }
 [Serializable] public class FaintEffect : DebuffEffect { public override BuffType DebuffType => BuffType.Faint; }
 // 도발: 현재는 "버프 타입만" 부여. 강제 타겟팅 등의 세부는 추후 Combatant/AI에서 처리.
-[Serializable] public class TauntEffect : DebuffEffect { public override BuffType DebuffType => BuffType.Taunt; }
+[Serializable]
+public class TauntEffect : DebuffEffect
+{
+    public override BuffType DebuffType => BuffType.Taunt;
+
+    public override void Apply(Combatant user, Combatant target)
+    {
+        if (BattleManager.Instance == null || user == null || !user.IsAlive) return;
+
+        // 도발 보호자는 '항상 시전자'
+        BattleManager.Instance.BeginTaunt(user);
+        Debug.Log($"[Effect/Taunt] {user.DisplayName} 가 도발 시작 (duration={duration})");
+        // duration은 BM 쪽에서 '도발자 자신의 턴 시작'에 해제되므로 여기선 별도 타이머 불필요
+    }
+}

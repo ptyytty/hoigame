@@ -31,7 +31,7 @@ public static class MonsterSkill
             new Skill {
                 skillId = 1,
                 skillName = "도발",
-                target = Target.Enemy,
+                target = Target.Self,
                 loc = Loc.Front,
                 targetLoc = Loc.None,
                 area = Area.Single,

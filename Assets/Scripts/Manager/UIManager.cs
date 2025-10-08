@@ -185,17 +185,38 @@ public class UIManager : MonoBehaviour
                 var skill = _currentSkills[i];
 
                 // ===== 텍스트 채우기 =====
-                int displayDamage = 0;
-                if(skill?.effects != null){
-                    var d = skill.effects.OfType<DamageEffect>().FirstOrDefault();
-                    if(d != null) displayDamage = Mathf.Max(0, d.damage);
-                    else{
-                        var sd = skill.effects.OfType<SignDamageEffect>().FirstOrDefault();
-                        displayDamage = Mathf.Max(0, sd?.damage ?? 0);
+                string label = "피해: ";
+                string value = "0";
+
+                if (skill?.effects != null)
+                {
+                    var heal = skill.effects.OfType<HealEffect>().FirstOrDefault();
+                    if (heal != null)
+                    {
+                        label = "회복";
+                        value = heal.percent ? $"{Mathf.FloorToInt(heal.rate * 100)}%" : ReturnText.ReturnDamage(Mathf.Max(0, heal.amount));
                     }
+                    else
+                    {
+                        var dmg = skill.effects.OfType<DamageEffect>().FirstOrDefault();
+                        if (dmg != null) {
+                            label = "피해";
+                            value = ReturnText.ReturnDamage(Mathf.Max(0, dmg.damage));
+                        } 
+                        else
+                        {
+                            var sgn = skill.effects.OfType<SignDamageEffect>().FirstOrDefault();
+                            if (sgn != null)
+                            {
+                                label = "표식 피해";
+                                value = ReturnText.ReturnDamage(Mathf.Max(0, sgn.damage));
+                            }
+                        }
+                    }
+                    
                 }
                 if (slot.skillName) slot.skillName.text = skill.skillName;
-                if (slot.skillDamage) slot.skillDamage.text = $"피해: {ReturnText.ReturnDamage(displayDamage)}";
+                if (slot.skillDamage) slot.skillDamage.text = $"{label}: {value}";
                 if (slot.skillTarget) slot.skillTarget.text = $"대상: {ReturnText.ReturnTarget((int)skill.target)}";
                 if (slot.skillRange) slot.skillRange.text = $"범위: {ReturnText.ReturnArea((int)skill.area)}";
 
