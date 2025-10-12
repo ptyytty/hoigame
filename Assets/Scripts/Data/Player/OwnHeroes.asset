@@ -13,58 +13,27 @@ MonoBehaviour:
   m_Name: OwnHeroes
   m_EditorClassIdentifier: 
   jobs:
-  - id_job: 2
-    name_job: "\uBB34\uC0AC"
+  - id_job: 3
+    portrait: {fileID: 0}
+    name_job: "\uACA9\uD22C\uAC00"
     level: 1
     exp: 0
-    hp: 58
-    def: 4
+    maxHp: 64
+    hp: 52
+    def: 15
     res: 0
-    spd: 7
-    hit: 95
+    spd: 5
+    hit: 90
     loc: 1
     category: 0
     jobCategory: 0
-  - id_job: 0
-    name_job: "\uC131\uAE30\uC0AC"
-    level: 1
-    exp: 0
-    hp: 67
-    def: 12
-    res: 15
-    spd: 1
-    hit: 95
-    loc: 1
-    category: 0
-    jobCategory: 0
-  - id_job: 7
-    name_job: "\uC758\uC0AC"
-    level: 1
-    exp: 0
-    hp: 42
-    def: 2
-    res: 0
-    spd: 1
-    hit: 105
-    loc: 2
-    category: 3
-    jobCategory: 3
-  - id_job: 0
-    name_job: "\uC131\uAE30\uC0AC"
-    level: 1
-    exp: 0
-    hp: 67
-    def: 12
-    res: 15
-    spd: 1
-    hit: 95
-    loc: 1
-    category: 0
-    jobCategory: 0
+    equippedItemId: 0
   - id_job: 6
+    portrait: {fileID: 0}
     name_job: "\uC131\uC9C1\uC790"
     level: 1
     exp: 0
+    maxHp: 37
     hp: 37
     def: 2
     res: 4
@@ -73,10 +42,148 @@ MonoBehaviour:
     loc: 2
     category: 3
     jobCategory: 3
+    equippedItemId: 0
+  - id_job: 0
+    portrait: {fileID: 0}
+    name_job: "\uC131\uAE30\uC0AC"
+    level: 1
+    exp: 0
+    maxHp: 67
+    hp: 67
+    def: 12
+    res: 15
+    spd: 1
+    hit: 95
+    loc: 1
+    category: 0
+    jobCategory: 0
+    equippedItemId: 0
+  - id_job: 1
+    portrait: {fileID: 0}
+    name_job: "\uB098\uBB34\uAFBC"
+    level: 1
+    exp: 0
+    maxHp: 72
+    hp: 40
+    def: 6
+    res: 0
+    spd: 2
+    hit: 85
+    loc: 1
+    category: 0
+    jobCategory: 0
+    equippedItemId: 0
+  - id_job: 6
+    portrait: {fileID: 0}
+    name_job: "\uC131\uC9C1\uC790"
+    level: 1
+    exp: 0
+    maxHp: 37
+    hp: 13
+    def: 2
+    res: 4
+    spd: 1
+    hit: 105
+    loc: 2
+    category: 3
+    jobCategory: 3
+    equippedItemId: 0
+  - id_job: 0
+    portrait: {fileID: 0}
+    name_job: "\uC131\uAE30\uC0AC"
+    level: 1
+    exp: 0
+    maxHp: 67
+    hp: 67
+    def: 12
+    res: 15
+    spd: 1
+    hit: 95
+    loc: 1
+    category: 0
+    jobCategory: 0
+    equippedItemId: 0
+  - id_job: 5
+    portrait: {fileID: 0}
+    name_job: "\uC0AC\uB0E5\uAFBC"
+    level: 1
+    exp: 0
+    maxHp: 52
+    hp: 40
+    def: 7
+    res: 0
+    spd: 6
+    hit: 95
+    loc: 2
+    category: 1
+    jobCategory: 1
+    equippedItemId: 0
+  - id_job: 2
+    portrait: {fileID: 0}
+    name_job: "\uBB34\uC0AC"
+    level: 1
+    exp: 0
+    maxHp: 58
+    hp: 45
+    def: 4
+    res: 0
+    spd: 7
+    hit: 95
+    loc: 1
+    category: 0
+    jobCategory: 0
+    equippedItemId: 0
+  - id_job: 4
+    portrait: {fileID: 0}
+    name_job: "\uAD81\uC218"
+    level: 1
+    exp: 0
+    maxHp: 48
+    hp: 40
+    def: 4
+    res: 0
+    spd: 8
+    hit: 100
+    loc: 2
+    category: 1
+    jobCategory: 1
+    equippedItemId: 0
+  - id_job: 5
+    portrait: {fileID: 0}
+    name_job: "\uC0AC\uB0E5\uAFBC"
+    level: 1
+    exp: 0
+    maxHp: 52
+    hp: 52
+    def: 7
+    res: 0
+    spd: 6
+    hit: 95
+    loc: 2
+    category: 1
+    jobCategory: 1
+    equippedItemId: 0
+  - id_job: 3
+    portrait: {fileID: 0}
+    name_job: "\uACA9\uD22C\uAC00"
+    level: 1
+    exp: 0
+    maxHp: 64
+    hp: 38
+    def: 15
+    res: 0
+    spd: 5
+    hit: 90
+    loc: 1
+    category: 0
+    jobCategory: 0
+    equippedItemId: 0
   - id_job: 7
+    portrait: {fileID: 0}
     name_job: "\uC758\uC0AC"
     level: 1
     exp: 0
+    maxHp: 42
     hp: 42
     def: 2
     res: 0
@@ -85,39 +192,4 @@ MonoBehaviour:
     loc: 2
     category: 3
     jobCategory: 3
-  - id_job: 1
-    name_job: "\uB098\uBB34\uAFBC"
-    level: 1
-    exp: 0
-    hp: 72
-    def: 6
-    res: 0
-    spd: 2
-    hit: 85
-    loc: 1
-    category: 0
-    jobCategory: 0
-  - id_job: 2
-    name_job: "\uBB34\uC0AC"
-    level: 1
-    exp: 0
-    hp: 58
-    def: 4
-    res: 0
-    spd: 7
-    hit: 95
-    loc: 1
-    category: 0
-    jobCategory: 0
-  - id_job: 3
-    name_job: "\uACA9\uD22C\uAC00"
-    level: 1
-    exp: 0
-    hp: 64
-    def: 15
-    res: 0
-    spd: 5
-    hit: 90
-    loc: 1
-    category: 0
-    jobCategory: 0
+    equippedItemId: 0

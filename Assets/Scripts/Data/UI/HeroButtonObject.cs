@@ -10,6 +10,8 @@ public class HeroButtonObject : MonoBehaviour
     public class ChangedImage : ScriptableObject
     {
         public Sprite defaultImage;
+        public Sprite frontHeroImage;
+        public Sprite backHeroImage;
         public Sprite selectedImage;
         public Sprite deactivationImage;
     }

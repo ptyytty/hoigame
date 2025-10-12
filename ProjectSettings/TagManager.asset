@@ -8,6 +8,7 @@ TagManager:
   - Upstair
   - Downstair
   - Floor
+  - SpawnerSlot
   layers:
   - Default
   - TransparentFX

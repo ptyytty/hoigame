@@ -75,7 +75,8 @@ public class MasterCatalog : ScriptableObject
             name_job    = hero.name_job,
             level       = hero.level,  // 저장 로드시 덮어씀
             exp         = hero.exp,    // 저장 로드시 덮어씀
-            hp          = hero.hp,
+            maxHp       = hero.maxHp > 0 ? hero.maxHp : hero.hp,    // 방어적 저장
+            hp          = hero.hp,      // 현재 체력
             def         = hero.def,
             res         = hero.res,
             spd         = hero.spd,

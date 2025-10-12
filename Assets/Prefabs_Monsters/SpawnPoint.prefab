@@ -66,9 +66,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d80ca98a73590154786c34732e4b3ad6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  partyProvider: {fileID: 0}
-  fallbackParty: []
-  catalog: {fileID: 0}
+  catalog: {fileID: 11400000, guid: a57675ef018985241bc89f48897dc391, type: 2}
   partyTag: Party
   triggerOnce: 1
   directionMode: 0

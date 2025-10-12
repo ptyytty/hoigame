@@ -31,8 +31,11 @@ namespace Save
     {
         public string heroUid;      // 영웅 인스턴스 고유 식별자 (중복 영웅)
         public int heroId;           // 마스터 데이터에 존재하는 id
+        public string displayName;      // 플레이어가 바꾼 이름
         public int level;
         public int exp;
+
+        public int currentHp;
 
         // 스킬 업그레이드 상황  skillId->level(최대 5)
         public Dictionary<int, int> skillLevels = new();

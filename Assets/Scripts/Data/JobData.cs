@@ -2,15 +2,18 @@
 //직업의 속성 정보
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 [System.Serializable]
 public class Job
 {
     public int id_job;
+    public Sprite portrait;
     public string name_job;     // 영웅 이름
     public int level;
     public int exp;
-    public int hp;
+    public int maxHp;           // 최대 체력
+    public int hp;              // 현재 체력 (전투 후 체력)
     public int def;
     public int res;
     public int spd;
@@ -18,6 +21,8 @@ public class Job
     public int loc;             // 영웅 파티 위치
     public int category;        // 영웅 카테고리
     public JobCategory jobCategory;
+    public int equippedItemId;
+    [NonSerialized] public string displayName;      // 변경 가능한 이름
     [NonSerialized] public EquipItem equippedItem;
     [NonSerialized] public string instanceId;
 
@@ -57,6 +62,7 @@ public class Job
     public void AddDebuff(BuffType t, int d) => AddStatus(t, d);
     public bool HasBuff(BuffType t) => !BuffGroups.IsDebuff(t) && HasStatus(t);
     public bool HasDebuff(BuffType t) => BuffGroups.IsDebuff(t) && HasStatus(t);
+    public string GetDisplayName() => string.IsNullOrEmpty(displayName) ? name_job : displayName;
 
 }
 

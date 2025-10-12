@@ -3,6 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Scripting;
+using System;
 
 public class Employment : ListUIBase<Job>
 {
@@ -201,7 +202,7 @@ public class Employment : ListUIBase<Job>
         count = Mathf.Clamp(count, 0, pool.Count);
         for (int i = 0; i < count; i++)
         {
-            int r = Random.Range(0, pool.Count);
+            int r = UnityEngine.Random.Range(0, pool.Count);
             result.Add(pool[r]);
             pool.RemoveAt(r);
         }

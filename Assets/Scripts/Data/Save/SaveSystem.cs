@@ -28,6 +28,62 @@ public static class SaveSystem         // 인스턴스 없이 사용
     };
     // Json.NET 직렬화 옵션을 한 곳에 고정해 재사용
 
+
+
+    // ==== 새 데이터 만들기 ====
+    public static Save.SaveGame NewSave()
+    {
+        // 프로젝트 기존 팩토리 & 정규화 루틴을 그대로 활용한다고 가정
+        var fresh = CreateNewSave();     // 이미 존재하는 내부 팩토리
+        NormalizeAfterLoad(fresh);       // 로드 후 정규화 루틴
+        return fresh;
+    }
+
+    public static async System.Threading.Tasks.Task<Save.SaveGame> ResetToNewAsync()
+    {
+        var fresh = NewSave();
+        await SaveAsync(fresh);
+        return fresh;
+    }
+
+    public static bool HasAnySaveFile()
+    {
+        try
+        {
+            return System.IO.File.Exists(SavePath) || System.IO.File.Exists(BackupPath);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+#if UNITY_EDITOR
+    public static bool DeleteAllSaveFiles()
+    {
+        try
+        {
+            bool any = false;
+            if (System.IO.File.Exists(SavePath))
+            {
+                System.IO.File.Delete(SavePath);
+                any = true;
+            }
+            if (System.IO.File.Exists(BackupPath))
+            {
+                System.IO.File.Delete(BackupPath);
+                any = true;
+            }
+            return any;
+        }
+        catch (System.Exception e)
+        {
+            UnityEngine.Debug.LogError($"[SaveSystem] DeleteAllSaveFiles failed: {e}");
+            return false;
+        }
+    }
+#endif
+
     // 저장(원자적). 임시파일에 먼저 쓰고 교체. 실패 시 백업 유지.
     public static async Task<bool> SaveAsync(SaveGame data) // 세이브 비동기 함수(true/false로 성공 여부 반환)
     {

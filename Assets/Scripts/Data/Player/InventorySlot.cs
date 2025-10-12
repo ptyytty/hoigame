@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+// 던전 내 사용 인벤토리
 public class InventorySlot
 {
     public ConsumeItem item;

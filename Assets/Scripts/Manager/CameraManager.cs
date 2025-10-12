@@ -2,7 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Cinemachine;
-using UnityEditor.EditorTools;
 using UnityEngine;
 
 public class CameraManager : MonoBehaviour

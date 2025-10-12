@@ -95,8 +95,8 @@ public class Combatant : MonoBehaviour
         side = Side.Hero;
         hero = h;
         baseSpeed = h.spd;
-        maxHp = h.hp;
-        currentHp = h.hp;
+        maxHp = Mathf.Max(1, h.maxHp > 0 ? h.maxHp : h.hp);
+        currentHp = Mathf.Clamp(h.hp, 0, maxHp);
 
         // 초기 배치: Job.loc(0=None이면 Front로 폴백)
         currentLoc = (Loc)Mathf.Clamp(h.loc, 0, 2);

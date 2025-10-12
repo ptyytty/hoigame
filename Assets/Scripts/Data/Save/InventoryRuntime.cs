@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Save;
+using System;
 
+// 실시간 사용 인벤토리
 public class InventoryRuntime : MonoBehaviour
 {
     public static InventoryRuntime Instance { get; private set; }
@@ -13,11 +15,11 @@ public class InventoryRuntime : MonoBehaviour
     public int purpleSoul;
     public int greenSoul;
 
-    public enum CurrencyType {Gold, RedSoul, BlueSoul, PurpleSoul, GreenSoul}
+    public enum CurrencyType { Gold, RedSoul, BlueSoul, PurpleSoul, GreenSoul }
 
     // === 내부 보유 구조 ===
     private readonly List<OwnedItem<ConsumeItem>> ownedConsume = new();
-    public  readonly List<OwnedItem<EquipItem>>   ownedEquipItem = new(); // ItemList가 그대로 씀
+    public readonly List<OwnedItem<EquipItem>> ownedEquipItem = new(); // ItemList가 그대로 씀
 
     void Awake()
     {
@@ -83,9 +85,9 @@ public class InventoryRuntime : MonoBehaviour
             slots.Add(new Save.Item
             {
                 itemId = owned.itemData.id_item,
-                num    = 0,
-                type   = ItemType.Consume,
-                count  = owned.count
+                num = 0,
+                type = ItemType.Consume,
+                count = owned.count
             });
         }
 
@@ -96,9 +98,9 @@ public class InventoryRuntime : MonoBehaviour
             slots.Add(new Save.Item
             {
                 itemId = owned.itemData.id_item,
-                num    = 0, // 필요하면 장비 식별번호 할당
-                type   = ItemType.Equipment,
-                count  = 1
+                num = 0, // 필요하면 장비 식별번호 할당
+                type = ItemType.Equipment,
+                count = 1
             });
         }
 
@@ -142,5 +144,24 @@ public class InventoryRuntime : MonoBehaviour
             yield return new RuntimeSlot { itemId = e.itemData.id_item, num = 0, type = ItemType.Equipment, count = 1 };
     }
 
+    // 던전 진입 시 아이템 캐시 복구
+    public EquipItem LookupEquipItemById(int id)
+    {
+        if (id <= 0) return null;
+
+        // 1) 보유 목록에서 먼저 검색
+        var owned = ownedEquipItem.Find(x => x.itemData != null && x.itemData.id_item == id);
+        if (owned != null) return owned.itemData;
+
+        // 2) 카탈로그에서 최후 보정(세이브 복구 등)
+        return ItemCatalog.GetEquip(id);
+    }
+
     public void PushEmpty() { /* 빈 슬롯 개념이 없으니 무시해도 됨 */ }
+
+    internal void Clear()
+    {
+        ownedConsume.Clear();
+        ownedEquipItem.Clear();
+    }
 }

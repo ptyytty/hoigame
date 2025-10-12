@@ -101,6 +101,15 @@ public class BattleManager : MonoBehaviour
     /// </summary>
     public void BeginBattle(IEnumerable<Job> overrideParty = null, IReadOnlyList<GameObject> enemies = null)
     {
+        _lastActorRef = null;
+        _nextTurnScheduled = false;
+        _pendingTurnRequests = 0;
+        initiative?.Clear();
+        turnIndex = -1;
+
+        CancelTargeting();
+        OnSkillCommitted = null;
+
         // --- Party 태그 루트에 선택 영웅 자동 바인딩 ---
         if (party != null && party.Count > 0)
         {
@@ -724,6 +733,10 @@ public class BattleManager : MonoBehaviour
         // 3) 던전 UI 복구(중앙집중)
         if (DungeonManager.instance)
             DungeonManager.instance.ShowDungeonUIAfterBattle();     // UI 복구 및 보상 UI
+
+        _lastActorRef = null;
+        _nextTurnScheduled = false;
+        _pendingTurnRequests = 0;
 
         Debug.Log("[Battle] Victory → 전투 종료 및 던전 이동 UI 복구");
     }

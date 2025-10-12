@@ -2,84 +2,90 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+// 던전 진입 전 인벤토리 UI 제어
+
 public class InventoryUIManager : MonoBehaviour
 {
-    public static InventoryUIManager instance;
-
-    [SerializeField] private DungeonInventory inventory;
+    [SerializeField] private DungeonInventory source;
     [SerializeField] private Transform inventoryPanel;
     [SerializeField] private GameObject inventoryActive;
 
     private List<InventorySlotUI> slotUIs = new();
 
-    void Awake()
+    void OnEnable()
     {
-        instance = this;
-    }
-
-    void Start()
-    {
-        StartCoroutine(WaitForInventoryReady());
-    }
-
-    private IEnumerator WaitForInventoryReady()
-    {
-        // DungeonInventory가 SetActive(false) 상태면 대기
-        while (!inventory.gameObject.activeInHierarchy)
-            yield return null;
-
-        // Awake() 완료까지 한 프레임 더 대기
-        yield return null;
-
-        if (inventory.GetSlots().Count == 0)
-            inventory.InitializeSlots();
-
-        InitializeSlots();
+        if (source != null) source.Changed += RefreshUI;
+        BuildSlots();   // ★ 하위 슬롯 스캔 & 바인딩
         RefreshUI();
     }
 
-    private void InitializeSlots()
+    void OnDisable()
+    {
+        if (source != null) source.Changed -= RefreshUI;
+    }
+
+    public void SetSource(DungeonInventory inv)
+    {
+        if (source != null) source.Changed -= RefreshUI;
+        source = inv;
+        if (source != null) source.Changed += RefreshUI;
+
+        BuildSlots();   // ★ 소스 바뀌면 다시 바인딩
+        RefreshUI();
+    }
+
+    // ★ 하위에 있는 6개 item(슬롯)을 모아 InventorySlotUI에 연결
+    private void BuildSlots()
     {
         slotUIs.Clear();
-        var slots = inventory.GetSlots();
+        if (inventoryPanel == null || source == null) return;
 
-        for (int i = 0; i < slots.Count; i++)
+        int index = 0;
+        for (int i = 0; i < inventoryPanel.childCount; i++)
         {
-            var slotObj = inventoryPanel.GetChild(i).gameObject;
-            var ui = slotObj.GetComponent<InventorySlotUI>();
-            if (ui != null)
-            {
-                ui.Setup(inventory, i);
-                slotUIs.Add(ui);
-            }
-            else
-            {
-                Debug.LogWarning($"❗ 슬롯 오브젝트 {slotObj.name}에 InventorySlotUI가 없습니다.");
-            }
+            if (index >= 6) break; // 슬롯 6개만 사용
+            var child = inventoryPanel.GetChild(i);
+
+            var ui = child.GetComponent<InventorySlotUI>();
+            if (ui == null) ui = child.gameObject.AddComponent<InventorySlotUI>();
+
+            ui.Setup(source, index); // 클릭 → RemoveItemAt(index)
+            slotUIs.Add(ui);
+            index++;
         }
+    }
+
+    void InitializeSlots()
+    {
+        if (source == null) return;
+        var slots = source.GetSlots();
+        for (int i = 0; i < slotUIs.Count && i < slots.Count; i++)
+            slotUIs[i].Setup(source, i);
     }
 
     public void RefreshUI()
     {
-        var slots = inventory.GetSlots();
+        if (source == null || slotUIs.Count == 0) return;
 
-        for (int i = 0; i < slotUIs.Count; i++)
+        var slots = source.GetSlots();
+        int n = Mathf.Min(slots.Count, slotUIs.Count);
+        for (int i = 0; i < n; i++)
         {
-            slotUIs[i].UpdateSlot(slots[i]);
+            slotUIs[i].UpdateSlot(slots[i]); // 아이콘 & 수량 반영
         }
     }
 
 
-    // 인벤토리 패널 true
+    // 인벤토리 패널 열기
     public void OpenInventoryPanel()
     {
-        inventoryActive.SetActive(true);      // 패널을 보여주고
+        if (inventoryActive != null) inventoryActive.SetActive(true);
         StartCoroutine(DelayedRefresh());
     }
-    
+
     private IEnumerator DelayedRefresh()
     {
-        yield return null; // 1 프레임 뒤에 실행
+        yield return null; // 1프레임 뒤 레이아웃 안정화 후
         RefreshUI();
     }
 

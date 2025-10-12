@@ -40,6 +40,7 @@ public class UIManager : MonoBehaviour
     [Header("Script")]
     [SerializeField] private CameraManager cameraManager;
     [SerializeField] private BattleManager battleManager;
+
     [Header("Skill Panels")]
     [SerializeField] private List<UIinfo> uiList = new List<UIinfo>();
     [SerializeField] private List<SkillInfo> skillInfos = new List<SkillInfo>();
@@ -48,7 +49,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private UIinfo infoPanel;
     [SerializeField] private UIinfo invenPanel;
 
-    [Header("Info Panel")]
+    [Header("Info Panel - Hero")]
     [SerializeField] private Image heroImage;
     [SerializeField] private TMP_Text heroName;
     [SerializeField] private TMP_Text heroLevel;
@@ -58,6 +59,20 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TMP_Text heroRes;
     [SerializeField] private TMP_Text heroSpd;
     [SerializeField] private TMP_Text heroHit;
+
+    [Header("Info Panel - Item & Effects")]
+    [SerializeField] private GameObject itemRow;     // 아이템 줄 전체(없으면 꺼짐)
+    [SerializeField] private Image itemIcon;
+    [SerializeField] private TMP_Text itemName;
+    [SerializeField] private Transform buffRoot;    // 버프 칩 부모(초록)
+    [SerializeField] private Transform debuffRoot;  // 디버프 칩 부모(빨강)
+    [SerializeField] private GameObject effectTagPrefab; // 텍스트 하나 달린 간단 칩 프리팹
+
+    // 텍스트/색상 지정
+    private static readonly Color BuffTextColor   = new Color(0.25f, 0.85f, 0.35f); // 초록
+    private static readonly Color DebuffTextColor = new Color(0.95f, 0.30f, 0.30f); // 빨강
+
+    private Job _currentHeroRef; // 현재 패널에 표시 중인 영웅 저장
 
     private UIinfo currentOpen;
     private bool _closingPanels;   // 재진입 방지 가드
@@ -110,10 +125,10 @@ public class UIManager : MonoBehaviour
     void OnEnable()
     {
         if (battleManager != null)
-    {
-        battleManager.OnTargetingStateChanged += HandleTargetingState;
-        battleManager.OnSkillCommitted       += HandleSkillCommitted; // 이미 썼다면 유지
-    }
+        {
+            battleManager.OnTargetingStateChanged += HandleTargetingState;
+            battleManager.OnSkillCommitted += HandleSkillCommitted; // 이미 썼다면 유지
+        }
     }
 
     // 애니메이션 등 진행 중 아웃라인 비활성화
@@ -122,7 +137,7 @@ public class UIManager : MonoBehaviour
         if (battleManager != null)
         {
             battleManager.OnTargetingStateChanged -= HandleTargetingState;
-            battleManager.OnSkillCommitted       -= HandleSkillCommitted;
+            battleManager.OnSkillCommitted -= HandleSkillCommitted;
         }
     }
 
@@ -199,10 +214,11 @@ public class UIManager : MonoBehaviour
                     else
                     {
                         var dmg = skill.effects.OfType<DamageEffect>().FirstOrDefault();
-                        if (dmg != null) {
+                        if (dmg != null)
+                        {
                             label = "피해";
                             value = ReturnText.ReturnDamage(Mathf.Max(0, dmg.damage));
-                        } 
+                        }
                         else
                         {
                             var sgn = skill.effects.OfType<SignDamageEffect>().FirstOrDefault();
@@ -213,7 +229,7 @@ public class UIManager : MonoBehaviour
                             }
                         }
                     }
-                    
+
                 }
                 if (slot.skillName) slot.skillName.text = skill.skillName;
                 if (slot.skillDamage) slot.skillDamage.text = $"{label}: {value}";
@@ -247,6 +263,8 @@ public class UIManager : MonoBehaviour
     {
         if (hero == null) return;
 
+        _currentHeroRef = hero;
+
         heroName.text = $"{hero.name_job}";
         heroHp.text = $"{hero.hp}";
         heroLevel.text = $"Lv.{hero.level}";
@@ -258,7 +276,106 @@ public class UIManager : MonoBehaviour
         Combatant c = Combatant.FindByHero(hero);
         if (heroHpBar) heroHpBar.Bind(c);
 
+        RefreshItem(hero);
+        RefreshEffects(hero);
     }
+
+    //=========== 적용 중인 효과 ============
+    // ① 효과 UI 갱신
+    private void RefreshEffects(Job hero)
+    {
+        if (hero == null) return;
+
+        ClearChildren(buffRoot);
+        ClearChildren(debuffRoot);
+
+        // Job 쪽 딕셔너리(Combatant.TickStatuses가 바로 이걸 틱해요) 
+        var buffs = hero.BuffsDict;   // Dictionary<BuffType,int>
+        var debuffs = hero.DebuffsDict; // Dictionary<BuffType,int>
+
+        // 버프
+        if (buffs != null)
+        {
+            foreach (var kv in buffs)
+            {
+                if (kv.Value <= 0) continue;
+                CreateEffectTag(buffRoot, kv.Key, kv.Value, isDebuff: false);
+            }
+        }
+
+        // 디버프
+        if (debuffs != null)
+        {
+            foreach (var kv in debuffs)
+            {
+                if (kv.Value <= 0) continue;
+                CreateEffectTag(debuffRoot, kv.Key, kv.Value, isDebuff: true);
+            }
+        }
+    }
+
+    private void CreateEffectTag(Transform parent, BuffType type, int turns, bool isDebuff)
+    {
+        if (parent == null || effectTagPrefab == null) return;
+
+    var go = Instantiate(effectTagPrefab, parent);
+
+    // 텍스트: "중독(3턴)" 형태로
+    var label = go.GetComponentInChildren<TMP_Text>();
+    if (label)
+    {
+        label.text  = $"{Localize(type)} ({turns}턴)";
+        label.color = isDebuff ? DebuffTextColor : BuffTextColor;
+    }
+
+    // (선택) 배경색도 바꾸고 싶다면 프리팹의 Image를 잡아서 색상 지정
+    var bg = go.GetComponent<Image>();
+    if (bg) bg.color = isDebuff
+        ? new Color(1f, 0.45f, 0.45f, 0.35f)
+        : new Color(0.45f, 1f, 0.55f, 0.35f);
+    }
+
+    private static string Localize(BuffType type)
+    {
+        switch (type)
+    {
+        case BuffType.Poison:   return "중독";
+        case BuffType.Bleeding: return "출혈";
+        case BuffType.Burn:     return "화상";
+        case BuffType.Faint:     return "기절";
+        case BuffType.Sign:     return "표식";
+        case BuffType.Taunt:    return "보호";
+        // … 프로젝트에서 쓰는 항목 더 추가
+        default:                return type.ToString(); // 미정 의존성은 영문 유지
+    }
+    }
+
+    private void ClearChildren(Transform t)
+    {
+        if (!t) return;
+        for (int i = t.childCount - 1; i >= 0; --i)
+            Destroy(t.GetChild(i).gameObject);
+    }
+
+    //============ 장비 중인 아이템 ===============
+    // ② 아이템 UI 갱신(참조 경로는 프로젝트마다 다르므로 안전 기본값으로)
+    private void RefreshItem(Job hero)
+    {
+        // 기본은 감춤
+        if (itemRow) itemRow.SetActive(false);
+
+        // ===== 나중에 여기를 '한 줄'만 바꾸면 자동 표시됨 =====
+        // 예시: Combatant에서 꺼내기
+        // var c = Combatant.FindByHero(hero);
+        // if (c && c.TryGetEquippedItem(out var equip) && equip != null) {
+        //     itemRow.SetActive(true);
+        //     if (itemName) itemName.text = equip.displayName;
+        //     if (itemIcon) itemIcon.sprite = equip.icon;
+        // }
+
+        // 또는 hero.equippedItem 같이 DTO에 있다면 그 경로로 바꿔서 사용
+    }
+
     //===============================
     void OpenDrawer(UIinfo ui)
     {
@@ -310,7 +427,7 @@ public class UIManager : MonoBehaviour
             if (ui != null && ui.isOpen)
                 CloseDrawer(ui);   // ← 네가 쓰는 기존 닫기 루틴
         }
-        
+
         _closingPanels = false;
     }
 }

@@ -12,6 +12,10 @@ public class DungeonManager : MonoBehaviour
 {
     public static DungeonManager instance { get; private set; }
 
+    [Header("Inventory")]
+    [SerializeField] private DungeonInventory dungeonInventory;
+    [SerializeField] private DungeonInventoryBinder inventoryBinder;
+
     [Header("Dungeon UI")]
     public GameObject moveLeft;
     public GameObject moveRight;
@@ -20,17 +24,33 @@ public class DungeonManager : MonoBehaviour
     public GameObject battleUI;
     void Awake()
     {
-        if (instance != null && instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
+        if (instance != null && instance != this) { Destroy(gameObject); return; }
         instance = this;
         DontDestroyOnLoad(gameObject);
 
         // ✅ 전투 시작 이벤트 구독(게임 시작부터 살아있게)
         EnemySpawner.OnBattleStart += HandleBattleStart;
+    }
+
+    void Start()
+    {
+        // 자동 찾기(인스펙터 비워도 OK)
+        if (!dungeonInventory) dungeonInventory = FindObjectOfType<DungeonInventory>(true);
+
+        // 1) PartyBridge → DungeonInventory 스냅샷 1회 적용
+        var snap = PartyBridge.Instance?.dungeonLoadoutSnapshot;
+        if (dungeonInventory && snap != null && snap.Count > 0)
+        {
+            dungeonInventory.ApplySnapshot(snap);              // 6칸 재초기화 후 채움 :contentReference[oaicite:10]{index=10}
+            PartyBridge.Instance.dungeonLoadoutSnapshot = null;
+        }
+
+        // 1) PartyBridge → DungeonInventory로 스냅샷 1회 적용
+        //ApplyInitialInventoryFromBridge_Once();
+
+        // 2) 바인더 연결(이벤트 구독 + 즉시 그리기)
+        if (inventoryBinder && dungeonInventory)
+            inventoryBinder.Bind(dungeonInventory);
     }
 
     void OnDestroy()
@@ -63,7 +83,7 @@ public class DungeonManager : MonoBehaviour
     public void ShowDungeonUIAfterBattle()
     {
         // TODO: 전투 보상 화면 추가
-        
+
         if (battleUI) battleUI.SetActive(false);
         if (moveLeft) moveLeft.SetActive(true);
         if (moveRight) moveRight.SetActive(true);
@@ -107,6 +127,34 @@ public class DungeonManager : MonoBehaviour
             return dir == MoveDirection.Left ? Vector3.back : Vector3.forward;
         else
             return dir == MoveDirection.Left ? Vector3.forward : Vector3.back;
+    }
+
+    // ======= 인벤토리 =======
+    void ApplyInitialInventoryFromBridge_Once()
+    {
+        if (!dungeonInventory)
+        {
+            Debug.LogWarning("[DungeonManager] DungeonInventory 미할당");
+            return;
+        }
+
+        var bridge = PartyBridge.Instance;
+        if (bridge == null)
+        {
+            Debug.LogWarning("[DungeonManager] PartyBridge 미존재");
+            return;
+        }
+
+        var snap = bridge.dungeonLoadoutSnapshot;
+        if (snap == null || snap.Count == 0)
+        {
+            Debug.Log("[DungeonManager] 적용할 인벤토리 스냅샷 없음(빈 상태 유지)");
+            return;
+        }
+
+        dungeonInventory.ApplySnapshot(snap);   // ← 던전 6칸에 직접 반영
+        bridge.dungeonLoadoutSnapshot = null;   // 재적용 방지
+        Debug.Log("[DungeonManager] 브릿지 스냅샷을 DungeonInventory에 적용 완료");
     }
 }
 
