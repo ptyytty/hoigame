@@ -55,6 +55,9 @@ public class BattleManager : MonoBehaviour
     // 대상 선택 이벤트
     public event Action<bool> OnTargetingStateChanged;  // true=시작, false=종료
 
+    [Header("Battle Rewards")]
+    [SerializeField] private Vector2Int coinRangePerBattle = new Vector2Int(80, 300); // 코인만 랜덤
+
     [Header("Debug")]
     public bool minimalCombatLog = true;  // ✅ 간단 로그 on/off
 
@@ -90,6 +93,7 @@ public class BattleManager : MonoBehaviour
         EnemySpawner.OnBattleStart -= HandleBattleStart;
     }
 
+    // EnemySpawner.OnBattleStart 호출 시 전투 시작
     private void HandleBattleStart(IReadOnlyList<Job> heroes, IReadOnlyList<GameObject> enemies)
     {
         party = heroes;
@@ -134,7 +138,7 @@ public class BattleManager : MonoBehaviour
 
         if (overrideParty != null) party = overrideParty.Where(hero => hero != null).ToList();
 
-        BuildInitiative(party, enemies);
+        BuildInitiative(party, enemies);        // 턴 순서 정렬
 
         turnIndex = -1;
 
@@ -241,11 +245,27 @@ public class BattleManager : MonoBehaviour
         StartCoroutine(NextTurnDeferred());
     }
 
-    // 턴 진행 2 => 턴 진행 상세 내용
+    // 턴 진행 2 => 턴 중복 방지용 코루틴 딜레이
+    private System.Collections.IEnumerator NextTurnDeferred()
+    {
+        // 다음 프레임로 미뤄 모든 동시 호출을 코얼레싱
+        yield return null;
+
+        _nextTurnScheduled = false;
+
+        // 누적 요청 1회만 처리(과도한 중복 방지)
+        if (_pendingTurnRequests > 0)
+        {
+            _pendingTurnRequests = 0;
+            NextTurnCore();
+        }
+    }
+
+    // 턴 진행 3 => 턴 진행 상세 내용
     private void NextTurnCore()
     {
         SkillTargetHighlighter.Instance?.ClearAll();    // 아웃라인 제거
-        uiManager?.ClearSkillSelection();
+        uiManager?.ClearSkillSelection();               // 스킬 UI 초기화
 
         if (initiative == null || initiative.Count == 0)
         {
@@ -260,7 +280,7 @@ public class BattleManager : MonoBehaviour
         // 2) 사망/이탈 정리 (여기 '한 곳'에서만 수행)
         initiative = initiative.Where(u => u != null && u.IsAlive && u.combatant).ToList();
 
-        // 3) 전멸/빈 리스트 처리
+        // 3) 몬스터 전멸 확인
         TryEndBattleIfEnemiesDefeated();
         if (initiative.Count == 0) return;
 
@@ -283,10 +303,10 @@ public class BattleManager : MonoBehaviour
             return;
         }
 
-        // ★ 여기서 '이번 턴 배우'를 다음 루프의 anchor로 기록
+        // '이번 턴 배우'를 다음 루프의 anchor로 기록
         _lastActorRef = actor;
 
-        ClearTauntIfOwnerTurnStarts(actor.combatant);       // actor가 도발 유닛일 경우 해제
+        ClearTauntIfOwnerTurnStarts(actor.combatant);       // actor가 도발 유닛일 경우 도발 해제
 
         // 턴 시작 시 상태 처리
         if (!ApplyStartOfTurnStatues(actor.combatant))
@@ -298,7 +318,7 @@ public class BattleManager : MonoBehaviour
         // 디버그 출력
         Debug.Log($"[Turn] {actor.label}, SPD: {actor.spd}");
 
-        if (actor.isHero)
+        if (actor.isHero)       // 영웅 턴일 때  수행
         {
             // 영웅: 스킬 UI 표시
             var hero = actor.hero;
@@ -310,28 +330,12 @@ public class BattleManager : MonoBehaviour
             }
 
             ShowHeroSkill(hero);
-            OnSkillCommitted += EndTickOnce;
+            OnSkillCommitted += EndTickOnce;        // 스킬 사용 이벤트 발동 시 턴 종료 틱 1회 적용
         }
-        else
+        else                    // 몬스터 턴일 때 수행
         {
             TryUseSkill_EnemyAI_Random(actor);
             ApplyEndOfTurnTick(actor.combatant);
-        }
-    }
-
-    // 턴 진행 3 => 딜레이 코루틴
-    private System.Collections.IEnumerator NextTurnDeferred()
-    {
-        // 다음 프레임로 미뤄 모든 동시 호출을 코얼레싱
-        yield return null;
-
-        _nextTurnScheduled = false;
-
-        // 누적 요청 1회만 처리(과도한 중복 방지)
-        if (_pendingTurnRequests > 0)
-        {
-            _pendingTurnRequests = 0;
-            NextTurnCore();
         }
     }
 
@@ -390,7 +394,7 @@ public class BattleManager : MonoBehaviour
         EnterTargeting(actingC, skill);
     }
 
-    // 스킬 대상 선택
+    // 스킬 대상 선택 화면 / 아웃라인 활성화
     private void EnterTargeting(Combatant caster, Skill s)
     {
         _pendingCaster = caster;
@@ -432,6 +436,7 @@ public class BattleManager : MonoBehaviour
         Debug.Log("[Targeting] 취소");
     }
 
+    // BattleInput 호출
     // 스킬 사용 대상 확정
     public void NotifyCombatantClicked(Combatant clicked)
     {
@@ -447,20 +452,21 @@ public class BattleManager : MonoBehaviour
         var all = FindObjectsOfType<Combatant>(includeInactive: false)
               .Where(c => c != null && c.IsAlive);
 
-        var targets = SkillTargeting.GetExecutionTargets(_pendingCaster, clicked, all, _pendingSkill);
+        var targets = SkillTargeting.GetExecutionTargets(_pendingCaster, clicked, all, _pendingSkill);      // 스킬 적용 대상 확인
         if (targets == null || targets.Count == 0)
         {
             Debug.Log("[BM] No resolved targets");
             return;
         }
 
-        CastSkillResolved(_pendingCaster, _pendingSkill, targets);
+        CastSkillResolved(_pendingCaster, _pendingSkill, targets);      // 스킬 효과 실제 적용
 
         RaiseSkillCommitted();
         CancelTargeting();
         NextTurn();
     }
 
+    // 스킬 사용 커밋, OnSkillCommited 이벤트 진행
     void RaiseSkillCommitted()
     {
         if (initiative == null || initiative.Count == 0) return;
@@ -469,7 +475,8 @@ public class BattleManager : MonoBehaviour
         catch (Exception e) { Debug.LogException(e, this); }
     }
 
-    // 턴 시작 시 버프 상태 (도트, 지속 턴 등)
+    // ============== 버프 처리 =================
+    // 턴 시작 시 버프 상태 처리(도트 데미지, 기절, 버프/디버프 지속 턴 등)
     private bool ApplyStartOfTurnStatues(Combatant actor)
     {
         if (!actor || !actor.IsAlive) return false;
@@ -604,7 +611,7 @@ public class BattleManager : MonoBehaviour
         return false; // 기본은 Friendly 취급
     }
 
-    // 6) 한 스킬이 중복 적용되는 것 방지
+    // 6) 도발 처리 / 한 스킬이 중복 적용되는 것 방지 (범위 공격) 
     private void ApplySkillEffectsWithTaunt(Combatant caster, Skill skill, List<Combatant> finalTargets)
     {
         if (caster == null || skill == null || finalTargets == null || finalTargets.Count == 0) return;
@@ -730,7 +737,25 @@ public class BattleManager : MonoBehaviour
         initiative?.Clear();
         turnIndex = -1;
 
-        // 3) 던전 UI 복구(중앙집중)
+        // 3) === 보상 산정: 소울 1개 고정 + 코인 랜덤 ===
+        var soulType = (SoulType)UnityEngine.Random.Range(0, 3); // 0~2 (3종)
+        int soulAmount = 1;                                      // ✔ 고정 1
+        int coinAmount = UnityEngine.Random.Range(coinRangePerBattle.x, coinRangePerBattle.y + 1);
+
+        // 4) 누적 저장(던전 내 보상 전체)
+        if (RunReward.Instance == null)
+        {
+            var go = new GameObject("RunReward");
+            go.AddComponent<RunReward>();
+        }
+        RunReward.Instance.AddBattleDrop(soulType, soulAmount, coinAmount); // 저장 훅 타도록
+
+        // 5) 토스트 표시는 DungeonManager에 위임(애니메이션 포함)
+        if (DungeonManager.instance)
+            DungeonManager.instance.ShowBattleRewardToast(soulType, soulAmount, coinAmount);
+    
+
+        // 6) 던전 UI 복구(중앙집중)
         if (DungeonManager.instance)
             DungeonManager.instance.ShowDungeonUIAfterBattle();     // UI 복구 및 보상 UI
 

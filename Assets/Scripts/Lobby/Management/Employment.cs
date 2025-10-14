@@ -42,6 +42,10 @@ public class Employment : ListUIBase<Job>
         confirmButton.onClick.AddListener(EmployHero);
         employText.text = "고용";
 
+        var click = FindObjectOfType<UIClickResetHandler>();
+        if (click != null) click.RegisterResetCallback(ResetEmployUI);
+
+
         // ✅ 최초 1회만 랜덤 추출, 그 뒤로는 캐시로만 UI 재구성
         if (!_hasRolledThisSession)
         {
@@ -214,32 +218,80 @@ public class Employment : ListUIBase<Job>
         if (selectedHero == null) return;
         if (!testMoney.HasEnoughSoul(selectedHero.jobCategory, heroPrice)) return;
 
-        // 중복 방지: 이미 고용했으면 스킵
+        // 중복 방지: 이미 고용했으면 스킵(같은 id_job은 1회만 허용하는 정책 유지 시)
         if (hiredIds.Contains(selectedHero.id_job)) return;
 
+        // ✅ 원본(DB) 참조를 직접 추가하지 않고, 복제본을 만들어 instanceId 부여
+        var hired = CopyForHire(selectedHero);
+
         // 실제 고용
-        testHero.jobs.Add(selectedHero);
+        testHero.jobs.Add(hired);
         testMoney.PayHeroPrice(selectedHero.jobCategory, heroPrice);
 
-        // 상태 기록
+        // 상태 기록 (정책상 같은 id_job 재고용 금지 유지)
         hiredIds.Add(selectedHero.id_job);
 
-        // ✅ 리스트에서 해당 영웅 버튼(들) 비활성화
+        // 리스트에서 해당 영웅 버튼(들) 비활성화
         if (heroButtons.TryGetValue(selectedHero.id_job, out var btns))
         {
             foreach (var b in btns)
                 if (b) b.interactable = false;
         }
 
-        // 확인 버튼 라벨/상태(원하면 유지)
+        // 확인 버튼/라벨 업데이트
         confirmButton.interactable = false;
         employText.text = "고용 완료";
 
-        // 외부 패널/리스트 갱신(필요에 따라)
+        // 좌측 ‘내 보유 영웅’ 리스트 갱신 (여기서부터는 instanceId 기준 동기화가 가능)
         heroListUp?.RefreshHeroList();
         listUpManager?.RefreshList();
     }
 
+    // ✅ 고용용 복제 유틸: DB의 원본 Job을 그대로 쓰지 않고 새 인스턴스를 만들어 instanceId 부여
+    private Job CopyForHire(Job src)
+    {
+        // ※ 프로젝트의 Job 필드들에 맞게 필요한 필드를 모두 복사하세요.
+        //   아래는 대표 필드 예시입니다.
+        var copy = new Job
+        {
+            // ====== 식별/표시 관련 ======
+            id_job = src.id_job,        // 타입/직업 ID(정적 식별자)
+            name_job = src.name_job,      // 영웅 이름(표시용)
+            portrait = src.portrait,      // 초상 스프라이트(레퍼런스 복사)
+
+            // ====== 성장/스탯 ======
+            level = src.level,
+            exp = src.exp,
+            maxHp = src.maxHp,
+            hp = (src.hp > 0 ? src.hp : src.maxHp), // 고용 시 체력 0 보호(필요시 정책에 맞춰 수정)
+            def = src.def,
+            res = src.res,
+            spd = src.spd,
+            hit = src.hit,
+
+            // ====== 배치/카테고리 ======
+            loc = src.loc,           // ★ 전/후열 이미지 분기용: 반드시 복사
+            category = src.category,      // (레거시 필드 사용 중이면 유지)
+            jobCategory = src.jobCategory,   // 실제 카테고리
+            // ... (스탯/스킬 등 다른 DTO 필드도 필요하면 복사)
+        };
+
+        // ✅ 고유 인스턴스 ID 부여 (모바일 빌드에서도 안전한 GUID 문자열)
+        copy.instanceId = System.Guid.NewGuid().ToString("N"); // 32자, 하이픈 없음
+        return copy;
+    }
+
     // 외부에서 호출하는 기존 API 유지
     public void ResetButtonImage() => base.ResetSelectedButton();
+
+    public void ResetEmployUI()
+    {
+        // 선택 버튼 이미지는 ListUIBase가 처리 → 여기서는 패널만 끔
+        if (pricePanel) pricePanel.SetActive(false);
+        if (confirmButton) confirmButton.gameObject.SetActive(false);
+        employText.text = "고용";
+
+        // 좌측 정보/고용 패널도 닫기
+        listUpManager?.EmployPanelState(false);
+    }
 }

@@ -1,11 +1,14 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+
 /// <summary>
 /// PartyManager
-/// Party 이동 제어, 전투 UI 제어
+/// Party 이동 제어, 전투 UI 제어, 보상 UI 제어
 /// </summary>
 
 public class DungeonManager : MonoBehaviour
@@ -22,6 +25,20 @@ public class DungeonManager : MonoBehaviour
 
     [Header("Battle UI")]
     public GameObject battleUI;
+
+    [Header("Reward UI")]
+    [SerializeField] private GameObject rewardToastPanel;  // 보상 패널
+    [SerializeField] private CanvasGroup rewardToastGroup; // 알파 페이드 대상
+    [SerializeField] private Transform rewardToastScaleRoot; // 스캐일 애니메이션
+    [SerializeField] private RewardPanel rewardPanelBinder; // 텍스트 적용
+
+    [Header("Reward Settings (per battle)")]
+    [SerializeField] private float toastShowSeconds = 1.2f; // 화면 유지 시간
+    [SerializeField] private float tweenIn = 0.25f;         // 등장 시간
+    [SerializeField] private float tweenOut = 0.25f;        // 퇴장 시간
+    [SerializeField] private Ease easeIn = Ease.OutBack;    // 가속 곡선
+    [SerializeField] private Ease easeOut = Ease.InSine;
+
     void Awake()
     {
         if (instance != null && instance != this) { Destroy(gameObject); return; }
@@ -156,7 +173,36 @@ public class DungeonManager : MonoBehaviour
         bridge.dungeonLoadoutSnapshot = null;   // 재적용 방지
         Debug.Log("[DungeonManager] 브릿지 스냅샷을 DungeonInventory에 적용 완료");
     }
+
+    // ✔ 보상 토스트만 띄우는 공개 메서드 (BattleManager에서 호출)
+    public void ShowBattleRewardToast(SoulType soulType, int soulAmount, int coins)
+    {
+        if (!rewardToastPanel || !rewardPanelBinder)
+        {
+            Debug.LogWarning("[DungeonManager] Reward toast refs missing.");
+            return;
+        }
+
+        // 내용 바인딩
+        rewardPanelBinder.Bind(soulType, soulAmount, coins);
+
+        if (!rewardToastScaleRoot) rewardToastScaleRoot = rewardToastPanel.transform;
+        rewardToastPanel.SetActive(true);
+        if (rewardToastGroup) rewardToastGroup.alpha = 0f;
+        rewardToastScaleRoot.localScale = Vector3.one * 0.9f;
+
+        var seq = DOTween.Sequence();
+        if (rewardToastGroup) seq.Join(rewardToastGroup.DOFade(1f, tweenIn));
+        seq.Join(rewardToastScaleRoot.DOScale(1f, tweenIn).SetEase(easeIn));
+        seq.AppendInterval(toastShowSeconds);
+        if (rewardToastGroup) seq.Append(rewardToastGroup.DOFade(0f, tweenOut));
+        seq.Join(rewardToastScaleRoot.DOScale(0.9f, tweenOut).SetEase(easeOut));
+        seq.OnComplete(() => { if (rewardToastPanel) rewardToastPanel.SetActive(false); });
+    }
+
 }
+
+
 
 // 이동 방향 열
 public enum MoveDirection

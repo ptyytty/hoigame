@@ -74,20 +74,6 @@ public static class BuffGroups
         DotDebuffs.Contains(t) || CrowdControls.Contains(t) || t == BuffType.Sign;
 }
 
-[System.Serializable]
-public class Buff
-{
-    public BuffType buffType;      // 버프, 디버프
-    public int duration;                // 지속 턴 수
-    public float probability;            // 적용 확률
-    public int figure;                  // 증감 수치
-
-    public StackMode stack = StackMode.Refresh;
-
-}
-
-public enum StackMode { Refresh, StackValue, Ignore }       // 버프 및 효과 추가 관련 변수
-
 public static class ReturnText
 {
     public static string ReturnDamage(int damage)

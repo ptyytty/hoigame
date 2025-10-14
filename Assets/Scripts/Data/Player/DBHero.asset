@@ -14,9 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   jobs:
   - id_job: 0
+    portrait: {fileID: 0}
     name_job: "\uC131\uAE30\uC0AC"
     level: 0
     exp: 0
+    maxHp: 0
     hp: 67
     def: 12
     res: 15
@@ -25,10 +27,13 @@ MonoBehaviour:
     loc: 1
     category: 0
     jobCategory: 0
+    equippedItemId: 0
   - id_job: 1
+    portrait: {fileID: 0}
     name_job: "\uB098\uBB34\uAFBC"
     level: 0
     exp: 0
+    maxHp: 0
     hp: 72
     def: 6
     res: 0
@@ -37,10 +42,13 @@ MonoBehaviour:
     loc: 1
     category: 0
     jobCategory: 0
+    equippedItemId: 0
   - id_job: 2
+    portrait: {fileID: 0}
     name_job: "\uBB34\uC0AC"
     level: 0
     exp: 0
+    maxHp: 0
     hp: 58
     def: 4
     res: 0
@@ -49,10 +57,13 @@ MonoBehaviour:
     loc: 1
     category: 0
     jobCategory: 0
+    equippedItemId: 0
   - id_job: 3
+    portrait: {fileID: 0}
     name_job: "\uACA9\uD22C\uAC00"
     level: 0
     exp: 0
+    maxHp: 0
     hp: 64
     def: 15
     res: 0
@@ -61,10 +72,13 @@ MonoBehaviour:
     loc: 1
     category: 0
     jobCategory: 0
+    equippedItemId: 0
   - id_job: 4
+    portrait: {fileID: 0}
     name_job: "\uAD81\uC218"
     level: 0
     exp: 0
+    maxHp: 0
     hp: 48
     def: 4
     res: 0
@@ -73,10 +87,13 @@ MonoBehaviour:
     loc: 2
     category: 1
     jobCategory: 1
+    equippedItemId: 0
   - id_job: 5
+    portrait: {fileID: 0}
     name_job: "\uC0AC\uB0E5\uAFBC"
     level: 0
     exp: 0
+    maxHp: 0
     hp: 52
     def: 7
     res: 0
@@ -85,10 +102,13 @@ MonoBehaviour:
     loc: 2
     category: 1
     jobCategory: 1
+    equippedItemId: 0
   - id_job: 6
+    portrait: {fileID: 0}
     name_job: "\uC131\uC9C1\uC790"
     level: 0
     exp: 0
+    maxHp: 0
     hp: 37
     def: 2
     res: 4
@@ -97,10 +117,13 @@ MonoBehaviour:
     loc: 2
     category: 3
     jobCategory: 3
+    equippedItemId: 0
   - id_job: 7
+    portrait: {fileID: 0}
     name_job: "\uC758\uC0AC"
     level: 0
     exp: 0
+    maxHp: 0
     hp: 42
     def: 2
     res: 0
@@ -109,3 +132,4 @@ MonoBehaviour:
     loc: 2
     category: 3
     jobCategory: 3
+    equippedItemId: 0

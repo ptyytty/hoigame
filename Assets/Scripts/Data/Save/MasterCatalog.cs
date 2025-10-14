@@ -11,6 +11,7 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Game/Master Catalog", fileName = "MasterCatalog")]
 public class MasterCatalog : ScriptableObject
 {
+    
     [Header("Hero DB")]
     [SerializeField] private TestHero heroDB;   // TestHero.asset 지정
 

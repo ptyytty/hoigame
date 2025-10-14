@@ -34,7 +34,17 @@ public class Combatant : MonoBehaviour
     /// <summary>
     /// 턴 정렬에 사용하는 spd (버프/디버프 적용 시 수정 가능)
     /// </summary>
-    public int EffectiveSpeed => baseSpeed;
+    public int EffectiveSpeed => GetCurrentSpeed();
+
+    // --- 계산에 사용할 '기본값' 안전 접근 ---
+    private int BaseDefense => (hero != null) ? hero.def : 0;
+    private int BaseResistance => (hero != null) ? hero.res : 0;
+    private int BaseHit => (hero != null) ? hero.hit : 0;
+
+    // --- 계산 Getter ---
+    public int GetCurrentDefense() => Mathf.Max(0, BaseDefense + SumAbility(BuffType.Defense));
+    public int GetCurrentResistance() => Mathf.Max(0, BaseResistance + SumAbility(BuffType.Resistance));
+    public int GetCurrentHit() => Mathf.Max(0, BaseHit + SumAbility(BuffType.Hit));
 
     /// <summary>
     /// Combatant의 UI 이름
@@ -57,6 +67,27 @@ public class Combatant : MonoBehaviour
     // 현재 배치(전열/후열) – Row 판정에 사용
     public Loc currentLoc = Loc.Front;               // 기본 전열
     public int RowIndex => currentLoc == Loc.Back ? 1 : 0;
+
+    // =============== 능력치 적용 =================
+    [Serializable]
+    public class AbilityModEntry    // 버프 적용 엔트리
+    {
+        public BuffType type;
+        public int value;          // +/-
+        public int remainingTurns; // 지속 턴
+    }
+
+    private readonly List<AbilityModEntry> _abilityMods = new();
+
+    public void AddAbilityMod(BuffType type, int value, int duration)
+    {
+        _abilityMods.Add(new AbilityModEntry
+        {
+            type = type,
+            value = value,
+            remainingTurns = Mathf.Max(1, duration)
+        });
+    }
 
     // ======= 전투 세팅 =======
 
@@ -144,7 +175,7 @@ public class Combatant : MonoBehaviour
 
     // ======= 전투 진행 ======
 
-    // 체력 감소 (데미지)
+    // 데미지 적용
     public void ApplyDamage(int amount)
     {
         int a = Mathf.Max(0, amount);
@@ -182,13 +213,105 @@ public class Combatant : MonoBehaviour
         else
         {
             Debug.Log($"[Tick] {DisplayName} (MonsterDict)");
-            
+
             // 몬스터: 기존 Combatant 딕셔너리 틱
             TickDict(_monsterBuffTurns);
             TickDict(_monsterDebuffTurns);
         }
+
+        TickAbilityMods();
     }
 
+    // ======== 능력치 버프/디버프 ========
+    // 우선 적용 버프만 유지
+    public bool TryAddAbilityModFirstWins(BuffType type, int value, int duration)
+    {
+        bool incomingIsBuff = value >= 0;
+        for (int i = 0; i < _abilityMods.Count; i++)
+        {
+            var m = _abilityMods[i];
+            if (m.type == type && (m.value >= 0) == incomingIsBuff)
+            {
+                // 같은 타입 & 같은 부호가 이미 존재 → 새로 온 건 무시(First wins)
+                return false;
+            }
+        }
+
+        _abilityMods.Add(new AbilityModEntry
+        {
+            type = type,
+            value = value,
+            remainingTurns = Mathf.Max(1, duration)
+        });
+        return true;
+    }
+
+    // 능력치 증감 적용
+    private int SumAbility(BuffType t)
+    {
+        int s = 0;
+        for (int i = 0; i < _abilityMods.Count; i++)
+            if (_abilityMods[i].type == t) s += _abilityMods[i].value;
+        return s;
+    }
+
+    // 능력치 속도 적용
+    public int GetCurrentSpeed()
+    {
+        // baseSpeed + (Speed 버프/디버프 합)
+        return Mathf.Max(0, baseSpeed + SumAbility(BuffType.Speed));
+    }
+
+    // 능력치 증감 턴 소모
+    private void TickAbilityMods()
+    {
+        for (int i = _abilityMods.Count - 1; i >= 0; --i)
+        {
+            _abilityMods[i].remainingTurns--;
+            if (_abilityMods[i].remainingTurns <= 0)
+                _abilityMods.RemoveAt(i);
+        }
+    }
+
+    public int RemoveAllDebuffs(bool alsoClearNegativeAbilityMods = true)
+    {
+        int removed = 0;
+
+        // 1) 상태/태그형 '디버프'만 제거
+        if (hero != null)
+        {
+            if (hero.DebuffsDict != null && hero.DebuffsDict.Count > 0)
+            {
+                removed += hero.DebuffsDict.Count;
+                hero.DebuffsDict.Clear();
+            }
+            // ❌ hero.BuffsDict 는 절대 지우지 않음
+        }
+        else
+        {
+            if (_monsterDebuffTurns != null && _monsterDebuffTurns.Count > 0)
+            {
+                removed += _monsterDebuffTurns.Count;
+                _monsterDebuffTurns.Clear();
+            }
+            // ❌ _monsterBuffTurns 는 절대 지우지 않음
+        }
+
+        // 2) 능력치 수정자 중 '음수(디버프)'만 제거
+        if (alsoClearNegativeAbilityMods && _abilityMods != null && _abilityMods.Count > 0)
+        {
+            for (int i = _abilityMods.Count - 1; i >= 0; --i)
+            {
+                if (_abilityMods[i].value < 0) { _abilityMods.RemoveAt(i); removed++; }
+            }
+            // ❌ value >= 0 (버프)은 그대로 유지
+        }
+
+        Debug.Log($"[Cleanse] {DisplayName}: removed {removed} negative effects");
+        return removed;
+    }
+
+    // 사망 처리
     private void Die()
     {
         if (_dead) return;
@@ -249,35 +372,29 @@ public class Combatant : MonoBehaviour
             return;
         }
 
-        if(BuffGroups.IsDebuff(type)) AddDebuff(type, duration);
-        else                          AddBuff(type, duration);
+        if (BuffGroups.IsDebuff(type)) AddDebuff(type, duration);
+        else AddBuff(type, duration);
     }
 
     public void AddBuff(BuffType type, int duration)
     {
         if (hero != null) { hero.AddBuff(type, duration); Debug.Log($"[Buff/Add] {DisplayName}: +{type} ({duration}T, HeroDict)"); return; }
 
-        if (hero != null) { hero.AddBuff(type, duration); return; }   // 영웅은 기존 Job 로직 사용
-                                                                      // 몬스터는 간단히 지속 턴만 저장(수치 반영은 추후 확장)
-
         int cur = _monsterBuffTurns.TryGetValue(type, out var v) ? v : 0;
         _monsterBuffTurns[type] = Mathf.Max(cur, duration);
-        
+
         Debug.Log($"[Buff/Add] {DisplayName}: +{type} ({duration}T, MonsterDict)");
 
     }
 
     public void AddDebuff(BuffType type, int duration)
     {
-        if (hero != null) { hero.AddDebuff(type, duration); Debug.Log($"[Debuff/Add] {DisplayName}: +{type} ({duration}T, HeroDict)"); return; }
-
         if (duration <= 0) duration = 1;
 
-        if (hero != null) { hero.AddDebuff(type, duration); return; }
+        if (hero != null) { hero.AddDebuff(type, duration); Debug.Log($"[Debuff/Add] {DisplayName}: +{type} ({duration}T, HeroDict)"); return; }
 
         int cur = _monsterDebuffTurns.TryGetValue(type, out var v) ? v : 0;
         _monsterDebuffTurns[type] = Mathf.Max(cur, duration);
-        
         Debug.Log($"[Debuff/Add] {DisplayName}: +{type} ({duration}T, MonsterDict)");
     }
 

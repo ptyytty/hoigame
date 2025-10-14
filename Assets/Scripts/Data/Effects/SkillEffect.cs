@@ -86,17 +86,32 @@ public class HealEffect : SkillEffect
 [Serializable]
 public class AbilityBuff : SkillEffect
 {
-    public int value;
-    public BuffType ability; // 프로젝트 기준 BuffType 사용
+    public int value;       // 양수 버프, 음수 디버프
+    public BuffType ability;
 
     public override void Apply(Combatant user, Combatant target)
     {
         if (!target) return;
 
-        // 최소 동작: 영웅이면 Job에 위임(몬스터는 추후 확장)
-        target?.AddBuff(ability, duration); // 능력치 버프는 Buff
-        
-        Debug.Log($"[Effect/Buff] {user?.DisplayName} → {target.DisplayName} : +{ability} ({duration}T)");
+        if (ability == BuffType.Remove)
+        {
+            int n = target.RemoveAllDebuffs(alsoClearNegativeAbilityMods: true);
+            Debug.Log($"[Effect/Remove] {user?.DisplayName} cleansed {target.DisplayName} ({n} removed)");
+            return;
+        }
+
+        // 먼저 등록 시도(First wins). 실패하면 아래 UI 태깅도 하지 않음.
+        bool added = target.TryAddAbilityModFirstWins(ability, value, duration);
+        if (!added)
+        {
+            Debug.Log($"[AbilityBuff] ignored duplicate ({ability}, {(value>=0?"+":"")}{value}) on {target.DisplayName}");
+            return;
+        }
+
+        if (value >= 0) target.AddBuff(ability, duration);
+        else target.AddDebuff(ability, duration);
+
+        Debug.Log($"[Effect/AbilityMod] {user?.DisplayName} → {target.DisplayName} : {ability} {(value>=0?"+":"")}{value} ({duration}T)");
     }
 
 }

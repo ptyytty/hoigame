@@ -92,6 +92,7 @@ public class PlayerProgressService : MonoBehaviour
         0, 3, 4, 6
     };
     #endregion
+    private bool _initialized = false;
 
 
     // --- 런타임 시스템 참조(실제 프로젝트에 맞게 할당) ---
@@ -110,6 +111,12 @@ public class PlayerProgressService : MonoBehaviour
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
         DontDestroyOnLoad(gameObject);
+
+        // ★ 저장 파일이 ‘없을 때’만 초기 프리팹 값을 비워서 오염 방지
+        if (!SaveSystem.HasAnySaveFile())
+        {
+            if (ownHero != null) ownHero.jobs.Clear();
+        }
     }
 
     private async void Start()      // 비동기식 Start문
@@ -135,76 +142,61 @@ public class PlayerProgressService : MonoBehaviour
     {
         if (pause)
         {
-            _ = SaveAsync();
+            if (_initialized) _ = SaveAsync(); // ★ 초기화 전이면 스킵
+            else Debug.Log("[Save] Skip on pause: not initialized yet");
         }
     }
 
     private void OnApplicationQuit()
     {
-        _ = SaveAsync();
+        if (_initialized) _ = SaveAsync(); // ★ 초기화 전이면 스킵
+        else Debug.Log("[Save] Skip on quit: not initialized yet");
     }
 
     private void EnsureInstanceIdsOnOwnHeroes()
-{
-    foreach (var j in ownHero.jobs)
     {
-        if (j == null) continue;
-        if (string.IsNullOrEmpty(j.instanceId))
-            j.instanceId = System.Guid.NewGuid().ToString("N");
+        foreach (var j in ownHero.jobs)
+        {
+            if (j == null) continue;
+            if (string.IsNullOrEmpty(j.instanceId))
+                j.instanceId = System.Guid.NewGuid().ToString("N");
+        }
     }
-}
 
+    // 초기 데이터 영웅 적용
     private void EnsureStartingHeroesFromDbIfEmpty(SaveGame save)
     {
         if (save == null) return;
-
         save.heroes ??= new List<HeroSave>();
-        if (save.heroes.Count > 0) return;   // 이미 세이브에 보유 영웅이 있으면 시드 안 함
+        if (save.heroes.Count > 0) { Debug.Log("[Seed] skip (already has heroes)"); return; }
 
-        // ✅ 빌드/배포: 무조건 STARTING_HERO_IDS만 사용 (ownHero 에셋은 무시)
-        if (STARTING_HERO_IDS == null || STARTING_HERO_IDS.Length == 0)
-        {
-            Debug.LogWarning("[Seed] STARTING_HERO_IDS is empty. No heroes will be seeded.");
-            return;
-        }
+        var seenInSeedList = new HashSet<int>();
+        var addedIds = new List<int>();  // ★ 추가
 
-        // MasterCatalog 보장 (빨리 실패/폴백)
-        if (!masterCatalog)
-            masterCatalog = Resources.Load<MasterCatalog>("MasterCatalog");
-        if (!masterCatalog)
-        {
-            Debug.LogError("[Seed] MasterCatalog is missing. Cannot seed heroes.");
-            return;
-        }
-
-        int added = 0;
         foreach (int heroId in STARTING_HERO_IDS)
         {
-            var job = masterCatalog.CreateJobInstance(heroId);
-            if (job == null)
-            {
-                Debug.LogWarning($"[Seed] Unknown heroId: {heroId} (skip)");
-                continue;
-            }
+            if (!seenInSeedList.Add(heroId)) { Debug.LogWarning($"[Seed] dup in STARTING_HERO_IDS: {heroId}"); continue; }
 
-            var h = new Save.HeroSave
+            var job = masterCatalog.CreateJobInstance(heroId);
+            if (job == null) { Debug.LogWarning($"[Seed] unknown heroId: {heroId}"); continue; }
+
+            var h = new HeroSave
             {
-                heroUid = System.Guid.NewGuid().ToString("N"),
+                heroUid = Guid.NewGuid().ToString("N"),
                 heroId = heroId,
                 displayName = string.IsNullOrWhiteSpace(job.name_job) ? $"Hero {heroId}" : job.name_job,
                 level = (job.level > 0) ? job.level : 1,
                 exp = Mathf.Max(0, job.exp),
                 currentHp = (job.maxHp > 0) ? job.maxHp : Mathf.Max(1, job.hp),
-                skillLevels = new System.Collections.Generic.Dictionary<int, int>(),
-                growthStats = new System.Collections.Generic.Dictionary<string, int>()
+                skillLevels = new Dictionary<int, int>(),
+                growthStats = new Dictionary<string, int>()
             };
-
             NormalizeHeroSkillLevels(h);
             save.heroes.Add(h);
-            added++;
+            addedIds.Add(heroId); // ★ 추가
         }
 
-        Debug.Log($"[Seed] Added {added} hero(es) from STARTING_HERO_IDS.");
+        Debug.Log($"[Seed] added heroIds = [{string.Join(",", addedIds)}], total={save.heroes.Count}");
     }
 
     // ▼▼ 로컬 정규화 함수 추가 ▼▼
@@ -283,11 +275,14 @@ public class PlayerProgressService : MonoBehaviour
     // ========== 저장/로드 보조 ==========
     public async Task<bool> SaveAsync()         // Task: 작업의 단위를 반환해주는 변수  Task >> void(반환값X)   Task<int> >> int형 반환
     {
-        // 1) 런타임 -> Save DTO
-        CaptureFromRuntime();
+        if (!_initialized)
+        {
+            Debug.Log("[Save] Blocked SaveAsync before initialization");
+            return false; // 아직 런타임 적용 전이면 저장 금지
+        }
 
-        // 2) 파일로 기록
-        return await SaveSystem.SaveAsync(Current);     // await: 내부 코드가 끝날 때까지 이 지점에서 저ㅓㅇ지
+        CaptureFromRuntime();
+        return await SaveSystem.SaveAsync(Current);     // await: 내부 코드가 끝날 때까지 이 지점에서 정지
     }
 
     /// <summary>
@@ -298,30 +293,36 @@ public class PlayerProgressService : MonoBehaviour
         var save = Current;
         if (save == null) return;
 
-        // ---- 영웅 보유/성장 ----
+        // ★ 초기화 전/런타임 비어있을 때 기존 세이브를 덮지 않기
+        if (!_initialized)
+        {
+            Debug.Log("[Capture] Skip: not initialized");
+            return;
+        }
+
+        if (ownHero.jobs == null || ownHero.jobs.Count == 0)
+        {
+            Debug.Log("[Capture] Skip: no runtime heroes");
+            return;
+        }
+
+        // ---- 정상 캡처 ----
         save.heroes.Clear();
-        foreach (var hero in ownHero.jobs) // ownHero.jobs: List<Job>
+        foreach (var hero in ownHero.jobs)
         {
             var h = new HeroSave
             {
                 heroId = hero.id_job,
-                displayName = string.IsNullOrEmpty(hero.displayName) ? null : hero.displayName,    // 기본값 = 영웅 이름
-                level = GetHeroLevel(hero),     // 레벨 대입
-                exp = GetHeroExp(hero),         // 경험치 대입
+                displayName = string.IsNullOrEmpty(hero.displayName) ? null : hero.displayName,
+                level = GetHeroLevel(hero),
+                exp = GetHeroExp(hero),
                 currentHp = Mathf.Max(0, hero.hp),
-
-                heroUid = string.IsNullOrEmpty(hero.instanceId)
-                        ? System.Guid.NewGuid().ToString("N")       // N = 하이픈 없는 32자
-                        : hero.instanceId
+                heroUid = string.IsNullOrEmpty(hero.instanceId) ? System.Guid.NewGuid().ToString("N") : hero.instanceId
             };
 
-            // 스킬 성장/업그레이드(예: skillId->level)
-            h.skillLevels = GetHeroSkillLevels(hero); // 영웅 스킬 레벨 대입
-
-            // 추가 성장치(선택)
-            h.growthStats = GetHeroGrowthStats(hero); // 성장 능력치 대입
-
-            save.heroes.Add(h);     // 현재 영웅 정보 확인
+            h.skillLevels = GetHeroSkillLevels(hero);
+            h.growthStats = GetHeroGrowthStats(hero);
+            save.heroes.Add(h);
         }
 
         // ---- 화폐/자원 ----
@@ -343,6 +344,7 @@ public class PlayerProgressService : MonoBehaviour
 
         foreach (var hero in save.heroes)
         {
+            Debug.Log($"[Apply] save.heroes: count={save.heroes?.Count ?? 0}, ids=[{string.Join(",", save.heroes.Select(h => h.heroId))}]");
             // 마스터 데이터에서 Job 프로토타입/팩토리 호출
             var job = masterCatalog.CreateJobInstance(hero.heroId);
             if (job == null) continue;
@@ -367,6 +369,7 @@ public class PlayerProgressService : MonoBehaviour
 
             ownHero.jobs.Add(job);             // 보유 영웅 상태 업데이트
         }
+        Debug.Log($"[Apply] ownHero.jobs: count={ownHero.jobs.Count}, ids=[{string.Join(",", ownHero.jobs.Select(j => j.id_job))}]");
 
         // ---- 인벤토리 ----
         // 저장 데이터 그대로 런타임 참조/복사(필요 시 새로 생성)
@@ -387,6 +390,7 @@ public class PlayerProgressService : MonoBehaviour
         InventoryApplied?.Invoke();
 
         EnsureInstanceIdsOnOwnHeroes();
+        _initialized = true;
     }
 
     // ========== 버전 마이그레이션 ==========

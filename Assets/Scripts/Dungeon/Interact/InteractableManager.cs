@@ -10,22 +10,9 @@ public class InteractableManager : MonoBehaviour
 {
     public static InteractableManager instance;
 
-    void Awake()
-    {
-        if (instance == null)
-        {
-            instance = this;
-        }
-        else
-        {
-            Destroy(this.gameObject);
-        }
-    }
-
     [SerializeField] private List<GameObject> candidates; // 상호작용 가능 오브젝트 목록
     [SerializeField] private List<GameObject> stairs;   // 계단 목록
     [SerializeField] private float interactionChance = 0.1f;    // 상호작용 적용 확률
-
 
     [SerializeField] private string[] nameFilters = { "Cabinet", "vending machine V2", "water purifier" };
     [SerializeField] private string[] stairFilters = { "UpStairs", "DownStairs" };
@@ -39,16 +26,37 @@ public class InteractableManager : MonoBehaviour
     public Button interactionDown;
     public GameObject interactionObj;
 
+    // ▼ 상호작용 보상 파라미터(필요 시 인스펙터 조절)
+    [Header("Interact Reward Settings")]
+    public Vector2Int coinRangeOnInteract = new Vector2Int(80, 300);
+    public bool fixedSoulOneOnInteract = true;
+    public float stairNudge = 150f;
+
     // 아웃라인 공통 설정
     [Header("Outline Settings (Common)")]
     public Material outlineMaterial;
     public Color outlineColor = Color.black;
     [Range(0.01f, 0.5f)] public float outlineWidth = 0.1f;
 
+    // ▼ Scanner가 세팅해줄 현재 타깃
+    private Interactable currentObjectTarget;
+
+    void Awake()
+    {
+        if (instance == null) instance = this; else { Destroy(gameObject); return; }
+    }
+
     void Start()
     {
         AutoFindFloorAndScan();
         AssingInteractables();
+
+        // ✅ 전역 버튼 리스너는 여기서 '딱 한 번' 등록
+        if (interactionUp)   interactionUp.onClick.AddListener(() => Nudge(-stairNudge));  // 보상 없음
+        if (interactionDown) interactionDown.onClick.AddListener(() => Nudge(+stairNudge)); // 보상 없음
+
+        var objBtn = interactionObj?.GetComponent<Button>();
+        if (objBtn) objBtn.onClick.AddListener(GrantObjectRewardAndToast);
     }
 
     /// <summary>
@@ -121,7 +129,7 @@ public class InteractableManager : MonoBehaviour
         }
         //Debug.Log($"✅ 자동 등록 완료: 상호작용 오브젝트 {objCount}개, 계단 {stairCount}개");
     }
-    
+
     // ✅ 추가: 대상 오브젝트에 OutlineDuplicator 구성
     void EnsureOutlineSetup(GameObject obj)
     {
@@ -133,6 +141,57 @@ public class InteractableManager : MonoBehaviour
         od.outlineMaterial = outlineMaterial;
         od.SetProperties(outlineColor, outlineWidth);
         od.EnableOutline(false); // 기본 OFF
+    }
+
+    void Nudge(float dx)
+    {
+        if (!party || !partyCam) return;
+        var p = party.transform.position; p.x += dx; party.transform.position = p;
+        var c = partyCam.transform.position; c.x += dx; partyCam.transform.position = c;
+    }
+    
+    public void SetCurrentObjectTarget(Interactable it) => currentObjectTarget = it;
+
+    public void SetInteractButtonsVisible(bool up, bool down, bool obj)
+    {
+        if (interactionUp)   interactionUp.gameObject.SetActive(up);
+        if (interactionDown) interactionDown.gameObject.SetActive(down);
+        if (interactionObj)  interactionObj.SetActive(obj);
+    }
+    
+    // 상호작용 오브젝트 보상 지급
+    void GrantObjectRewardAndToast()
+    {
+        if (currentObjectTarget == null) return;
+        if (!currentObjectTarget.IsEligibleForReward)
+        {
+            // 이미 받은 대상이면 오브젝트 버튼 숨김
+            SetInteractButtonsVisible(
+                interactionUp && interactionUp.gameObject.activeSelf,
+                interactionDown && interactionDown.gameObject.activeSelf,
+                false
+            );
+            return;
+        }
+
+        // ✅ 소울 1개 + 코인 랜덤
+        int soulTypeCount = System.Enum.GetValues(typeof(SoulType)).Length;
+        var soulType = (SoulType)Random.Range(0, soulTypeCount);
+        int soulAmount = fixedSoulOneOnInteract ? 1 : 1;
+        int coins = Random.Range(coinRangeOnInteract.x, coinRangeOnInteract.y + 1);
+
+        if (RunReward.Instance == null) new GameObject("RunReward").AddComponent<RunReward>();
+        RunReward.Instance.AddBattleDrop(soulType, soulAmount, coins);
+
+        DungeonManager.instance?.ShowBattleRewardToast(soulType, soulAmount, coins);
+
+        // 1회성 마킹 + 버튼 숨김
+        currentObjectTarget.MarkClaimed();
+        SetInteractButtonsVisible(
+            interactionUp && interactionUp.gameObject.activeSelf,
+            interactionDown && interactionDown.gameObject.activeSelf,
+            false
+        );
     }
 }
 

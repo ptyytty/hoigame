@@ -63,6 +63,9 @@ public class ListUpManager : ListUIBase<Job>
             renameCancel.onClick.RemoveAllListeners();
             renameCancel.onClick.AddListener(CloseRenamePanel);
         }
+
+        var click = FindObjectOfType<UIClickResetHandler>();
+        if (click != null) click.RegisterResetCallback(ResetHeroListState);
     }
 
     private IEnumerator DeferredLoadList()
@@ -252,5 +255,14 @@ public class ListUpManager : ListUIBase<Job>
     {
         yield return null;
         RefreshList();   // ← 이때는 패널이 이미 닫혀 있어서 재진입/포커스 문제 없음
+    }
+
+    public void ResetHeroListState()
+    {
+        EmployPanelState(false);
+        PricePanelState(false);
+        GrowthPanelState(false);
+        ResetButtonImage();          // 선택 버튼 스프라이트 원복(중복 호출 안전)
+        CurrentSelectedHero = null;  // 선택 데이터도 정리
     }
 }

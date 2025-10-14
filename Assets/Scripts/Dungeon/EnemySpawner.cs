@@ -46,7 +46,7 @@ public class EnemySpawner : MonoBehaviour
     public static event System.Action<Vector3, Quaternion, float> OnEnemyFocusHint;     // VCam_Enemy 전용
     public interface IHeroPartyProvider { IReadOnlyList<Job> GetParty(); }
 
-    // 히어로, 몬스터 리스트 정적 보관
+    // 영웅, 몬스터 리스트 정적 보관
     public static class BattleContext
     {
         public static List<Job> Heroes;
@@ -90,7 +90,7 @@ public class EnemySpawner : MonoBehaviour
         bool tagged = other.CompareTag(partyTag) || other.transform.root.CompareTag(partyTag);
         D($"Trigger by {other.name}, tagOk={tagged}, other.tag={other.tag}, root.tag={other.transform.root.tag}");
         if (!tagged) return;
-        if (triggerOnce && consumed) return;
+        if (triggerOnce && consumed) return;        // 최초 1회 실행
 
         lastPartyRoot = other.transform.root;
         lastPartyForward = GetPartyDirection(directionMode, true);
@@ -129,7 +129,7 @@ public class EnemySpawner : MonoBehaviour
         Quaternion rot = ComputeFacingRotation_FacePartyForwardOpposite(pos);
         if (!Mathf.Approximately(f.yawOffsetDeg, 0f)) rot *= Quaternion.Euler(0f, f.yawOffsetDeg, 0f);
 
-        // 프리팹 하나만 스폰
+        // 몬스터 프리팹 하나만 스폰
         var root = Instantiate(f.prefab, pos, rot);
         D($"Formation spawned at {pos}, rotY={rot.eulerAngles.y:F1}, yawAdd={f.yawOffsetDeg}");
 
@@ -144,7 +144,7 @@ public class EnemySpawner : MonoBehaviour
         if (enemies.Count == 0) enemies.Add(root);
 
         // 파티 해석
-        var heroes = ResolveParty();
+        var heroes = ResolveParty();        // PartyBridge 파티 정보 호출
         if (heroes == null || heroes.Count == 0)
         {
             Debug.LogWarning("[EnemySpawner] No heroes in party.");
@@ -242,7 +242,7 @@ public class EnemySpawner : MonoBehaviour
         BattleContext.Enemies = new List<GameObject>(enemies);
         int subs = OnBattleStart?.GetInvocationList()?.Length ?? 0;
         Debug.Log($"[EnemySpawner] BeginBattle enter: heroes={heroes.Count}, enemies={enemies.Count}, subs={subs}");
-        OnBattleStart?.Invoke(heroes, enemies);     // event 시작
+        OnBattleStart?.Invoke(heroes, enemies);     // OnBattleStart event 시작
     }
 
     // 몬스터 스폰 지점 계산

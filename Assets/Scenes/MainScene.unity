@@ -13385,6 +13385,7 @@ GameObject:
   - component: {fileID: 956194911}
   - component: {fileID: 956194910}
   - component: {fileID: 956194916}
+  - component: {fileID: 956194917}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -13548,6 +13549,25 @@ MonoBehaviour:
   partySelector: {fileID: 1625330232}
   listUpManager: {fileID: 371027913}
   employment: {fileID: 60449300}
+--- !u!114 &956194917
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 956194909}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c144ec60040436439fec1e6a3252f97, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  exemptUIRoots:
+  - {fileID: 1190238136}
+  - {fileID: 1657856391}
+  - {fileID: 1625330228}
+  partySelector: {fileID: 1625330232}
+  heroListUp: {fileID: 2023360651}
+  itemList: {fileID: 2023360652}
 --- !u!1 &959365611
 GameObject:
   m_ObjectHideFlags: 0
@@ -18022,10 +18042,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Gold: 5000
-  redSoul: 10
-  blueSoul: 10
-  purpleSoul: 10
-  greenSoul: 10
+  redSoul: 0
+  blueSoul: 0
+  purpleSoul: 0
+  greenSoul: 0
 --- !u!1 &1381811819
 GameObject:
   m_ObjectHideFlags: 0
@@ -20705,7 +20725,6 @@ GameObject:
   - component: {fileID: 1603131359}
   - component: {fileID: 1603131361}
   - component: {fileID: 1603131362}
-  - component: {fileID: 1603131363}
   m_Layer: 0
   m_Name: Manager
   m_TagString: Untagged
@@ -20756,25 +20775,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   dungeonLoadoutSnapshot: []
---- !u!114 &1603131363
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1603131357}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1c144ec60040436439fec1e6a3252f97, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  exemptUIRoots:
-  - {fileID: 1190238136}
-  - {fileID: 1657856391}
-  - {fileID: 1625330228}
-  partySelector: {fileID: 1625330232}
-  heroListUp: {fileID: 2023360651}
-  itemList: {fileID: 2023360652}
 --- !u!1 &1603343473
 GameObject:
   m_ObjectHideFlags: 0
@@ -25455,7 +25455,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   buttonPrefab: {fileID: 6511868903866711177, guid: 6c2a1a28096d9be42a6c2de2fc36c3f9, type: 3}
   contentParent: {fileID: 1523556767}
-  globalDefaultSprite: {fileID: 0}
+  globalDefaultSprite: {fileID: 21300000, guid: 8efd03668be3e464f9689f54cba3c158, type: 3}
   globalSelectedSprite: {fileID: 21300000, guid: 921505e588807da478f56acafb8ab0cf, type: 3}
   targetImagePath: 
   heroName: {fileID: 130728971}

@@ -69,7 +69,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject effectTagPrefab; // 텍스트 하나 달린 간단 칩 프리팹
 
     // 텍스트/색상 지정
-    private static readonly Color BuffTextColor   = new Color(0.25f, 0.85f, 0.35f); // 초록
+    private static readonly Color BuffTextColor = new Color(0.25f, 0.85f, 0.35f); // 초록
     private static readonly Color DebuffTextColor = new Color(0.95f, 0.30f, 0.30f); // 빨강
 
     private Job _currentHeroRef; // 현재 패널에 표시 중인 영웅 저장
@@ -268,13 +268,24 @@ public class UIManager : MonoBehaviour
         heroName.text = $"{hero.name_job}";
         heroHp.text = $"{hero.hp}";
         heroLevel.text = $"Lv.{hero.level}";
-        heroDef.text = $"방어: {hero.def}";
-        heroRes.text = $"저항: {hero.res}";
-        heroSpd.text = $"민첩: {hero.spd}";
-        heroHit.text = $"명중: {hero.hit}";
-
         Combatant c = Combatant.FindByHero(hero);
-        if (heroHpBar) heroHpBar.Bind(c);
+        if (c != null)
+        {
+            heroDef.text = $"방어: {c.GetCurrentDefense()}";
+            heroRes.text = $"저항: {c.GetCurrentResistance()}";
+            heroSpd.text = $"민첩: {c.GetCurrentSpeed()}";
+            heroHit.text = $"명중: {c.GetCurrentHit()}";
+
+            if (heroHpBar) heroHpBar.Bind(c);
+        }
+        else
+        {
+            // Combatant를 못 찾은 경우의 안전망(원본)
+            heroDef.text = $"방어: {hero.def}";
+            heroRes.text = $"저항: {hero.res}";
+            heroSpd.text = $"민첩: {hero.spd}";
+            heroHit.text = $"명중: {hero.hit}";
+        }
 
         RefreshItem(hero);
         RefreshEffects(hero);
@@ -318,36 +329,43 @@ public class UIManager : MonoBehaviour
     {
         if (parent == null || effectTagPrefab == null) return;
 
-    var go = Instantiate(effectTagPrefab, parent);
+        var go = Instantiate(effectTagPrefab, parent);
 
-    // 텍스트: "중독(3턴)" 형태로
-    var label = go.GetComponentInChildren<TMP_Text>();
-    if (label)
-    {
-        label.text  = $"{Localize(type)} ({turns}턴)";
-        label.color = isDebuff ? DebuffTextColor : BuffTextColor;
-    }
+        // 텍스트: "중독(3턴)" 형태로
+        var label = go.GetComponentInChildren<TMP_Text>();
+        if (label)
+        {
+            label.text = $"{Localize(type)} ({turns}턴)";
+            label.color = isDebuff ? DebuffTextColor : BuffTextColor;
+        }
 
-    // (선택) 배경색도 바꾸고 싶다면 프리팹의 Image를 잡아서 색상 지정
-    var bg = go.GetComponent<Image>();
-    if (bg) bg.color = isDebuff
-        ? new Color(1f, 0.45f, 0.45f, 0.35f)
-        : new Color(0.45f, 1f, 0.55f, 0.35f);
+        // (선택) 배경색도 바꾸고 싶다면 프리팹의 Image를 잡아서 색상 지정
+        var bg = go.GetComponent<Image>();
+        if (bg) bg.color = isDebuff
+            ? new Color(1f, 0.45f, 0.45f, 0.35f)
+            : new Color(0.45f, 1f, 0.55f, 0.35f);
     }
 
     private static string Localize(BuffType type)
     {
         switch (type)
-    {
-        case BuffType.Poison:   return "중독";
-        case BuffType.Bleeding: return "출혈";
-        case BuffType.Burn:     return "화상";
-        case BuffType.Faint:     return "기절";
-        case BuffType.Sign:     return "표식";
-        case BuffType.Taunt:    return "보호";
-        // … 프로젝트에서 쓰는 항목 더 추가
-        default:                return type.ToString(); // 미정 의존성은 영문 유지
-    }
+        {
+            case BuffType.Poison: return "중독";
+            case BuffType.Bleeding: return "출혈";
+            case BuffType.Burn: return "화상";
+            case BuffType.Faint: return "기절";
+            case BuffType.Sign: return "표식";
+            case BuffType.Taunt: return "도발";
+
+            case BuffType.Defense: return "방어";
+            case BuffType.Resistance: return "저항";
+            case BuffType.Speed: return "민첩";
+            case BuffType.Hit: return "명중";
+            case BuffType.Damage: return "피해증가";
+            case BuffType.Heal: return "회복증가";
+
+            default: return type.ToString(); // 미정 의존성은 영문 유지
+        }
     }
 
     private void ClearChildren(Transform t)
@@ -413,7 +431,14 @@ public class UIManager : MonoBehaviour
     // 스킬 적용 완료 알림 시 이벤트 적용 메소드
     void HandleSkillCommitted()
     {
+        // 패널 닫기 유지
         CloseSkillPanelAndReset();
+
+        // ★ 현재 보고 있던 영웅 수치/효과 재표시
+        if (_currentHeroRef != null)
+        {
+            ShowHeroInfo(_currentHeroRef);
+        }
     }
 
     void CloseSkillPanelAndReset()
