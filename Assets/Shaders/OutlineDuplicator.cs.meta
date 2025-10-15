@@ -4,7 +4,8 @@ MonoImporter:
   externalObjects: {}
   serializedVersion: 2
   defaultReferences:
-  - outlineMaterial: {fileID: 2100000, guid: 05565a886e496654194760649aae564d, type: 2}
+  - outlineMaterial: {fileID: 2100000, guid: 0f016ef249ebf0f4f8f65f7a03758e26, type: 2}
+  - maskMaterial: {fileID: 2100000, guid: c7bc2079520a77c47b0191f84c7fb44c, type: 2}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

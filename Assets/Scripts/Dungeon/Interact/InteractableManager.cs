@@ -32,11 +32,18 @@ public class InteractableManager : MonoBehaviour
     public bool fixedSoulOneOnInteract = true;
     public float stairNudge = 150f;
 
-    // 아웃라인 공통 설정
     [Header("Outline Settings (Common)")]
-    public Material outlineMaterial;
+    [Tooltip("직접 지정하면 Provider보다 이 머티리얼을 우선 사용")]
+    public Material outlineMaterial;                  // 수동 직결 머티리얼
     public Color outlineColor = Color.black;
     [Range(0.01f, 0.5f)] public float outlineWidth = 0.1f;
+
+    [Header("Debug")]
+    public bool debugAlwaysOn = false;                // 스캔 직후 무조건 Enable → 눈으로 확인
+    public bool debugLogTargets = true;
+#if UNITY_EDITOR
+    public bool editorPreviewAll = false;
+#endif
 
     // ▼ Scanner가 세팅해줄 현재 타깃
     private Interactable currentObjectTarget;
@@ -48,22 +55,26 @@ public class InteractableManager : MonoBehaviour
 
     void Start()
     {
+        if (outlineMaterial) OutlineMaterialProvider.GetShared();
         AutoFindFloorAndScan();
-        AssingInteractables();
+        AssignInteractables();
 
-        // ✅ 전역 버튼 리스너는 여기서 '딱 한 번' 등록
-        if (interactionUp) interactionUp.onClick.AddListener(() => Nudge(-stairNudge));  // 보상 없음
-        if (interactionDown) interactionDown.onClick.AddListener(() => Nudge(+stairNudge)); // 보상 없음
+        if (interactionUp) interactionUp.onClick.AddListener(() => Nudge(-stairNudge));
+        if (interactionDown) interactionDown.onClick.AddListener(() => Nudge(+stairNudge));
 
         var objBtn = interactionObj?.GetComponent<Button>();
         if (objBtn) objBtn.onClick.AddListener(GrantObjectRewardAndToast);
+
+        // ✅ 시작 시 전체 OFF (스캔되면 개별로 ON)
+        ForceAllOutlines(false);
+
+        // (선택) 에디터에서만 전부 미리보기
+#if UNITY_EDITOR
+        if (editorPreviewAll) ForceAllOutlines(true);
+#endif
     }
 
-    /// <summary>
-    /// candidates 리스트에 있는 오브젝트 중 확률에 따라 Interactable 컴포넌트 부여
-    /// </summary>
-    // 상호작용 랜덤 배정
-    void AssingInteractables()
+    void AssignInteractables()
     {
         foreach (GameObject obj in candidates)
         {
@@ -71,7 +82,6 @@ public class InteractableManager : MonoBehaviour
             {
                 if (!obj.TryGetComponent(out Interactable interactable))
                     obj.AddComponent<Interactable>();
-
                 EnsureOutlineSetup(obj);
             }
         }
@@ -80,72 +90,82 @@ public class InteractableManager : MonoBehaviour
         {
             if (!obj.TryGetComponent(out Interactable interactable))
                 obj.AddComponent<Interactable>();
-
             EnsureOutlineSetup(obj);
         }
 
+        // 전역 설정 일괄 반영
+        ApplyGlobalOutlineSettings(false);
     }
-    /// <summary>
-    /// "Floor" 태그를 가진 오브젝트를 찾아 그 하위 오브젝트들을 대상으로 candidates와 stairs 자동 등록
-    /// </summary>
+
     void AutoFindFloorAndScan()
     {
         GameObject[] floorObject = GameObject.FindGameObjectsWithTag("Floor");
-
         if (floorObject == null || floorObject.Length == 0)
         {
-            Debug.LogError("❌ 'Floor' 태그를 가진 오브젝트를 찾을 수 없습니다.");
+            Debug.LogError("❌ 'Floor' 태그 오브젝트 없음");
             return;
         }
-
-        int objCount = 0;
-        int stairCount = 0;
 
         foreach (GameObject floor in floorObject)
         {
             foreach (Transform child in floor.transform)
             {
                 string objName = child.name.ToLower();
-
                 foreach (string keyword in nameFilters)
                 {
                     if (objName.Contains(keyword.ToLower()) && !candidates.Contains(child.gameObject))
                     {
                         candidates.Add(child.gameObject);
-                        objCount++;
                         break;
                     }
                 }
-
                 foreach (string keyword in stairFilters)
                 {
                     if (objName.Contains(keyword.ToLower()) && !stairs.Contains(child.gameObject))
                     {
                         stairs.Add(child.gameObject);
-                        stairCount++;
                         break;
                     }
                 }
             }
         }
-        //Debug.Log($"✅ 자동 등록 완료: 상호작용 오브젝트 {objCount}개, 계단 {stairCount}개");
     }
 
-    // 대상 오브젝트에 OutlineDuplicator 구성
+    // 핵심: 수동 머티리얼 우선 → Provider 폴백
     void EnsureOutlineSetup(GameObject obj)
     {
-        var mat = OutlineMaterialProvider.GetShared();
-        if (!mat) return;
+        // [역할] 머티리얼 확보(Provider > Shader.Find)
+        Material mat = outlineMaterial;
+        if (!mat && OutlineMaterialProvider.Instance)
+            mat = OutlineMaterialProvider.Instance.GetSharedMaterial();
+        if (!mat || !mat.shader)
+            mat = new Material(Shader.Find("Custom/Outline_Mobile_URP"));
+
+        if (!mat || !mat.shader || !mat.shader.isSupported)
+        {
+            // [역할] 빌드 환경에서 실패시 이유를 더 자세히 로그
+            Debug.LogError($"[InteractableManager] Outline material invalid: mat={mat}, shaderOk={(mat ? mat.shader : null)}, isSupported={(mat && mat.shader ? mat.shader.isSupported : false)}");
+            return; // 이 오브젝트만 스킵하고 매니저는 계속 동작
+        }
 
         if (!obj.TryGetComponent(out OutlineDuplicator od))
             od = obj.AddComponent<OutlineDuplicator>();
 
         od.outlineMaterial = mat;
-        od.autoEnableOnSetProperties = false;             // 세팅단계에선 자동 ON 금지
-        od.SetProperties(outlineColor, outlineWidth, false);
+        od.RebuildIfNeeded();
+        od.SetProperties(outlineColor, outlineWidth, enableNow: debugAlwaysOn);
+    }
 
-        // [진단] 대상 오브젝트의 월드 위치 출력
-        Debug.Log($"[OL-TARGET] {obj.name} worldPos={obj.transform.position}");
+    /// <summary>전역 색/두께 반영, 필요 시 전부 켜서 시각 확인</summary>
+    public void ApplyGlobalOutlineSettings(bool enableAllNow = false)
+    {
+        var list = FindObjectsOfType<OutlineDuplicator>(true);
+        foreach (var od in list)
+        {
+            if (!od) continue;
+            od.SetProperties(outlineColor, outlineWidth, enableAllNow);
+            if (enableAllNow) od.EnableOutline(true);
+        }
     }
 
     void Nudge(float dx)
@@ -164,13 +184,11 @@ public class InteractableManager : MonoBehaviour
         if (interactionObj) interactionObj.SetActive(obj);
     }
 
-    // 상호작용 오브젝트 보상 지급
     void GrantObjectRewardAndToast()
     {
         if (currentObjectTarget == null) return;
         if (!currentObjectTarget.IsEligibleForReward)
         {
-            // 이미 받은 대상이면 오브젝트 버튼 숨김
             SetInteractButtonsVisible(
                 interactionUp && interactionUp.gameObject.activeSelf,
                 interactionDown && interactionDown.gameObject.activeSelf,
@@ -179,7 +197,6 @@ public class InteractableManager : MonoBehaviour
             return;
         }
 
-        // ✅ 소울 1개 + 코인 랜덤
         int soulTypeCount = System.Enum.GetValues(typeof(SoulType)).Length;
         var soulType = (SoulType)Random.Range(0, soulTypeCount);
         int soulAmount = fixedSoulOneOnInteract ? 1 : 1;
@@ -187,10 +204,8 @@ public class InteractableManager : MonoBehaviour
 
         if (RunReward.Instance == null) new GameObject("RunReward").AddComponent<RunReward>();
         RunReward.Instance.AddBattleDrop(soulType, soulAmount, coins);
-
         DungeonManager.instance?.ShowBattleRewardToast(soulType, soulAmount, coins);
 
-        // 1회성 마킹 + 버튼 숨김
         currentObjectTarget.MarkClaimed();
         SetInteractButtonsVisible(
             interactionUp && interactionUp.gameObject.activeSelf,
@@ -199,9 +214,17 @@ public class InteractableManager : MonoBehaviour
         );
     }
 
-    private Material GetOrCreateOutlineMat()
+    /// <summary>
+    /// [역할] 씬의 모든 OutlineDuplicator를 한 번에 켜거나 끈다(초기화/디버그용)
+    /// </summary>
+    void ForceAllOutlines(bool on)
     {
-        return OutlineMaterialProvider.GetShared();
+        var list = FindObjectsOfType<OutlineDuplicator>(true);
+        foreach (var od in list)
+        {
+            if (!od) continue;
+            od.EnableOutline(on);
+        }
     }
 }
 

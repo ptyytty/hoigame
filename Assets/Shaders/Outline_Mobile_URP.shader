@@ -2,70 +2,32 @@ Shader "Custom/Outline_Mobile_URP"
 {
     Properties
     {
-        _OutlineColor ("Outline Color", Color) = (0,1,0,1)
-        _OutlineWidth ("Outline Width", Float) = 0.06
-        _ZOffset      ("Depth Offset (units)", Float) = 1.0
-        [Toggle(_OUTLINE_DEBUG_BYPASS)] _DebugBypass ("DEBUG: Bypass stencil & depth", Float) = 0 // ★추가
+        _OutlineColor ("Outline Color", Color) = (1,0.9,0.1,1)
+        _OutlineWidth ("Outline Width (view-space)", Range(0.001,0.5)) = 0.06
     }
-
 
     SubShader
     {
-        Tags { "RenderPipeline"="UniversalPipeline" "Queue"="Geometry+10" "RenderType"="Opaque" "IgnoreProjector"="True" }
-
-        // --- PASS 0 : 원본 실루엣을 스텐실에 마킹(색은 안 그림) ---
-        Pass
-        {
-            Name "Mask"
-            Tags { "LightMode"="SRPDefaultUnlit" } // URP가 실행하도록
-
-            Cull Back
-            ZWrite On
-            ZTest LEqual        // 기본 깊이 규칙
-            ColorMask 0         // 화면 색은 변경 X
-
-            Stencil
-            {
-                Ref 1
-                Comp Always
-                Pass Replace     // 원본이 그려진 픽셀을 스텐실=1로
-            }
-
-            HLSLPROGRAM
-            #pragma target 2.0
-            #pragma vertex   vert
-            #pragma fragment frag
-            #pragma multi_compile_instancing
-            #pragma shader_feature _OUTLINE_DEBUG_BYPASS
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-
-            struct A { float3 positionOS:POSITION; };
-            struct V { float4 positionHCS:SV_POSITION; };
-
-            // [역할] 원본 그대로 위치로 투영(확장 없음)
-            V vert(A v){
-                V o; o.positionHCS = TransformObjectToHClip(v.positionOS); return o;
-            }
-            // [역할] 색은 출력하지 않음(스텐실만 설정)
-            half4 frag(V i):SV_Target{ return 0; }
-            ENDHLSL
+        // [역할] URP 파이프라인/큐 지정 (모바일 빌드에서 안전하게 보이도록 Transparent+10)
+        Tags {
+            "RenderPipeline"="UniversalPipeline"       // ← 중요: 정확한 키!
+            "Queue"="Transparent+10"
+            "RenderType"="Transparent"
         }
 
-        // --- PASS 1 : 확장한(아웃라인) 메쉬를 "스텐실!=1" 영역에만 그림 ---
+        // [역할] 인버티드 헐 + Z-fight 방지
+        Cull Front
+        ZWrite Off
+        ZTest LEqual
+        Offset -1, -1
+
+        Blend SrcAlpha OneMinusSrcAlpha
+
         Pass
         {
-            Name "Outline"
-            Tags { "LightMode"="SRPDefaultUnlit" }
+            Name "OUTLINE"
 
-            Cull Front
-            ZWrite Off
-
-            // ✅ 바꾼 부분: LEqual 유지 + 카메라 쪽으로 당김(음수 바이어스)
-            ZTest Always
-            Offset -4, -4     // ★ 깊이를 '조금 더 가깝게' 밀어넣어 LEqual 통과 안정화
-
-            ColorMask RGB
-
+            // 🔸 내부선 제거 핵심: 원 오브젝트가 채운 Stencil==1 영역에서는 그리지 않음
             Stencil
             {
                 Ref 1
@@ -74,35 +36,57 @@ Shader "Custom/Outline_Mobile_URP"
             }
 
             HLSLPROGRAM
-            #pragma target 2.0
             #pragma vertex   vert
             #pragma fragment frag
+            #pragma target   3.0
             #pragma multi_compile_instancing
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
 
+            // [역할] 머티리얼 파라미터
             CBUFFER_START(UnityPerMaterial)
                 float4 _OutlineColor;
                 float  _OutlineWidth;
-                float  _ZOffset; // 사용 안 함(원하면 Offset 0, [_ZOffset]로 되돌려도 됨)
             CBUFFER_END
 
-            struct A { float3 positionOS:POSITION; float3 normalOS:NORMAL; };
-            struct V { float4 positionHCS:SV_POSITION; };
-
-            V vert(A v)
+            struct appdata
             {
-                V o;
-                float3 posWS = TransformObjectToWorld(v.positionOS);
-                float3 nWS   = normalize(TransformObjectToWorldNormal(v.normalOS));
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
 
-                // [역할] 아웃라인 외곽 확장
-                posWS += nWS * _OutlineWidth;
+            struct v2f
+            {
+                float4 pos : SV_POSITION;
+                UNITY_VERTEX_OUTPUT_STEREO
+            };
 
-                o.positionHCS = TransformWorldToHClip(posWS);
+            // [역할] 버텍스: 뷰공간 노멀 방향으로 살짝 확장 (거리 불변 느낌)
+            v2f vert(appdata v)
+            {
+                UNITY_SETUP_INSTANCE_ID(v);
+                v2f o;
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+
+                // 오브젝트 → 월드
+                float3 wPos = TransformObjectToWorld(v.vertex.xyz);
+                float3 wNrm = TransformObjectToWorldNormal(v.normal);
+
+                // 월드 → 뷰
+                float3 viewPos = TransformWorldToView(wPos);
+                float3 viewNrm = normalize(mul((float3x3)UNITY_MATRIX_V, wNrm));
+
+                // 뷰공간에서 노멀 방향으로 확장
+                viewPos += viewNrm * _OutlineWidth;
+
+                // 뷰 → 클립
+                o.pos = TransformWViewToHClip(viewPos);
                 return o;
             }
 
-            half4 frag(V i):SV_Target
+            // [역할] 프래그먼트: 단색 아웃라인 출력
+            half4 frag(v2f i) : SV_Target
             {
                 return _OutlineColor;
             }
@@ -110,5 +94,5 @@ Shader "Custom/Outline_Mobile_URP"
         }
     }
 
-    FallBack Off
+    Fallback Off
 }

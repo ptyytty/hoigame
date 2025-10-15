@@ -1,339 +1,285 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+#if UNITY_RENDER_PIPELINE_UNIVERSAL
+using UnityEngine.Rendering.Universal;
+#endif
 
 [DisallowMultipleComponent]
 public class OutlineDuplicator : MonoBehaviour
 {
-    // ── [필드 설명] ─────────────────────────────────────────────────────
-    // outlineMaterial : 아웃라인에 사용할 머티리얼(프로바이더 기본값 권장)
-    // outlineColor/width : 아웃라인 색/두께
-    // startEnabled : 시작 시 곧바로 켤지 여부
-    // fallbackDrawWhenInvisible : 엔진이 isVisible=false로 판단해도 강제 렌더(디버그)
-    // forceOverlayQueue : 렌더큐를 3999(Transparent)로 강제 → URP Transparent 패스만 있어도 보이게
-    // outlineRenderLayerName : 복제 렌더러 전용 레이어(비워두면 원본 레이어 그대로 사용)
-    // ────────────────────────────────────────────────────────────────────
-
-    [Header("Outline material (Custom/Outline_Mobile_URP via Provider)")]
+    [Header("Outline material (Custom/Outline_Mobile_URP)")]
+    [Tooltip("비워두면 OutlineMaterialProvider에서 자동 확보")]
     public Material outlineMaterial;
 
-    [Header("Auto-tune")]
-    public Color outlineColor = Color.green;        // 아웃라인 색
-    public float outlineWidth = 0.06f;              // 월드 두께(모델 크기 비례 최소치 적용)
+    [Header("Outline params")]
+    public Color outlineColor = Color.green;
+    [Range(0.001f, 0.5f)] public float outlineWidth = 0.06f;
 
     [Header("Startup")]
-    [SerializeField] private bool startEnabled = false;   // 시작 시 표시 여부
-    [Tooltip("SetProperties 호출 시 자동 Enable할지")]
-    public bool autoEnableOnSetProperties = true;
+    [Tooltip("시작 시 아웃라인을 켤지 여부")]
+    public bool startEnabled = false;
 
-    [Header("Safety / Debug")]
-    [Tooltip("엔진 가시성/레이어/패스 필터를 우회해 강제로 그리기")]
-    public bool fallbackDrawWhenInvisible = true;   // 빌드 디버그 기본 ON
-    [Tooltip("렌더 큐를 3999(Transparent)로 강제 (URP Transparent LayerMask만 켜져도 보이게)")]
-    public bool forceOverlayQueue = true;
+    [Header("Combine")]
+    [Tooltip("자식의 정적 MeshFilter들을 하나의 메쉬로 결합하여 내부선 제거")]
+    public bool combineStaticChildren = false;
 
-    [Header("Render Layer Override (optional)")]
-    [Tooltip("복제 렌더러만 이 레이어로 렌더(비우면 원본 레이어 유지). 예: Default")]
-    public string outlineRenderLayerName = "Default";
+    [Header("Stencil Mask")]
+    [SerializeField] private Material maskMaterial; // Custom/OutlineMask_URP (비워두면 자동 생성)
 
+    // 내부 리스트 보관
+    readonly List<Renderer> _maskRenderers = new();
+
+    // ─────────────────────────────────────────────────────────────────────
+    // 내부 상태
     static readonly int ColorID = Shader.PropertyToID("_OutlineColor");
     static readonly int WidthID = Shader.PropertyToID("_OutlineWidth");
 
-    // 원본↔아웃라인 동기화를 위한 트랜스폼 목록
-    readonly List<Transform> _outlineXforms = new();
-    readonly List<Transform> _sourceXforms = new();
-
-    // 실제 그리는 복제 렌더러들
+    // 자식으로 만든 아웃라인 전용 렌더러 보관
     readonly List<Renderer> _outlineRenderers = new();
+    bool _built;
 
-    // 폴백 드로우용 원본/스키닝 레퍼런스
-    struct SourceMeshRef { public Mesh mesh; public Transform transform; public bool skinned; public SkinnedMeshRenderer smr; }
-    readonly List<SourceMeshRef> _sources = new();
-
-    bool _built = false;
-
+    // ─────────────────────────────────────────────────────────────────────
     void Awake()
     {
-        if (!outlineMaterial) outlineMaterial = OutlineMaterialProvider.GetShared();
-        if (!outlineMaterial || !outlineMaterial.shader || !outlineMaterial.shader.isSupported)
-            Debug.LogError("[Highlighter] Outline material/shader invalid.");
-        TryBuildIfPossible();
+        // [역할] 머티리얼 확보(Provider → Shader.Find)
+        EnsureMaterial();
+    }
 
-        if (_built && startEnabled) EnableOutline(true);
+    void OnEnable()
+    {
+        // [역할] 원본 메쉬들 스캔 후, 동일 구조의 자식 렌더러 생성
+        RebuildIfNeeded();
+        // [역할] 시작 상태 적용
+        ApplyProperties(enableNow: startEnabled);
+    }
+
+    void OnDisable()
+    {
+        // [역할] 비활성 시에는 렌더만 끄고(오브젝트는 유지) – 재활성화 대비
+        EnableOutline(false);
+    }
+
+#if UNITY_EDITOR
+    void OnValidate()
+    {
+        // [역할] 인스펙터 값 바뀌면 즉시 반영
+        if (!gameObject.activeInHierarchy) return;
+        EnsureMaterial();
+        ApplyProperties(enableNow: false);
+    }
+#endif
+
+    // ─────────────────────────────────────────────────────────────────────
+    /// <summary>역할: 외부에서 아웃라인 ON/OFF</summary>
+    // Enable/Disable 시 마스크도 함께 토글
+    public void EnableOutline(bool on)
+    {
+        for (int i = _maskRenderers.Count - 1; i >= 0; i--)
+        {
+            var r = _maskRenderers[i];
+            if (!r) { _maskRenderers.RemoveAt(i); continue; }
+            r.enabled = on;
+        }
+        for (int i = _outlineRenderers.Count - 1; i >= 0; i--)
+        {
+            var r = _outlineRenderers[i];
+            if (!r) { _outlineRenderers.RemoveAt(i); continue; }
+            r.enabled = on;
+        }
+    }
+
+    /// <summary>역할: 색/두께를 전부 반영(필요 시 즉시 Enable)</summary>
+    public void SetProperties(Color color, float width, bool enableNow = true)
+    {
+        outlineColor = new Color(color.r, color.g, color.b, 1f);
+        outlineWidth = Mathf.Max(0.001f, width);
+        ApplyProperties(enableNow);
+    }
+
+    /// <summary>역할: 외부에서 강제 재빌드가 필요할 때 호출</summary>
+    public void RebuildIfNeeded()
+    {
+        if (_built) return;
+        BuildOutlineChildren();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // 내부 구현
+    // ---------------------------------------------------------------------
+
+    // [역할] Provider → Shader.Find 순으로 머티리얼 확보
+    void EnsureMaterial()
+    {
+        if (outlineMaterial && outlineMaterial.shader && outlineMaterial.shader.isSupported) return;
+
+        var prov = OutlineMaterialProvider.Instance;
+        if (prov) outlineMaterial = prov.GetSharedMaterial();
+
+        if (!outlineMaterial || !outlineMaterial.shader)
+            outlineMaterial = new Material(Shader.Find("Custom/Outline_Mobile_URP"));
+    }
+
+    void BuildCombinedStaticChildren()
+    {
+        var mfs = GetComponentsInChildren<MeshFilter>(includeInactive: true);
+        var list = new List<CombineInstance>();
+
+        foreach (var mf in mfs)
+        {
+            var mr = mf.GetComponent<MeshRenderer>();
+            if (!mr || !mf.sharedMesh) continue;               // 렌더러 없는 건 제외(콜라이더용 등)
+            if (mr is SkinnedMeshRenderer) continue;           // 스키닝은 제외
+
+            var ci = new CombineInstance();
+            ci.mesh = mf.sharedMesh;
+            ci.transform = mf.transform.localToWorldMatrix * transform.worldToLocalMatrix;
+            list.Add(ci);
+        }
+
+        if (list.Count == 0) return;
+
+        var combined = new Mesh();
+        combined.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32; // 큰 메쉬 안전
+        combined.CombineMeshes(list.ToArray(), /*mergeSubMeshes*/ true, /*useMatrices*/ true, /*hasLightmapData*/ false);
+
+        var child = new GameObject(name + ".__OutlineCombined");
+        child.transform.SetParent(transform, false);
+        child.hideFlags = HideFlags.DontSave;
+
+        var mfCombined = child.AddComponent<MeshFilter>();
+        mfCombined.sharedMesh = combined;
+
+        var mrCombined = child.AddComponent<MeshRenderer>();
+        mrCombined.sharedMaterial = outlineMaterial;
+        mrCombined.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        mrCombined.receiveShadows = false;
+        mrCombined.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+        mrCombined.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+        mrCombined.allowOcclusionWhenDynamic = false;
+
+        _outlineRenderers.Add(mrCombined);
+    }
+
+    // [역할] 원본(Mesh/SkinnedMesh)들을 스캔하고, 동일한 자식 GO에 아웃라인 전용 Renderer 생성
+    void BuildOutlineChildren()
+    {
+        _built = false;
+        CleanupChildren();
+        EnsureMaterial(); // outlineMaterial 보장
+
+        // 1) 마스크 머티리얼 확보
+        if (!maskMaterial || !maskMaterial.shader)
+        {
+            var sh = Shader.Find("Custom/OutlineMask_URP");
+            if (sh) maskMaterial = new Material(sh);
+        }
+        if (!maskMaterial || !maskMaterial.shader || !maskMaterial.shader.isSupported)
+        {
+            Debug.LogError("[OutlineDuplicator] OutlineMask_URP 셰이더 확보 실패");
+            return;
+        }
+
+        // 2) 정적 MeshRenderer 들: (a) 마스크, (b) 아웃라인
+        var mrs = GetComponentsInChildren<MeshRenderer>(includeInactive: true);
+        foreach (var mr in mrs)
+        {
+            if (mr is SkinnedMeshRenderer) continue;
+            var mf = mr.GetComponent<MeshFilter>();
+            if (!mf || !mf.sharedMesh) continue;
+
+            // (a) 마스크
+            var mGO = new GameObject(mr.gameObject.name + ".__OutlineMask");
+            mGO.transform.SetParent(mr.transform, false);
+            mGO.hideFlags = HideFlags.DontSave;
+
+            var mMF = mGO.AddComponent<MeshFilter>(); mMF.sharedMesh = mf.sharedMesh;
+            var mMR = mGO.AddComponent<MeshRenderer>(); mMR.sharedMaterial = maskMaterial;
+            mMR.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mMR.receiveShadows = false;
+            _maskRenderers.Add(mMR);
+
+            // (b) 아웃라인
+            var oGO = new GameObject(mr.gameObject.name + ".__Outline");
+            oGO.transform.SetParent(mr.transform, false);
+            oGO.hideFlags = HideFlags.DontSave;
+
+            var oMF = oGO.AddComponent<MeshFilter>(); oMF.sharedMesh = mf.sharedMesh;
+            var oMR = oGO.AddComponent<MeshRenderer>(); oMR.sharedMaterial = outlineMaterial;
+            oMR.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            oMR.receiveShadows = false;
+            _outlineRenderers.Add(oMR);
+        }
+
+        // 3) 스키닝도 동일 (마스크 + 아웃라인)
+        var smrs = GetComponentsInChildren<SkinnedMeshRenderer>(includeInactive: true);
+        foreach (var src in smrs)
+        {
+            if (!src.sharedMesh) continue;
+
+            // (a) 마스크
+            var mGO = new GameObject(src.gameObject.name + ".__OutlineMask");
+            mGO.transform.SetParent(src.transform, false);
+            mGO.hideFlags = HideFlags.DontSave;
+
+            var mSR = mGO.AddComponent<SkinnedMeshRenderer>();
+            mSR.sharedMesh = src.sharedMesh; mSR.rootBone = src.rootBone; mSR.bones = src.bones;
+            mSR.sharedMaterial = maskMaterial; mSR.updateWhenOffscreen = true;
+            mSR.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mSR.receiveShadows = false;
+            _maskRenderers.Add(mSR);
+
+            // (b) 아웃라인
+            var oGO = new GameObject(src.gameObject.name + ".__Outline");
+            oGO.transform.SetParent(src.transform, false);
+            oGO.hideFlags = HideFlags.DontSave;
+
+            var oSR = oGO.AddComponent<SkinnedMeshRenderer>();
+            oSR.sharedMesh = src.sharedMesh; oSR.rootBone = src.rootBone; oSR.bones = src.bones;
+            oSR.sharedMaterial = outlineMaterial; oSR.updateWhenOffscreen = true;
+            oSR.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            oSR.receiveShadows = false;
+            _outlineRenderers.Add(oSR);
+        }
+
+        _built = _outlineRenderers.Count > 0;
+    }
+    // [역할] 색/두께 머티리얼 프로퍼티를 일괄 반영(Instancing 없이 PropertyBlock 사용)
+    void ApplyProperties(bool enableNow)
+    {
+        if (!_built) return;
+
+        for (int i = _outlineRenderers.Count - 1; i >= 0; i--)
+        {
+            var r = _outlineRenderers[i];
+            if (!r) { _outlineRenderers.RemoveAt(i); continue; }
+
+            var mpb = new MaterialPropertyBlock();
+            r.GetPropertyBlock(mpb);
+            mpb.SetColor(ColorID, outlineColor);
+            mpb.SetFloat(WidthID, outlineWidth);
+            r.SetPropertyBlock(mpb);
+
+            if (enableNow) r.enabled = true;
+        }
+    }
+
+
+
+    // [역할] 이전에 만들었던 아웃라인 자식 정리
+    void CleanupChildren()
+    {
+        for (int i = _maskRenderers.Count - 1; i >= 0; i--)
+            if (_maskRenderers[i]) DestroyImmediate(_maskRenderers[i].gameObject);
+        _maskRenderers.Clear();
+
+        for (int i = _outlineRenderers.Count - 1; i >= 0; i--)
+            if (_outlineRenderers[i]) DestroyImmediate(_outlineRenderers[i].gameObject);
+        _outlineRenderers.Clear();
     }
 
     void OnDestroy()
     {
-        foreach (var r in _outlineRenderers) if (r) Destroy(r.gameObject);
-        _outlineRenderers.Clear();
-        _outlineXforms.Clear();
-        _sourceXforms.Clear();
-        _sources.Clear();
-    }
-
-    void LateUpdate()
-    {
-        // [역할] 매 프레임 원본/복제의 월드 포즈 동기화(스케일 1, 자식 고정)
-        for (int i = 0; i < _outlineXforms.Count; i++)
-        {
-            var src = _sourceXforms[i]; var dst = _outlineXforms[i];
-            if (!src || !dst) continue;
-            dst.position = src.position;
-            dst.rotation = src.rotation;
-            dst.localScale = Vector3.one; // 자식 기준 1 고정
-        }
-    }
-
-    /// <summary>역할: 색/두께를 갱신하고(필요 시) 즉시 표시</summary>
-    public void SetProperties(Color color, float width, bool enableNow = true)
-    {
-        outlineColor = new Color(color.r, color.g, color.b, 1f);
-        outlineWidth = Mathf.Max(0.0005f, width);
-
-        TryBuildIfPossible();
-        if (!_built) { Debug.LogWarning("[Highlighter] SetProperties 호출됨 - 아직 outline 렌더러가 없음."); return; }
-
-        foreach (var r in _outlineRenderers)
-        {
-            if (!r) continue;
-            // 모델 크기 비례 최소 두께 적용
-            float radius = r.bounds.extents.magnitude;
-            float widthToApply = Mathf.Max(outlineWidth, radius * 0.02f);
-
-            var mats = r.sharedMaterials;
-            for (int i = 0; i < mats.Length; i++)
-            {
-                var m = mats[i]; if (!m) continue;
-                if (m.HasColor(ColorID)) m.SetColor(ColorID, outlineColor);
-                if (m.HasFloat(WidthID)) m.SetFloat(WidthID, widthToApply);
-                if (forceOverlayQueue) m.renderQueue = 3999;
-            }
-
-            r.receiveShadows = false;
-            r.shadowCastingMode = ShadowCastingMode.Off;
-        }
-
-        if (autoEnableOnSetProperties && enableNow) EnableOutline(true);
-
-        DebugDumpRenderers("AfterEnable");
-        DebugCamerasAndFrustum("AfterEnable");
-    }
-
-    /// <summary>역할: 아웃라인 표시 on/off (Renderer.forceRenderingOff 활용)</summary>
-    public void EnableOutline(bool on)
-    {
-        TryBuildIfPossible();
-        if (!_built) { Debug.LogWarning("[Highlighter] EnableOutline 호출됨 - 아직 outline 렌더러가 없음."); return; }
-
-        foreach (var r in _outlineRenderers)
-        {
-            if (!r) continue;
-            r.enabled = true;
-            r.forceRenderingOff = !on;
-        }
-        Debug.Log($"[Highlighter] Outline {(on ? "ENABLED" : "DISABLED")}");
-    }
-
-    // ───────────────── 내부 구현 ─────────────────
-
-    void TryBuildIfPossible()
-    {
-        if (_built) return;
-        if (!outlineMaterial || outlineMaterial.shader == null || !outlineMaterial.shader.isSupported) return;
-
-        BuildOutlineRenderers();
-        _built = true;
-
-        // 자동으로 켜지진 않되, 속성은 미리 반영
-        SetProperties(outlineColor, outlineWidth, enableNow: false);
-    }
-
-    /// <summary>
-    /// 역할: 원본 Renderer들을 복제해 "아웃라인 전용 Renderer" 생성.
-    /// - 반드시 원본의 "자식"으로 두고 local(0,0,1) 고정 → 좌표계/프러스텀 일치
-    /// - MeshRenderer: 복제 Mesh로 bounds 약간 확장
-    /// - SkinnedMeshRenderer: updateWhenOffscreen 및 localBounds 확장
-    /// - 레이어 오버라이드가 지정되면 복제물만 안전 레이어로 렌더
-    /// </summary>
-    void BuildOutlineRenderers()
-    {
-        _outlineRenderers.Clear();
-        _outlineXforms.Clear();
-        _sourceXforms.Clear();
-        _sources.Clear();
-
-        int overrideLayer = -1;
-        if (!string.IsNullOrEmpty(outlineRenderLayerName))
-        {
-            int idx = LayerMask.NameToLayer(outlineRenderLayerName);
-            if (idx >= 0) overrideLayer = idx;
-        }
-
-        var meshRenderers = GetComponentsInChildren<MeshRenderer>(true);
-        foreach (var src in meshRenderers)
-        {
-            var mf = src.GetComponent<MeshFilter>();
-            if (!mf || !mf.sharedMesh) continue;
-
-            var go = new GameObject(src.gameObject.name + "__Outline");
-            go.transform.SetParent(src.transform, false);       // ★ 자식으로 고정(좌표 일치)
-            go.transform.localPosition = Vector3.zero;
-            go.transform.localRotation = Quaternion.identity;
-            go.transform.localScale = Vector3.one;
-            go.layer = (overrideLayer >= 0) ? overrideLayer : src.gameObject.layer;
-
-            var newMF = go.AddComponent<MeshFilter>();
-            var cloned = Object.Instantiate(mf.sharedMesh);
-            var b = cloned.bounds; b.Expand(new Vector3(0.25f, 0.25f, 0.25f));
-            cloned.bounds = b;
-            newMF.sharedMesh = cloned;
-
-            var newMR = go.AddComponent<MeshRenderer>();
-            int sub = newMF.sharedMesh.subMeshCount;
-            var mats = new Material[sub];
-            for (int i = 0; i < sub; i++) mats[i] = OutlineMaterialProvider.CreateInstance();
-            newMR.sharedMaterials = mats;
-            newMR.shadowCastingMode = ShadowCastingMode.Off;
-            newMR.receiveShadows = false;
-            newMR.allowOcclusionWhenDynamic = false;
-
-            _outlineRenderers.Add(newMR);
-            _outlineXforms.Add(go.transform);
-            _sourceXforms.Add(src.transform);
-
-            Debug.Log($"[OL-POSE] src={src.name} srcW={src.transform.position} olW={go.transform.position} local={go.transform.localPosition}");
-        }
-
-        var skinnedRenderers = GetComponentsInChildren<SkinnedMeshRenderer>(true);
-        foreach (var src in skinnedRenderers)
-        {
-            if (!src.sharedMesh) continue;
-
-            var go = new GameObject(src.gameObject.name + "__Outline");
-            go.transform.SetParent(src.transform, false);
-            go.layer = (overrideLayer >= 0) ? overrideLayer : src.gameObject.layer;
-
-            var newSMR = go.AddComponent<SkinnedMeshRenderer>();
-            newSMR.sharedMesh  = src.sharedMesh;
-            newSMR.rootBone    = src.rootBone;
-            newSMR.bones       = src.bones;
-            newSMR.quality     = src.quality;
-            newSMR.updateWhenOffscreen = true;
-
-            var b = src.localBounds;
-            float pad = Mathf.Max(0.5f, outlineWidth * 10f);
-            b.Expand(new Vector3(pad, pad, pad));
-            newSMR.localBounds = b;
-
-            int subCount = newSMR.sharedMesh.subMeshCount;
-            var mats = new Material[subCount];
-            for (int i = 0; i < subCount; i++) mats[i] = OutlineMaterialProvider.CreateInstance();
-            newSMR.sharedMaterials = mats;
-
-            newSMR.shadowCastingMode = ShadowCastingMode.Off;
-            newSMR.receiveShadows = false;
-            newSMR.allowOcclusionWhenDynamic = false;
-
-            _outlineRenderers.Add(newSMR);
-
-            // 스키닝은 부모 유지(본 추적), 월드 동기 목록은 MeshRenderer만
-        }
-
-        // 폴백용 소스 목록(강제 드로우 시 사용)
-        foreach (var src in meshRenderers)
-        {
-            var mf = src.GetComponent<MeshFilter>();
-            if (!mf || !mf.sharedMesh) continue;
-            _sources.Add(new SourceMeshRef { mesh = mf.sharedMesh, transform = src.transform, skinned = false, smr = null });
-        }
-        foreach (var src in skinnedRenderers)
-        {
-            if (!src.sharedMesh) continue;
-            _sources.Add(new SourceMeshRef { mesh = null, transform = src.transform, skinned = true, smr = src });
-        }
-    }
-
-    // ── 디버그: 렌더러 상태 ────────────────────────────
-    void DebugDumpRenderers(string tag = "Dump")
-    {
-        foreach (var r in _outlineRenderers)
-        {
-            if (!r) continue;
-            var mats = r.sharedMaterials;
-            for (int i = 0; i < mats.Length; i++)
-            {
-                var m = mats[i];
-                var q = m ? m.renderQueue : -1;
-                var sh = m && m.shader ? m.shader.name : "null";
-                Debug.Log($"[HighlighterDBG:{tag}] {r.name} layer={LayerMask.LayerToName(r.gameObject.layer)} enabled={r.enabled} forceOff={r.forceRenderingOff} isVisible={r.isVisible} mat{i}={sh} queue={q}");
-            }
-        }
-    }
-
-    // ── 디버그: 카메라/프러스텀 검사 ───────────────────
-    void DebugCamerasAndFrustum(string tag = "Cam")
-    {
-        var cams = Camera.allCameras;
-        foreach (var r in _outlineRenderers)
-        {
-            if (!r) continue;
-            var b = r.bounds;
-            Debug.Log($"[OL-CAM:{tag}] R={r.name} vis={r.isVisible} center={b.center} size={b.size}");
-            for (int i = 0; i < cams.Length; i++)
-            {
-                var cam = cams[i];
-                if (!cam || !cam.isActiveAndEnabled) continue;
-                bool layerOn = (cam.cullingMask & (1 << r.gameObject.layer)) != 0;
-                var planes = GeometryUtility.CalculateFrustumPlanes(cam);
-                bool inFrustum = GeometryUtility.TestPlanesAABB(planes, b);
-                Debug.Log($"   - cam[{i}] {cam.name} layerOn={layerOn} inFrustum={inFrustum} ortho={cam.orthographic} pos={cam.transform.position}");
-            }
-        }
-    }
-
-    // ── 디버그: 엔진이 invisible 판단 시 강제 드로우 ──
-    MaterialPropertyBlock _mpb;
-    void EnsureMPB() { if (_mpb != null) return; _mpb = new MaterialPropertyBlock(); }
-
-    void OnRenderObject()
-    {
-        if (!fallbackDrawWhenInvisible) return;
-        if (!outlineMaterial || outlineMaterial.shader == null || !outlineMaterial.shader.isSupported) return;
-
-        // 아웃라인이 꺼져 있으면 스킵
-        bool anyEnabled = false;
-        for (int i = 0; i < _outlineRenderers.Count; i++)
-            if (_outlineRenderers[i] && !_outlineRenderers[i].forceRenderingOff) { anyEnabled = true; break; }
-        if (!anyEnabled) return;
-
-        var cam = Camera.current; if (!cam) return;
-
-        bool allInvisible = true;
-        foreach (var r in _outlineRenderers) { if (r && r.isVisible) { allInvisible = false; break; } }
-        if (!allInvisible) return;
-
-        EnsureMPB();
-        _mpb.SetColor("_OutlineColor", outlineColor);
-        _mpb.SetFloat("_OutlineWidth", Mathf.Max(0.0005f, outlineWidth));
-
-        // 폴백은 항상 화면에 보이도록 깊이/스텐실 무시 키워드를 켠다
-        outlineMaterial.EnableKeyword("_OUTLINE_DEBUG_BYPASS");
-
-        foreach (var s in _sources)
-        {
-            if (!s.transform) continue;
-
-            Mesh meshToDraw = s.mesh;
-            if (s.skinned)
-            {
-                if (!s.smr) continue;
-                if (meshToDraw == null) meshToDraw = new Mesh();
-                s.smr.BakeMesh(meshToDraw);
-            }
-            if (!meshToDraw) continue;
-
-            outlineMaterial.SetPass(0); // 첫 패스
-            Graphics.DrawMeshNow(meshToDraw, s.transform.localToWorldMatrix);
-        }
+        CleanupChildren();
     }
 }

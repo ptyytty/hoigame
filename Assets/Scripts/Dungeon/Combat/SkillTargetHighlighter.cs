@@ -21,11 +21,23 @@ public class SkillTargetHighlighter : MonoBehaviour
     private readonly List<OutlineDuplicator> _cache = new();
 
     void Awake()
+{
+    if (Instance != null && Instance != this)
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
-        Instance = this;
-        if (!outlineMaterial) outlineMaterial = OutlineMaterialProvider.GetShared();
+        Destroy(gameObject);
+        return;
     }
+    Instance = this;
+
+    if (!outlineMaterial)
+        outlineMaterial = OutlineMaterialProvider.GetShared();
+
+    if (outlineMaterial == null || outlineMaterial.shader == null)
+    {
+        Debug.LogWarning("[SkillHighlighter] Provider에서 머테리얼 확보 실패 → Shader.Find로 생성");
+        outlineMaterial = new Material(Shader.Find("Custom/Outline_Mobile_URP"));
+    }
+}
 
     /// <summary>역할: 스킬 프리뷰 시작 시 후보들만 아웃라인 켜기</summary>
     public void HighlightForSkill(Combatant user, Skill skill)

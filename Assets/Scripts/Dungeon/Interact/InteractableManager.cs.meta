@@ -9,7 +9,7 @@ MonoImporter:
   - interactionUp: {instanceID: 0}
   - interactionDown: {instanceID: 0}
   - interactionObj: {instanceID: 0}
-  - outlineMaterial: {fileID: 2100000, guid: 05565a886e496654194760649aae564d, type: 2}
+  - outlineMaterial: {instanceID: 0}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

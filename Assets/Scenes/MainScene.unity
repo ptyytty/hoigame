@@ -20725,6 +20725,8 @@ GameObject:
   - component: {fileID: 1603131359}
   - component: {fileID: 1603131361}
   - component: {fileID: 1603131362}
+  - component: {fileID: 1603131363}
+  - component: {fileID: 1603131364}
   m_Layer: 0
   m_Name: Manager
   m_TagString: Untagged
@@ -20775,6 +20777,33 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   dungeonLoadoutSnapshot: []
+--- !u!114 &1603131363
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1603131357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7767f89c0cf6d746b33c4b084b3a464, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  outlineMat: {fileID: 2100000, guid: 0f016ef249ebf0f4f8f65f7a03758e26, type: 2}
+  outlineShader: {fileID: 4800000, guid: ba8398cd29ac3d14d978e210f32ca990, type: 3}
+--- !u!114 &1603131364
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1603131357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a85d88c7ed1904a47b7369948e0652ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  outlineMaterial: {fileID: 2100000, guid: 0f016ef249ebf0f4f8f65f7a03758e26, type: 2}
 --- !u!1 &1603343473
 GameObject:
   m_ObjectHideFlags: 0
