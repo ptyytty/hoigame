@@ -52,7 +52,7 @@ public class InteractableManager : MonoBehaviour
         AssingInteractables();
 
         // ✅ 전역 버튼 리스너는 여기서 '딱 한 번' 등록
-        if (interactionUp)   interactionUp.onClick.AddListener(() => Nudge(-stairNudge));  // 보상 없음
+        if (interactionUp) interactionUp.onClick.AddListener(() => Nudge(-stairNudge));  // 보상 없음
         if (interactionDown) interactionDown.onClick.AddListener(() => Nudge(+stairNudge)); // 보상 없음
 
         var objBtn = interactionObj?.GetComponent<Button>();
@@ -83,6 +83,7 @@ public class InteractableManager : MonoBehaviour
 
             EnsureOutlineSetup(obj);
         }
+
     }
     /// <summary>
     /// "Floor" 태그를 가진 오브젝트를 찾아 그 하위 오브젝트들을 대상으로 candidates와 stairs 자동 등록
@@ -130,17 +131,21 @@ public class InteractableManager : MonoBehaviour
         //Debug.Log($"✅ 자동 등록 완료: 상호작용 오브젝트 {objCount}개, 계단 {stairCount}개");
     }
 
-    // ✅ 추가: 대상 오브젝트에 OutlineDuplicator 구성
+    // 대상 오브젝트에 OutlineDuplicator 구성
     void EnsureOutlineSetup(GameObject obj)
     {
-        if (!outlineMaterial) return; // 머티리얼 미지정 시 스킵
+        var mat = OutlineMaterialProvider.GetShared();
+        if (!mat) return;
 
         if (!obj.TryGetComponent(out OutlineDuplicator od))
             od = obj.AddComponent<OutlineDuplicator>();
 
-        od.outlineMaterial = outlineMaterial;
-        od.SetProperties(outlineColor, outlineWidth);
-        od.EnableOutline(false); // 기본 OFF
+        od.outlineMaterial = mat;
+        od.autoEnableOnSetProperties = false;             // 세팅단계에선 자동 ON 금지
+        od.SetProperties(outlineColor, outlineWidth, false);
+
+        // [진단] 대상 오브젝트의 월드 위치 출력
+        Debug.Log($"[OL-TARGET] {obj.name} worldPos={obj.transform.position}");
     }
 
     void Nudge(float dx)
@@ -149,16 +154,16 @@ public class InteractableManager : MonoBehaviour
         var p = party.transform.position; p.x += dx; party.transform.position = p;
         var c = partyCam.transform.position; c.x += dx; partyCam.transform.position = c;
     }
-    
+
     public void SetCurrentObjectTarget(Interactable it) => currentObjectTarget = it;
 
     public void SetInteractButtonsVisible(bool up, bool down, bool obj)
     {
-        if (interactionUp)   interactionUp.gameObject.SetActive(up);
+        if (interactionUp) interactionUp.gameObject.SetActive(up);
         if (interactionDown) interactionDown.gameObject.SetActive(down);
-        if (interactionObj)  interactionObj.SetActive(obj);
+        if (interactionObj) interactionObj.SetActive(obj);
     }
-    
+
     // 상호작용 오브젝트 보상 지급
     void GrantObjectRewardAndToast()
     {
@@ -192,6 +197,11 @@ public class InteractableManager : MonoBehaviour
             interactionDown && interactionDown.gameObject.activeSelf,
             false
         );
+    }
+
+    private Material GetOrCreateOutlineMat()
+    {
+        return OutlineMaterialProvider.GetShared();
     }
 }
 

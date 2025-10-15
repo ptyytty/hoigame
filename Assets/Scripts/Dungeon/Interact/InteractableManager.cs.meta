@@ -3,7 +3,13 @@ guid: c6b41a568ae177b47be96644f29e8071
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - party: {instanceID: 0}
+  - partyCam: {instanceID: 0}
+  - interactionUp: {instanceID: 0}
+  - interactionDown: {instanceID: 0}
+  - interactionObj: {instanceID: 0}
+  - outlineMaterial: {fileID: 2100000, guid: 05565a886e496654194760649aae564d, type: 2}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

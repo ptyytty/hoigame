@@ -5,11 +5,30 @@ using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 /// <summary>
 /// PartyManager
-/// Party 이동 제어, 전투 UI 제어, 보상 UI 제어
+/// Party 이동 제어, 전투 UI 제어, 보상 UI 제어, 퀘스트 관리
 /// </summary>
+
+// === 던전 퀘스트 런타임 ===
+[Serializable]
+public class DungeonQuestRuntime
+{
+    public string questId;
+    public string displayName;
+    public bool isCompleted;
+    public int targetCount;   // 필요 시(예: 전투 N회, 방 N칸) 목표치
+    public int current;       // 진행도
+
+    // 진행 1단계 증가 (전투 1회 승리 등)
+    public void Tick(int amount = 1)
+    {
+        current = Mathf.Max(0, current + amount);
+        if (targetCount > 0) isCompleted = current >= targetCount;
+    }
+}
 
 public class DungeonManager : MonoBehaviour
 {
@@ -25,6 +44,19 @@ public class DungeonManager : MonoBehaviour
 
     [Header("Battle UI")]
     public GameObject battleUI;
+
+    [Header("Quest HUD")]
+    [SerializeField] private TMP_Text questText;     // 좌상단 퀘스트 텍스트
+    [SerializeField] private Toggle questToggle;     // 완료 시 체크
+    [SerializeField] private Image questCheckmark;   // 체크마크 이미지
+    [SerializeField] private Color questIncompleteColor = Color.white;  // 미완료 색
+    [SerializeField] private Color questCompleteColor   = Color.green;  // 완료 색
+    [SerializeField] private string currentDungeonId = "dungeon_Oratio"; // 씬/던전 식별자
+
+    private int _totalBattlesInThisDungeon;     // 던전 전투 수
+    private int _battlesCleared;                // 전투 완료 수
+
+    private DungeonQuestRuntime _quest;  // 현재 던전 퀘스트 상태
 
     [Header("Reward UI")]
     [SerializeField] private GameObject rewardToastPanel;  // 보상 패널
@@ -64,6 +96,11 @@ public class DungeonManager : MonoBehaviour
 
         // 1) PartyBridge → DungeonInventory로 스냅샷 1회 적용
         //ApplyInitialInventoryFromBridge_Once();
+
+        _totalBattlesInThisDungeon = FindObjectsOfType<EnemySpawner>(true).Length; // 이번 던전 전투 총 수
+        _battlesCleared = 0;
+
+         InitQuestOnEnter(); // 던전 입장 시 퀘스트 HUD 세팅
 
         // 2) 바인더 연결(이벤트 구독 + 즉시 그리기)
         if (inventoryBinder && dungeonInventory)
@@ -198,6 +235,91 @@ public class DungeonManager : MonoBehaviour
         if (rewardToastGroup) seq.Append(rewardToastGroup.DOFade(0f, tweenOut));
         seq.Join(rewardToastScaleRoot.DOScale(0.9f, tweenOut).SetEase(easeOut));
         seq.OnComplete(() => { if (rewardToastPanel) rewardToastPanel.SetActive(false); });
+    }
+
+    // =============== 퀘스트 진행 ==================
+    // 던전 입장 시 1회 호출: 퀘스트 선택 및 HUD 표기
+    private void InitQuestOnEnter()
+    {
+        // 1) DB에서 현재 던전에 유효한 퀘스트 목록 취득
+        var candidates = QuestDB.questLists.FindAll(q => q.dungeonId != null && q.dungeonId.Contains(currentDungeonId));
+        // 없으면 전체에서 아무거나
+        if (candidates == null || candidates.Count == 0) candidates = QuestDB.questLists;
+
+        // 2) 무작위 1개 선택
+        var pick = candidates[UnityEngine.Random.Range(0, Mathf.Max(1, candidates.Count))];
+
+        // 3) 런타임 상태 구성(샘플 정책)
+        _quest = new DungeonQuestRuntime
+        {
+            questId = pick.questId,
+            displayName = pick.questname,
+            isCompleted = false,
+            // 예시: "모든 전투 완료"라면 목표치를 던전 내 전투 수로 설정해도 됨(당장은 0=수동완료)
+            targetCount = 0, // 필요 시 외부에서 세팅
+            current = 0
+        };
+
+        // '모든 전투 완료' 퀘스트면 목표치를 스포너 수로 설정
+        if (_quest.questId == "all_combat_completed")
+        {
+            _quest.targetCount = Mathf.Max(1, _totalBattlesInThisDungeon);
+            _quest.current = 0;
+        }
+
+        // 4) HUD 반영
+        UpdateQuestHud();
+    }
+
+    // HUD에 현재 퀘스트 텍스트/체크 상태 반영
+    private void UpdateQuestHud()
+    {
+        // 텍스트
+        if (questText)
+        {
+            questText.text = $"클리어 조건: {_quest?.displayName ?? "-"}";
+            questText.color = (_quest != null && _quest.isCompleted) ? questCompleteColor : questIncompleteColor;
+        }
+
+        // 토글 체크 (Unity 기본 체크마크 사용 시)
+        if (questToggle)
+        {
+            questToggle.isOn = _quest != null && _quest.isCompleted;
+            questToggle.interactable = false; // 유저 클릭 방지(표시용)
+        }
+
+        // 커스텀 체크마크 이미지가 있다면 보조로 On/Off
+        if (questCheckmark)
+            questCheckmark.enabled = _quest != null && _quest.isCompleted;
+    }
+
+    // 전투에서 승리했을 때 BattleManager가 호출(퀘스트 진행 갱신용)
+    public void NotifyBattleWon()
+    {
+        if (_quest == null) return;
+
+        // [역할] 이번 던전의 누적 전투 클리어 카운트 증가
+        _battlesCleared = Mathf.Clamp(_battlesCleared + 1, 0, Mathf.Max(1, _totalBattlesInThisDungeon));
+
+        // [역할] '모든 전투 완료' 퀘스트면 진행도 반영
+        if (_quest.questId == "all_combat_completed" && _quest.targetCount > 0)
+        {
+            _quest.current = _battlesCleared;
+            if (_quest.current >= _quest.targetCount)
+                _quest.isCompleted = true;
+        }
+
+        UpdateQuestHud();
+    }
+
+    // [역할] 던전 목표 달성 시 외부(보스 처치/맵 90% 탐험 등)에서 호출
+    public void SetQuestComplete()
+    {
+        if (_quest == null) return;
+        _quest.isCompleted = true;
+        UpdateQuestHud();
+        // 필요하면 보상 팝업/토스트 등 추가
+        // ShowBattleRewardToast(...);
     }
 
 }

@@ -754,6 +754,8 @@ public class BattleManager : MonoBehaviour
         if (DungeonManager.instance)
             DungeonManager.instance.ShowBattleRewardToast(soulType, soulAmount, coinAmount);
     
+        // 던전 퀘스트 진행 알림(전투 1회 클리어)
+        DungeonManager.instance?.NotifyBattleWon();
 
         // 6) 던전 UI 복구(중앙집중)
         if (DungeonManager.instance)
