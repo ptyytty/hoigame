@@ -198,7 +198,7 @@ public class HeroListUp : ListUIBase<Job>
 
         nameText.text = hero.name_job;
         jobText.text = hero.name_job.ToString();
-        levelText.text = $"Lv.{hero.id_job}";
+        levelText.text = $"Lv.{hero.level}";
     }
 
     protected override void OnSelected(Job hero)

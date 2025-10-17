@@ -14,7 +14,6 @@ public class ShowMoney : MonoBehaviour
     [SerializeField] private TMP_Text coin;
     [SerializeField] private TMP_Text redSoul;
     [SerializeField] private TMP_Text blueSoul;
-    [SerializeField] private TMP_Text purpleSoul;
     [SerializeField] private TMP_Text greenSoul;
 
     void Start()
@@ -32,7 +31,6 @@ public class ShowMoney : MonoBehaviour
         coin.text = ownedMoney.money.ToString();
         redSoul.text = ownedMoney.redSoul.ToString();
         blueSoul.text = ownedMoney.blueSoul.ToString();
-        purpleSoul.text = ownedMoney.purpleSoul.ToString();
         greenSoul.text = ownedMoney.greenSoul.ToString();
     }
 }

@@ -11,7 +11,6 @@ public class LobbyManager : MonoBehaviour
     [SerializeField] private GameObject panelGoods;
     [SerializeField] private GameObject panelStore;
     [SerializeField] private GameObject panelManagement;
-    [SerializeField] private GameObject panelSelectDungeon;
     [SerializeField] private GameObject panelDungeonPreparation;
     [Header("Main Lobby")]
     [SerializeField] private GameObject btnFriend;
@@ -32,8 +31,8 @@ public class LobbyManager : MonoBehaviour
 
     public void OnClickDungeonList()
     {
-        panelSelectDungeon.SetActive(true);
         undoBtn.SetActive(true);
+        panelDungeonPreparation.SetActive(true);
 
         panelMenu.SetActive(false);
         panelGoods.SetActive(false);
@@ -89,23 +88,19 @@ public class LobbyManager : MonoBehaviour
         }
         else if (panelDungeonPreparation.activeSelf)
         {
+            // Preparation 상태 초기화
             heroListUp.ResetHeroListState();
-
             partySelector.ResetAssignParty();
-            panelSelectDungeon.SetActive(true);
             panelHeroList.SetActive(true);
 
-            panelDungeonPreparation.SetActive(false);
-            panelItemList.SetActive(false);
-        }
-        else if (panelSelectDungeon.activeSelf)
-        {
+            // 로비 Active
             panelMenu.SetActive(true);
             panelGoods.SetActive(true);
             btnFriend.SetActive(true);
             btnMailbox.SetActive(true);
 
-            panelSelectDungeon.SetActive(false);
+            panelDungeonPreparation.SetActive(false);
+            panelItemList.SetActive(false);
             undoBtn.SetActive(false);
         }
     }
@@ -122,5 +117,6 @@ public class LobbyManager : MonoBehaviour
             panelHeroList.SetActive(true);
             panelItemList.SetActive(false);
         }
+        Debug.Log("클릭");
     }
 }

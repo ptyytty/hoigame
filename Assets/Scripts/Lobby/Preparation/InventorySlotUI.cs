@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+// Preparation 인벤토리 단일 칸 처리
 public class InventorySlotUI : MonoBehaviour
 {
     [SerializeField] private Image itemImage;
@@ -27,7 +28,7 @@ public class InventorySlotUI : MonoBehaviour
         }
     }
 
-    // 아이템 제거
+    // 몇 번째 인덱스인지 주입, 슬롯 클릭 시 RemoveItemAt 호출
     public void Setup(DungeonInventory inv, int index)
     {
         inventory = inv;
@@ -43,7 +44,8 @@ public class InventorySlotUI : MonoBehaviour
         }
     }
 
-    // 슬롯이 비었을 때
+    // 슬롯이 비었을 때 이미지, 수량 = false
+    // 슬롯이 채워졌을 때 이미지, 수량 = true
     public void UpdateSlot(InventorySlot slot)
     {
         EnsureRefs();

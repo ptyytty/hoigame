@@ -155,9 +155,6 @@ public class Growth : ListUIBase<Skill>
                 have = InventoryRuntime.Instance.blueSoul;
                 break;
 
-            case JobCategory.Special:
-                have = InventoryRuntime.Instance.purpleSoul;
-                break;
 
             case JobCategory.Healer:
                 have = InventoryRuntime.Instance.greenSoul;

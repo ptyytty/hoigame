@@ -330,7 +330,6 @@ public class PlayerProgressService : MonoBehaviour
         save.gold = inventoryRuntime.Gold;
         save.redSoul = inventoryRuntime.redSoul;
         save.blueSoul = inventoryRuntime.blueSoul;
-        save.purpleSoul = inventoryRuntime.purpleSoul;
         save.greenSoul = inventoryRuntime.greenSoul;
     }
 
@@ -383,7 +382,6 @@ public class PlayerProgressService : MonoBehaviour
         inventoryRuntime.Gold = save.gold;
         inventoryRuntime.redSoul = save.redSoul;
         inventoryRuntime.blueSoul = save.blueSoul;
-        inventoryRuntime.purpleSoul = save.purpleSoul;
         inventoryRuntime.greenSoul = save.greenSoul;
 
         // ---- 아이템 ----

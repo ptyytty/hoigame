@@ -2,7 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// 던전 진입 전 인벤토리 UI 제어
+
+// 던전 진입 전 Preparation 인벤토리 UI 제어
 
 public class InventoryUIManager : MonoBehaviour
 {
@@ -24,6 +25,7 @@ public class InventoryUIManager : MonoBehaviour
         if (source != null) source.Changed -= RefreshUI;
     }
 
+    // 씬마다 다른 DungeonInventory 재바인딩
     public void SetSource(DungeonInventory inv)
     {
         if (source != null) source.Changed -= RefreshUI;
@@ -34,7 +36,7 @@ public class InventoryUIManager : MonoBehaviour
         RefreshUI();
     }
 
-    // ★ 하위에 있는 6개 item(슬롯)을 모아 InventorySlotUI에 연결
+    // 하위에 있는 6개 item(슬롯)을 모아 InventorySlotUI에 연결
     private void BuildSlots()
     {
         slotUIs.Clear();
@@ -63,6 +65,7 @@ public class InventoryUIManager : MonoBehaviour
             slotUIs[i].Setup(source, i);
     }
 
+    // 슬롯 UI 아이콘 / 수량 새로고침
     public void RefreshUI()
     {
         if (source == null || slotUIs.Count == 0) return;
@@ -74,7 +77,6 @@ public class InventoryUIManager : MonoBehaviour
             slotUIs[i].UpdateSlot(slots[i]); // 아이콘 & 수량 반영
         }
     }
-
 
     // 인벤토리 패널 열기
     public void OpenInventoryPanel()

@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 3085161200779696477}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 56.485085, y: 11.475655, z: -79.80668}
+  m_LocalPosition: {x: -430.89227, y: 0.90000033, z: 126.97843}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -63,7 +63,7 @@ Transform:
   m_GameObject: {fileID: 4148888686674371858}
   serializedVersion: 2
   m_LocalRotation: {x: -0.5, y: 0.5, z: 0.5, w: 0.5}
-  m_LocalPosition: {x: 3, y: 1.5, z: 3}
+  m_LocalPosition: {x: 3, y: 3.5, z: 3}
   m_LocalScale: {x: 100, y: 100, z: 100}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -139,9 +139,11 @@ MonoBehaviour:
   currentHp: 0
   hero:
     id_job: 0
+    portrait: {fileID: 0}
     name_job: 
     level: 0
     exp: 0
+    maxHp: 0
     hp: 0
     def: 0
     res: 0
@@ -150,6 +152,7 @@ MonoBehaviour:
     loc: 0
     category: 0
     jobCategory: 0
+    equippedItemId: 0
   monsterData: {fileID: 11400000, guid: 78c8592b2e4f63143a26e066688cd0a4, type: 2}
   currentLoc: 1
 --- !u!65 &3876111281952575653
@@ -202,7 +205,7 @@ Transform:
   m_GameObject: {fileID: 5053540989309253563}
   serializedVersion: 2
   m_LocalRotation: {x: -0.5, y: 0.5, z: 0.5, w: 0.5}
-  m_LocalPosition: {x: -3, y: 1.5, z: -4.29}
+  m_LocalPosition: {x: -3, y: 3.5, z: -4.29}
   m_LocalScale: {x: 100, y: 100, z: 100}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -278,9 +281,11 @@ MonoBehaviour:
   currentHp: 0
   hero:
     id_job: 0
+    portrait: {fileID: 0}
     name_job: 
     level: 0
     exp: 0
+    maxHp: 0
     hp: 0
     def: 0
     res: 0
@@ -289,6 +294,7 @@ MonoBehaviour:
     loc: 0
     category: 0
     jobCategory: 0
+    equippedItemId: 0
   monsterData: {fileID: 11400000, guid: 3e6c85d5cc4d48347a35493202540a55, type: 2}
   currentLoc: 1
 --- !u!65 &9130565635155876057
@@ -341,7 +347,7 @@ Transform:
   m_GameObject: {fileID: 6567916305988671156}
   serializedVersion: 2
   m_LocalRotation: {x: -0.5, y: 0.5, z: 0.5, w: 0.5}
-  m_LocalPosition: {x: -3, y: 1.5, z: 3}
+  m_LocalPosition: {x: -3, y: 3.5, z: 3}
   m_LocalScale: {x: 100, y: 100, z: 100}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -417,9 +423,11 @@ MonoBehaviour:
   currentHp: 0
   hero:
     id_job: 0
+    portrait: {fileID: 0}
     name_job: 
     level: 0
     exp: 0
+    maxHp: 0
     hp: 0
     def: 0
     res: 0
@@ -428,6 +436,7 @@ MonoBehaviour:
     loc: 0
     category: 0
     jobCategory: 0
+    equippedItemId: 0
   monsterData: {fileID: 11400000, guid: 2fbac0b6ebc8b534faecbd708107b104, type: 2}
   currentLoc: 1
 --- !u!65 &3498462554843895123

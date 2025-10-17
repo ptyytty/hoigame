@@ -12,10 +12,9 @@ public class InventoryRuntime : MonoBehaviour
     public int Gold;
     public int redSoul;
     public int blueSoul;
-    public int purpleSoul;
     public int greenSoul;
 
-    public enum CurrencyType { Gold, RedSoul, BlueSoul, PurpleSoul, GreenSoul }
+    public enum CurrencyType { Gold, RedSoul, BlueSoul, GreenSoul }
 
     // === 내부 보유 구조 ===
     private readonly List<OwnedItem<ConsumeItem>> ownedConsume = new();
@@ -37,7 +36,6 @@ public class InventoryRuntime : MonoBehaviour
             case CurrencyType.Gold: Gold = value; break;
             case CurrencyType.RedSoul: redSoul = value; break;
             case CurrencyType.BlueSoul: blueSoul = value; break;
-            case CurrencyType.PurpleSoul: purpleSoul = value; break;
             case CurrencyType.GreenSoul: greenSoul = value; break;
         }
     }

@@ -9,7 +9,6 @@ public class TestMoney : ScriptableObject
     public int money;
     public int redSoul;
     public int blueSoul;
-    public int purpleSoul;
     public int greenSoul;
 
     private Dictionary<JobCategory, Func<int>> soulGetter;
@@ -22,7 +21,6 @@ public class TestMoney : ScriptableObject
         {
             { JobCategory.Warrior, () => redSoul },
             { JobCategory.Ranged, () => blueSoul },
-            { JobCategory.Special, () => purpleSoul },
             { JobCategory.Healer, () => greenSoul }
         };
     }
@@ -50,7 +48,6 @@ public class TestMoney : ScriptableObject
         {
             case JobCategory.Warrior: redSoul -= amount; break;
             case JobCategory.Ranged: blueSoul -= amount; break;
-            case JobCategory.Special: purpleSoul -= amount; break;
             case JobCategory.Healer: greenSoul -= amount; break;
         }
     }
@@ -62,7 +59,6 @@ public class TestMoney : ScriptableObject
         {
             case JobCategory.Warrior: redSoul += amount; break;
             case JobCategory.Ranged: blueSoul += amount; break;
-            case JobCategory.Special: purpleSoul += amount; break;
             case JobCategory.Healer: greenSoul += amount; break;
         }
     }

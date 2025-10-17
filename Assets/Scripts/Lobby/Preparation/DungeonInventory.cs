@@ -5,7 +5,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-// 던전에서 사용하는 인벤토리
+// 던전에서 사용할 인벤토리에 아이템 추가 / 제거
 public class DungeonInventory : MonoBehaviour
 {
     public event Action Changed;
@@ -13,7 +13,7 @@ public class DungeonInventory : MonoBehaviour
     private const int maxSlotCount = 6;
     private List<InventorySlot> slots = new();
 
-    [System.Serializable]
+    [Serializable]
     public struct SlotDTO
     {
         public ConsumeItem item;
@@ -34,6 +34,7 @@ public class DungeonInventory : MonoBehaviour
         }
     }
 
+    // 던전 인벤토리에 추가
     public bool AddItem(ConsumeItem item)
     {
         if (item == null) return false;
@@ -67,6 +68,7 @@ public class DungeonInventory : MonoBehaviour
         return false;
     }
 
+    // 던전 인벤토리에서 제거 -> InventoryRuntime에 반환
     public bool RemoveItemAt(int index)
     {
         if (index < 0 || index >= slots.Count) return false;
@@ -80,11 +82,12 @@ public class DungeonInventory : MonoBehaviour
 
         if (InventoryRuntime.Instance != null)
             InventoryRuntime.Instance.AddConsumeItem(removedItem, 1);
-            
+
         Notify();                        // ← UI에게 변경 알림
         return true;
     }
 
+    // ================== 6칸 스냅샷 저장 / 복원 ==================
     public List<SlotDTO> CreateSnapshot()
     {
         var result = new List<SlotDTO>(slots.Count);

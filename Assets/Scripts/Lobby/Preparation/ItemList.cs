@@ -51,10 +51,14 @@ public class ItemList : ListUIBase<EquipItem>
         PlayerProgressService.InventoryApplied += RefreshItemList;
     }
 
+    protected void OnDisable()
+    {
+        PlayerProgressService.InventoryApplied -= RefreshItemList;
+    }
+
     void OnToggleChanged(bool _)
     {
         RefreshItemList();
-        PlayerProgressService.InventoryApplied -= RefreshItemList;
     }
 
     protected override void LoadList()

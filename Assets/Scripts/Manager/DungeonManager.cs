@@ -50,13 +50,14 @@ public class DungeonManager : MonoBehaviour
     [SerializeField] private Toggle questToggle;     // 완료 시 체크
     [SerializeField] private Image questCheckmark;   // 체크마크 이미지
     [SerializeField] private Color questIncompleteColor = Color.white;  // 미완료 색
-    [SerializeField] private Color questCompleteColor   = Color.green;  // 완료 색
+    [SerializeField] private Color questCompleteColor = Color.green;  // 완료 색
     [SerializeField] private string currentDungeonId = "dungeon_Oratio"; // 씬/던전 식별자
 
     private int _totalBattlesInThisDungeon;     // 던전 전투 수
     private int _battlesCleared;                // 전투 완료 수
 
     private DungeonQuestRuntime _quest;  // 현재 던전 퀘스트 상태
+    private bool _questRewardGiven = false; // 퀘스트 완료 보상 지급 여부
 
     [Header("Reward UI")]
     [SerializeField] private GameObject rewardToastPanel;  // 보상 패널
@@ -71,11 +72,36 @@ public class DungeonManager : MonoBehaviour
     [SerializeField] private Ease easeIn = Ease.OutBack;    // 가속 곡선
     [SerializeField] private Ease easeOut = Ease.InSine;
 
+    [Header("Dungeon Clear UI")]
+    [SerializeField] private GameObject dungeonClearPanel;
+    [SerializeField] private CanvasGroup dungeonClearGroup;    // 페이드용
+    [SerializeField] private Transform dungeonClearScaleRoot;
+    [SerializeField] private float clearFadeIn = 0.25f;
+    [SerializeField] private float clearTweenIn = 0.25f;
+    [SerializeField] private float clearStartScale = 0.9f;
+    [SerializeField] private Ease clearEaseIn = Ease.OutBack;
+
+    [SerializeField] private DungeonResultBinder resultBinder; // ✅ 결과 패널 바인더(아래 2번)
+    private readonly Dictionary<string, HeroEntrySnapshot> _entry = new(); // key = instanceId
+
+    [Serializable]
+    private class HeroEntrySnapshot
+    {
+        public string instanceId;
+        public int startLevel;
+        public int startExp;
+        public int startHp;
+        public int startMaxHp;
+    }
+    [SerializeField] private Button rewardButton;
+    [SerializeField] private ResultRewardGrid resultRewardGrid;     // 보상
+
+    private bool _dungeonClearShown = false;                   // 중복 방지
+
     void Awake()
     {
         if (instance != null && instance != this) { Destroy(gameObject); return; }
         instance = this;
-        DontDestroyOnLoad(gameObject);
 
         // ✅ 전투 시작 이벤트 구독(게임 시작부터 살아있게)
         EnemySpawner.OnBattleStart += HandleBattleStart;
@@ -100,18 +126,18 @@ public class DungeonManager : MonoBehaviour
         _totalBattlesInThisDungeon = FindObjectsOfType<EnemySpawner>(true).Length; // 이번 던전 전투 총 수
         _battlesCleared = 0;
 
-         InitQuestOnEnter(); // 던전 입장 시 퀘스트 HUD 세팅
+        InitQuestOnEnter(); // 던전 입장 시 퀘스트 HUD 세팅
+        _questRewardGiven = false;
 
         // 2) 바인더 연결(이벤트 구독 + 즉시 그리기)
         if (inventoryBinder && dungeonInventory)
             inventoryBinder.Bind(dungeonInventory);
+
+        CaptureDungeonEntrySnapshot();      // 입장 시 현재 파티 정보 저장
     }
 
-    void OnDestroy()
-    {
-        // 🔒 누수 방지
-        EnemySpawner.OnBattleStart -= HandleBattleStart;
-    }
+    void Onable() { EnemySpawner.OnBattleStart += HandleBattleStart; }
+    void OnDisable() { EnemySpawner.OnBattleStart -= HandleBattleStart; }
 
     public Transform partyTransform;
     public float moveSpeed = 50f;  // 이동 속도
@@ -131,6 +157,8 @@ public class DungeonManager : MonoBehaviour
         moveRight.SetActive(false);
 
         battleUI.SetActive(true);
+
+        if (rewardButton) rewardButton.interactable = false;
     }
 
     // 전투 종료 => UI 전환
@@ -141,6 +169,8 @@ public class DungeonManager : MonoBehaviour
         if (battleUI) battleUI.SetActive(false);
         if (moveLeft) moveLeft.SetActive(true);
         if (moveRight) moveRight.SetActive(true);
+
+        if (rewardButton) rewardButton.interactable = true;
     }
     // ─────────────────────────────────────
 
@@ -181,6 +211,30 @@ public class DungeonManager : MonoBehaviour
             return dir == MoveDirection.Left ? Vector3.back : Vector3.forward;
         else
             return dir == MoveDirection.Left ? Vector3.forward : Vector3.back;
+    }
+
+    // =========== 던전 입장 직후 파티 정보 =============
+    private void CaptureDungeonEntrySnapshot()
+    {
+        _entry.Clear();
+
+        var party = PartyBridge.Instance?.ActiveParty;
+        if (party == null || party.Count == 0) return;
+
+        foreach (var h in party)
+        {
+            if (h == null) continue;
+            var key = string.IsNullOrEmpty(h.instanceId) ? h.id_job.ToString() : h.instanceId;
+
+            _entry[key] = new HeroEntrySnapshot
+            {
+                instanceId = key,
+                startLevel = h.level,
+                startExp = h.exp,
+                startHp = h.hp,
+                startMaxHp = Mathf.Max(1, h.maxHp),
+            };
+        }
     }
 
     // ======= 인벤토리 =======
@@ -298,10 +352,14 @@ public class DungeonManager : MonoBehaviour
     {
         if (_quest == null) return;
 
-        // [역할] 이번 던전의 누적 전투 클리어 카운트 증가
+        bool wasCompleted = _quest.isCompleted;
+
+        GrantExpToActiveParty(1);   // 전투 승리 보상(+1)
+
+        // 던전 전투 클리어 카운트
         _battlesCleared = Mathf.Clamp(_battlesCleared + 1, 0, Mathf.Max(1, _totalBattlesInThisDungeon));
 
-        // [역할] '모든 전투 완료' 퀘스트면 진행도 반영
+        // '모든 전투 완료' 타입이라면 진행도 갱신
         if (_quest.questId == "all_combat_completed" && _quest.targetCount > 0)
         {
             _quest.current = _battlesCleared;
@@ -310,20 +368,222 @@ public class DungeonManager : MonoBehaviour
         }
 
         UpdateQuestHud();
+
+        // ✅ 이 자리에서 완료되었다면 완료 보상(+3)까지 즉시 처리
+        if (!wasCompleted && _quest.isCompleted)
+            CompleteQuestIfNeeded();
     }
 
-    // [역할] 던전 목표 달성 시 외부(보스 처치/맵 90% 탐험 등)에서 호출
+    // 퀘스트 완료 상태면 완료 보상 지급
+    private void CompleteQuestIfNeeded()
+    {
+        if (_quest == null) return;
+        if (!_quest.isCompleted) return;
+
+        // 중복 지급 방지
+        if (!_questRewardGiven)
+        {
+            GrantExpToActiveParty(3);   // ✅ 퀘스트 완료 보상 즉시 지급
+            _questRewardGiven = true;
+        }
+
+        UpdateQuestHud();
+        ShowDungeonClearUIOnce();       // 결과창/클리어 처리
+    }
+
+    // 던전 목표 달성 시 외부(보스 처치/맵 90% 탐험 등)에서 호출
     public void SetQuestComplete()
     {
         if (_quest == null) return;
+
+        bool wasCompleted = _quest.isCompleted;
         _quest.isCompleted = true;
-        UpdateQuestHud();
-        // 필요하면 보상 팝업/토스트 등 추가
-        // ShowBattleRewardToast(...);
+
+        // ✅ 완료 보상(+3)과 결과창을 한 곳에서 처리(중복 지급 방지 포함)
+        CompleteQuestIfNeeded();
+    }
+
+    //=============== 던전 클리어 UI =============
+    private void ShowDungeonClearUIOnce()
+    {
+        if (_dungeonClearShown) return;
+        _dungeonClearShown = true;
+
+        // 입력/이동/전투 UI 정리
+        StopMoveHard();
+        if (battleUI) battleUI.SetActive(false);
+        if (moveLeft) moveLeft.SetActive(false);
+        if (moveRight) moveRight.SetActive(false);
+
+        BindResultPanel();
+
+        PlayDungeonClearAppear();
+    }
+
+    // 보상창 버튼 토글 기능
+    public void ToggleDungeonClearUI()
+    {
+        if (dungeonClearPanel.activeSelf)
+        {
+            HideDungeonClearUI();
+        }
+        else
+        {
+            ShowDungeonClearUI();
+        }
+    }
+
+    // 파티의 현재 상태와 입장 시 상태 비교 후 전달
+    private void BindResultPanel()
+    {
+        if (!resultBinder) return;
+
+        var party = PartyBridge.Instance?.ActiveParty;
+        if (party == null || party.Count == 0) { resultBinder.ClearAll(); return; }
+
+        // 슬롯 순서를 파티 순서와 동일하게 전달
+        var results = new List<DungeonResultBinder.HeroResult>(4);
+
+        foreach (var h in party)
+        {
+            if (h == null)
+            {
+                results.Add(DungeonResultBinder.HeroResult.Empty());
+                continue;
+            }
+
+            var key = string.IsNullOrEmpty(h.instanceId) ? h.id_job.ToString() : h.instanceId;
+            _entry.TryGetValue(key, out var snap);
+
+            int curHp = h.hp;
+            int maxHp = Mathf.Max(1, h.maxHp);
+            int curLv = h.level;
+            int curExp = h.exp;
+
+            int gotExp = (snap != null) ? Mathf.Max(0, curExp - snap.startExp) : 0;
+            int hpDelta = (snap != null) ? (curHp - snap.startHp) : 0;
+
+
+            results.Add(new DungeonResultBinder.HeroResult
+            {
+                portrait = h.portrait,
+                editName = string.IsNullOrEmpty(h.displayName) ? h.name_job : h.displayName, // 표시명 우선
+                jobName = h.name_job,
+                levelNow = Mathf.Max(1, h.level),
+                hpNow = h.hp,
+                hpMax = Mathf.Max(1, h.maxHp),
+                expProgress = SafeGetExpProgress(h), // 아래 보조 함수 참조
+                leveledUp = (snap != null && h.level > snap.startLevel)
+            });
+        }
+
+        resultBinder.Bind(results);
+        resultRewardGrid?.RebindFromCurrentRun();
+    }
+
+    // ============ 경험치 ===========
+    // 경험치 부여 및 UI 갱신
+    public void GrantExpToActiveParty(int amount)
+    {
+        var party = PartyBridge.Instance?.ActiveParty;
+        if (party == null || party.Count == 0) return;
+
+        foreach (var hero in party)
+        {
+            if (hero == null) continue;
+            hero.exp += Mathf.Max(0, amount);
+
+            // 자동 레벨업
+            if (hero.exp >= GameBalance.GetRequiredExpForLevel(hero.level))
+            {
+                hero.exp = 0;
+                hero.level = Mathf.Min(hero.level + 1, 5);
+            }
+        }
+
+        // ✅ UI 즉시 반영
+        // 1) 정보창, 2) 결과창 둘 다 자동 갱신 가능
+        if (resultBinder && dungeonClearPanel && dungeonClearPanel.activeSelf)
+            BindResultPanel(); // 결과창이 열려 있으면 즉시 갱신
+    }
+
+
+
+    // 현재 레벨 기준 경험치 진행도 호출
+    private float SafeGetExpProgress(Job h)
+    {
+        try
+        {
+            return h.GetExpProgress();
+        }
+        catch
+        {
+            return 0f;
+        }
+    }
+
+
+    // UI 애니메이션
+    private void PlayDungeonClearAppear()
+    {
+        if (!dungeonClearPanel)
+        {
+            Debug.LogWarning("[DungeonManager] dungeonClearPanel 미할당");
+            return;
+        }
+
+        if (moveLeft) moveLeft.SetActive(false);
+        if (moveRight) moveRight.SetActive(false);
+
+        if (!dungeonClearScaleRoot) dungeonClearScaleRoot = dungeonClearPanel.transform;
+
+        // 패널 활성화 & 초기 상태 세팅
+        dungeonClearPanel.SetActive(true);
+
+        // 기존 트윈 정리(겹침 방지). target을 명확히 지정하기 위해 각 컴포넌트로 Kill
+        if (dungeonClearGroup) DOTween.Kill(dungeonClearGroup);
+        if (dungeonClearScaleRoot) DOTween.Kill(dungeonClearScaleRoot);
+
+        if (dungeonClearGroup) dungeonClearGroup.alpha = 0f;
+        dungeonClearScaleRoot.localScale = Vector3.one * clearStartScale;
+
+        // 등장 트윈(알파/스케일만, 유지)
+        var seq = DOTween.Sequence();
+        if (dungeonClearGroup) seq.Join(dungeonClearGroup.DOFade(1f, clearTweenIn));
+        seq.Join(dungeonClearScaleRoot
+            .DOScale(1f, clearTweenIn)
+            .SetEase(clearEaseIn));
+    }
+
+    // 외부에서 패널 open
+    public void ShowDungeonClearUI()
+    {
+        BindResultPanel();
+        PlayDungeonClearAppear();
+    }
+
+    // 외부에서 패널 close
+    public void HideDungeonClearUI()
+    {
+        if (!dungeonClearPanel) return;
+        // 닫힐 때도 깔끔하게 트윈 정리
+        if (dungeonClearGroup) DOTween.Kill(dungeonClearGroup);
+        if (dungeonClearScaleRoot) DOTween.Kill(dungeonClearScaleRoot);
+        dungeonClearPanel.SetActive(false);
+
+        if (moveLeft) moveLeft.SetActive(true);
+        if (moveRight) moveRight.SetActive(true);
+
+        bool isBattleActive = battleUI && battleUI.activeSelf;
+        if (!isBattleActive)
+        {
+            if (moveLeft) moveLeft.SetActive(true);
+            if (moveRight) moveRight.SetActive(true);
+        }
+
     }
 
 }
-
 
 
 // 이동 방향 열

@@ -23,8 +23,10 @@ public class CameraManager : MonoBehaviour
     [Header("Framing (Group Framing 미사용 시만 ON)")]
     [Tooltip("VCam EnemyFocus에서 Group Framing을 쓰지 않는다면 true로 두고 자동 오쏘사이즈 계산 사용")]
     [SerializeField] private bool autoComputeOrthoSize = true;
-    [SerializeField, Tooltip("화면 여유 비율(1.1~1.3 추천)")]
-    private float padding = 1.2f;
+    [SerializeField] private bool applyConstantWidth = true;
+    [SerializeField] private float referenceAspect = 16f / 9f; // 1.777...
+
+    [SerializeField, Tooltip("화면 여유 비율(1.1~1.3)")] private float padding = 1.2f;
     [SerializeField] private float minEnemySize = 8f;
     [SerializeField] private float maxEnemySize = 18f;
     [SerializeField] private float minSizeHero = 8f;
@@ -44,6 +46,7 @@ public class CameraManager : MonoBehaviour
     [Header("Dungeon Follow Move")]
     public float speed = 3f;
 
+    private bool _suppressBaseSizeOnce = false;         // 전투 확대
     private Vector3 _enemyHintCenter;
     private Quaternion _enemyHintRotation = Quaternion.identity;
     private float _enemyHintOrtho = -1f;
@@ -125,6 +128,7 @@ public class CameraManager : MonoBehaviour
 
         // 전투 시작 시 힌트 초기화
         _enemyHintOrtho = -1f;
+        _suppressBaseSizeOnce = true;
         ReturnToBase();
     }
 
@@ -253,7 +257,7 @@ public class CameraManager : MonoBehaviour
                 new Vector3(_enemyHintCenter.x, _enemyHintCenter.y, z),
                 rot
             );
-            SetOrthoSize(vcamEnemy, Mathf.Clamp(_enemyHintOrtho, minEnemySize, maxEnemySize));
+            SetOrthoSize(vcamEnemy, CW(Mathf.Clamp(_enemyHintOrtho, minEnemySize, maxEnemySize)));
         }
         else
         {
@@ -281,7 +285,7 @@ public class CameraManager : MonoBehaviour
             float size = ComputeOrthoSizeByBounds(b, padding, minEnemySize, maxEnemySize);
 
             SnapFocusTransform(vcamEnemy, b.center);
-            SetOrthoSize(vcamEnemy, size);
+            SetOrthoSize(vcamEnemy, CW(size));
         }
 
         Raise(vcamEnemy);
@@ -313,7 +317,7 @@ public class CameraManager : MonoBehaviour
         float size = ComputeOrthoSizeByBounds(b, padding, minSizeHero, maxSizeHero);
 
         SnapFocusTransform(vcamParty, b.center);
-        SetOrthoSize(vcamParty, size);
+        SetOrthoSize(vcamParty, CW(size));
 
         Raise(vcamParty);
     }
@@ -324,7 +328,12 @@ public class CameraManager : MonoBehaviour
         if (dungeonCam)
         {
             dungeonCam.Priority = focusPriority + 1;
-            SetOrthoSize(dungeonCam, baseOrthoSize); // 복원
+
+            // 전투 입장 직후 OrthoSize 확대 X
+            if (!_suppressBaseSizeOnce)
+                SetOrthoSize(dungeonCam, baseOrthoSize);
+
+            _suppressBaseSizeOnce = false;
         }
     }
 
@@ -359,6 +368,15 @@ public class CameraManager : MonoBehaviour
             cam.transform.rotation = dungeonCam.transform.rotation;
         // 원하는 고정 회전이 있으면 아래 라인으로 강제 가능:
         // cam.transform.rotation = Quaternion.Euler(10f, 0f, 0f);
+    }
+
+    // ======== OrthoSize 자동 조정 =========
+    // 기기별 가로폭 보정
+    private float CW(float size)
+    {
+        if (!applyConstantWidth) return size;
+        float curAspect = (Screen.height == 0) ? referenceAspect : (float)Screen.width / Screen.height;
+        return size * (referenceAspect / curAspect);
     }
 
     private static void SetOrthoSize(CinemachineVirtualCamera cam, float size)

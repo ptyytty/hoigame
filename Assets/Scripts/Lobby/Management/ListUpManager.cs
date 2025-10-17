@@ -29,9 +29,6 @@ public class ListUpManager : ListUIBase<Job>
     [SerializeField] private Button renameConfirm;
     [SerializeField] private Button renameCancel;
 
-    [Header("Growth Object")]
-    [SerializeField] private GameObject growthImage;
-
     [Header("Created Asset")]
     [SerializeField] private TestHero testHero;
 
@@ -139,11 +136,6 @@ public class ListUpManager : ListUIBase<Job>
     public void PricePanelState(bool state)
     {
         employPrice.SetActive(state);
-    }
-
-    public void GrowthPanelState(bool state)
-    {
-        growthImage.SetActive(state);
     }
 
     public void RecoveryPanelState(bool state)
@@ -261,7 +253,6 @@ public class ListUpManager : ListUIBase<Job>
     {
         EmployPanelState(false);
         PricePanelState(false);
-        GrowthPanelState(false);
         ResetButtonImage();          // 선택 버튼 스프라이트 원복(중복 호출 안전)
         CurrentSelectedHero = null;  // 선택 데이터도 정리
     }

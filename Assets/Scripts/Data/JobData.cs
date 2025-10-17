@@ -36,6 +36,77 @@ public class Job
     internal Dictionary<BuffType, int> BuffsDict => activeBuffs;
     internal Dictionary<BuffType, int> DebuffsDict => activeDebuffs;
 
+    // ======== 레벨 시스템 ==========
+    // 필요 경험치 테이블
+    private static readonly int[] ExpToNext = { 10, 15, 20, 25};
+    public const int MaxLevel = 5;
+
+    public void AddExp(int amount)
+    {
+        // 방어: 시작 레벨 1 보장
+        if (level <= 0) level = 1;
+
+        if (amount <= 0 || level >= MaxLevel) return;
+
+        exp += amount;
+
+        // 필요하면 연속 레벨업
+        while (level < MaxLevel)
+        {
+            int need = GetExpToNext();
+            if (exp < need) break;
+
+            exp -= need;   // 다음 레벨로 넘어가며 필요치 차감
+            level++;
+
+            if (level >= MaxLevel)
+            {
+                exp = 0;   // Max에서는 exp 고정
+                break;
+            }
+        }
+    }
+
+    public int GetRequiredExp()
+    {
+        return GameBalance.GetRequiredExpForLevel(level);
+    }
+
+    // 현재 레벨에서 다음 레벨까지 필요한 경험치량 반환.
+    public int GetExpToNext()
+    {
+        if (level >= MaxLevel) return 0;
+        int idx = Mathf.Clamp(level - 1, 0, ExpToNext.Length - 1);
+        return ExpToNext[idx];
+    }
+
+    // 현재 레벨에서의 경험치 진행률(0~1).
+    // Lv.5이면 1을 반환(막대 꽉 참).
+    public float GetExpProgress()
+    {
+        int req = GetRequiredExp();
+        if (req <= 0 || req == int.MaxValue) return 1f;
+        return Mathf.Clamp01((float)exp / req);
+    }
+
+    // 외부에서 레벨/경험치를 임의 세팅할 때도 규칙을 맞춰 정리.
+    // level은 최소 1, 최대 MaxLevel
+    // MaxLevel이면 exp=0, 아니면 0<=exp<ExpToNext(level)
+    public void NormalizeLevelExp()
+    {
+        level = Mathf.Clamp(level <= 0 ? 1 : level, 1, MaxLevel);
+
+        if (level >= MaxLevel)
+        {
+            exp = 0;
+        }
+        else
+        {
+            int need = GetExpToNext();
+            exp = Mathf.Clamp(exp, 0, Mathf.Max(0, need - 1));
+        }
+    }
+
     // 성장 확인
     public Dictionary<int, int> skillLevels = new();        // ★ key = heroId * BASE(100) + localSkillId
 
@@ -78,4 +149,18 @@ public enum JobCategory
     Ranged = 1,
     Special = 2,
     Healer = 3
+}
+
+/// <summary>
+/// 경험치/레벨 요구치 밸런스 테이블
+/// </summary>
+public static class GameBalance
+{
+    private static readonly int[] requiredExpTable = { 10, 15, 20, 25 };
+
+    public static int GetRequiredExpForLevel(int level)
+    {
+        int idx = Mathf.Clamp(level - 1, 0, requiredExpTable.Length - 1);
+        return requiredExpTable[idx];
+    }
 }

@@ -25,9 +25,11 @@ public class HealthBarUI : MonoBehaviour
     }
 
     // 단순 수동 세팅 API (DungeonPartyUI에서 사용)
-    public void Set(int cur, int max)
+    public void Set(int hp, int maxHp)
     {
-        if (fill) fill.fillAmount = max > 0 ? (float)cur / max : 0f;
+        if (!fill) return;
+        float ratio = (maxHp <= 0) ? 0f : (float)hp / maxHp;
+        fill.fillAmount = Mathf.Clamp01(ratio);
     }
 
     private void OnDestroy()
