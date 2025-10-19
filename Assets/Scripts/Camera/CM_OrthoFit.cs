@@ -52,6 +52,7 @@ public class CM_OrthoFit : MonoBehaviour
     {
         if (!vcam) return;
         int w = Screen.width, h = Screen.height;
+        if (w <= 0 || h <= 0) return;
         if (!force && w == lastW && h == lastH) return;
         lastW = w; lastH = h;
 

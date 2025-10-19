@@ -12,6 +12,7 @@ public class LobbyManager : MonoBehaviour
     [SerializeField] private GameObject panelStore;
     [SerializeField] private GameObject panelManagement;
     [SerializeField] private GameObject panelDungeonPreparation;
+
     [Header("Main Lobby")]
     [SerializeField] private GameObject btnFriend;
     [SerializeField] private GameObject btnMailbox;
@@ -43,11 +44,13 @@ public class LobbyManager : MonoBehaviour
     public void OnClickManagement()
     {
         panelManagement.SetActive(true);
+        listUpManager.PricePanelState(true);
         undoBtn.SetActive(true);
 
         panelMenu.SetActive(false);
         btnFriend.SetActive(false);
         btnMailbox.SetActive(false);
+        listUpManager.ApplyPanelState(false);
     }
 
     public void OnclickShowStore()
@@ -81,6 +84,7 @@ public class LobbyManager : MonoBehaviour
             btnMailbox.SetActive(true);
 
             panelManagement.SetActive(false);
+            listUpManager.RecoveryPanelState(false);
             undoBtn.SetActive(false);
 
             listUpManager.ResetButtonImage();

@@ -22,6 +22,7 @@ public class SafeAreaFitter : MonoBehaviour
 
     void Apply()
     {
+        if (Screen.width <= 0 || Screen.height <= 0) return;
         lastSafe = Screen.safeArea;
         lastSize = new Vector2Int(Screen.width, Screen.height);
 

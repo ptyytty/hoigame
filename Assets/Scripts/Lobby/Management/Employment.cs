@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Scripting;
 using System;
+using System.Collections;
 
 public class Employment : ListUIBase<Job>
 {
@@ -139,23 +140,23 @@ public class Employment : ListUIBase<Job>
 
 
 
-    // ===== 상속 훅 구현 =====
-
-    // LoadList()는 랜덤 뽑기 X
+    // ===== 상속 훅 =====
     protected override void LoadList()
     {
         // 베이스가 호출할 수도 있으니 안전하게 캐시 재그리기만 수행
-        RebuildListUIFromCache();
+        RebuildListUIFromCache();       // 리스트 재호출 (랜덤 뽑기)
     }
 
     [Preserve]
     protected override void SetLabel(Button button, Job hero)
     {
         // 버튼 프리팹 내부 텍스트 바인딩
+        var heroImage = button.transform.Find("HeroImage")?.GetComponent<Image>();
         var nameText = button.transform.Find("Text_Name")?.GetComponent<TMP_Text>();
         var jobText = button.transform.Find("Text_Job")?.GetComponent<TMP_Text>();
         var levelText = button.transform.Find("Text_Level")?.GetComponent<TMP_Text>();
 
+        if (heroImage) heroImage.sprite = hero.portrait;
         if (nameText) nameText.text = hero.name_job;
         if (jobText) jobText.text = hero.jobCategory.ToString(); // ⬅ 기존 코드에선 name_job을 ToString() 하던 버그 수정  :contentReference[oaicite:6]{index=6}
         if (levelText) levelText.text = $"Lv.{hero.level}";
@@ -245,17 +246,18 @@ public class Employment : ListUIBase<Job>
         // 좌측 ‘내 보유 영웅’ 리스트 갱신 (여기서부터는 instanceId 기준 동기화가 가능)
         heroListUp?.RefreshHeroList();
         listUpManager?.RefreshList();
+
+        StartCoroutine(ResetAfterHire());       // 선택 이미지 초기화
     }
 
-    // ✅ 고용용 복제 유틸: DB의 원본 Job을 그대로 쓰지 않고 새 인스턴스를 만들어 instanceId 부여
+    // 고용 시 instanceId 부여 및 복제 (DB 영향 X)
     private Job CopyForHire(Job src)
     {
-        // ※ 프로젝트의 Job 필드들에 맞게 필요한 필드를 모두 복사하세요.
-        //   아래는 대표 필드 예시입니다.
         var copy = new Job
         {
             // ====== 식별/표시 관련 ======
             id_job = src.id_job,        // 타입/직업 ID(정적 식별자)
+            displayName = src.displayName ?? src.name_job,
             name_job = src.name_job,      // 영웅 이름(표시용)
             portrait = src.portrait,      // 초상 스프라이트(레퍼런스 복사)
 
@@ -279,6 +281,21 @@ public class Employment : ListUIBase<Job>
         // ✅ 고유 인스턴스 ID 부여 (모바일 빌드에서도 안전한 GUID 문자열)
         copy.instanceId = System.Guid.NewGuid().ToString("N"); // 32자, 하이픈 없음
         return copy;
+    }
+
+    // 고용 후 UI 초기화
+    private IEnumerator ResetAfterHire()
+    {
+        yield return null; // 한 프레임 뒤에 실행 (UI 반영 대기)
+
+        // 선택 버튼 초기화
+        ResetButtonImage();
+
+        if (pricePanel) pricePanel.SetActive(false);
+        confirmButton.gameObject.SetActive(false);
+        employText.text = "고용";
+        listUpManager?.EmployPanelState(false);
+        selectedHero = null;
     }
 
     // 외부에서 호출하는 기존 API 유지

@@ -40,6 +40,7 @@ public class CameraLetterbox : MonoBehaviour
     public void ApplyRect(bool force = false)
     {
         int w = Screen.width, h = Screen.height;
+        if (w <= 0 || h <= 0) return;
         if (!force && (w == lastW && h == lastH)) return;
         lastW = w; lastH = h;
 

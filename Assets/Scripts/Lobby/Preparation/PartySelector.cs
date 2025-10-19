@@ -13,6 +13,7 @@ public class PartySelector : MonoBehaviour
     [Header("Hero List / Scripts")]
     [SerializeField] private HeroListUp heroListUp;
     [SerializeField] private ItemList itemList;
+    [SerializeField] private Recovery recovery;
 
     [Header("Interact Panels")]
     [SerializeField] private GameObject partyPanel;
@@ -507,7 +508,7 @@ public class PartySelector : MonoBehaviour
     }
 
     // 던전 입장
-    public void OnClickEnterDungeon()
+    public async void OnClickEnterDungeon()
     {
         // 안전망: 중복 검사
         var set = new HashSet<Job>();
@@ -519,6 +520,9 @@ public class PartySelector : MonoBehaviour
 
         PartyBridge.Instance.dungeonLoadoutSnapshot = prepInventory.CreateSnapshot();       // 인벤토리 전달
         PartyBridge.Instance.SetParty(AssignedHeroes);                                      // 파티 전달
+
+        recovery.ResetHealLocks();          // 의무실 잠금 해제
+
         SceneManager.LoadScene("Dungeon_Oratio");
     }
 

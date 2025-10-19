@@ -74,6 +74,7 @@ public class InteractableManager : MonoBehaviour
 #endif
     }
 
+    // 상호작용 가능 오브젝트 스캔
     void AssignInteractables()
     {
         foreach (GameObject obj in candidates)
@@ -97,6 +98,7 @@ public class InteractableManager : MonoBehaviour
         ApplyGlobalOutlineSettings(false);
     }
 
+    // 계단 오브젝트 스캔
     void AutoFindFloorAndScan()
     {
         GameObject[] floorObject = GameObject.FindGameObjectsWithTag("Floor");
@@ -177,6 +179,7 @@ public class InteractableManager : MonoBehaviour
 
     public void SetCurrentObjectTarget(Interactable it) => currentObjectTarget = it;
 
+    // 상호작용 UI 표시
     public void SetInteractButtonsVisible(bool up, bool down, bool obj)
     {
         if (interactionUp) interactionUp.gameObject.SetActive(up);
@@ -184,6 +187,7 @@ public class InteractableManager : MonoBehaviour
         if (interactionObj) interactionObj.SetActive(obj);
     }
 
+    // 상호작용 보상 토스트
     void GrantObjectRewardAndToast()
     {
         if (currentObjectTarget == null) return;
@@ -212,6 +216,48 @@ public class InteractableManager : MonoBehaviour
             interactionDown && interactionDown.gameObject.activeSelf,
             false
         );
+    }
+
+    // 전투 시작 시 호출
+    public void EnterBattleMode()
+    {
+        // 버튼/타깃/오브젝트 UI 전부 OFF
+        SetInteractButtonsVisible(false, false, false);
+        if (currentObjectTarget) { currentObjectTarget.ShowUI(false); currentObjectTarget = null; }
+
+        // 씬 내 모든 Interactable의 UI/아웃라인 비활성화
+        var all = FindObjectsOfType<Interactable>(true);
+        foreach (var it in all) it.ShowUI(false);
+
+        // 아웃라인 전부 강제 OFF
+        SetAllOutlines(false);
+
+        // 스캐너 중단
+        var scanners = FindObjectsOfType<InteractionScanner>(true);
+        foreach (var s in scanners) s.enabled = false;
+    }
+
+    // 전투 종료 시
+    public void ExitBattleMode()
+    {
+        // 스캐너 다시 켜기 (Update에서 즉시 스캔됨)
+        var scanners = FindObjectsOfType<InteractionScanner>(true);
+        foreach (var s in scanners) s.enabled = true;
+
+        StartCoroutine(ForceScanNextFrame(scanners));
+    }
+
+    // 강제 스캔
+    private IEnumerator ForceScanNextFrame(InteractionScanner[] scanners)
+    {
+        yield return null; // 다음 프레임까지 대기
+        foreach (var s in scanners) if (s && s.isActiveAndEnabled) s.ForceOneScan();
+    }
+
+    // 공개 래퍼 (기존 ForceAllOutlines를 감싸서 외부에서도 호출 가능)
+    public void SetAllOutlines(bool on)
+    {
+        var list = FindObjectsOfType<OutlineDuplicator>(true);
     }
 
     /// <summary>

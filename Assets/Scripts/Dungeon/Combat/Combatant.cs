@@ -31,20 +31,18 @@ public class Combatant : MonoBehaviour
     private readonly Dictionary<BuffType, int> _monsterDebuffTurns = new();
     public bool Marked => HasDebuff(BuffType.Sign);
 
-    /// <summary>
-    /// 턴 정렬에 사용하는 spd (버프/디버프 적용 시 수정 가능)
-    /// </summary>
+
+    // 턴 정렬에 사용하는 spd (버프/디버프 적용 시 수정 가능)
     public int EffectiveSpeed => GetCurrentSpeed();
-
-    // --- 계산에 사용할 '기본값' 안전 접근 ---
-    private int BaseDefense => (hero != null) ? hero.def : 0;
-    private int BaseResistance => (hero != null) ? hero.res : 0;
-    private int BaseHit => (hero != null) ? hero.hit : 0;
-
-    // --- 계산 Getter ---
+    // --- 현재 능력치 정보 ---
     public int GetCurrentDefense() => Mathf.Max(0, BaseDefense + SumAbility(BuffType.Defense));
     public int GetCurrentResistance() => Mathf.Max(0, BaseResistance + SumAbility(BuffType.Resistance));
     public int GetCurrentHit() => Mathf.Max(0, BaseHit + SumAbility(BuffType.Hit));
+
+    // --- side 기준 계산에 사용할 기본값 조회 ---
+    private int BaseDefense    => side == Side.Hero ? (hero?.def ?? 0) : (monsterData?.def ?? 0);
+    private int BaseResistance => side == Side.Hero ? (hero?.res ?? 0) : (monsterData?.res ?? 0);
+    private int BaseHit        => side == Side.Hero ? (hero?.hit ?? 0) : (monsterData?.hit ?? 0);
 
     /// <summary>
     /// Combatant의 UI 이름
@@ -125,11 +123,12 @@ public class Combatant : MonoBehaviour
     {
         side = Side.Hero;
         hero = h;
+        monsterData = null;
+
         baseSpeed = h.spd;
         maxHp = Mathf.Max(1, h.maxHp > 0 ? h.maxHp : h.hp);
         currentHp = Mathf.Clamp(h.hp, 0, maxHp);
 
-        // 초기 배치: Job.loc(0=None이면 Front로 폴백)
         currentLoc = (Loc)Mathf.Clamp(h.loc, 0, 2);
         if (currentLoc == Loc.None) currentLoc = Loc.Front;
 
@@ -141,15 +140,19 @@ public class Combatant : MonoBehaviour
     /// </summary>
     public void InitMonster(MonsterData md)
     {
+        Debug.Log($"[InitMonster] {monsterData?.displayname} hp={md.hp} spd={md.spd} hit={md.hit} def={md.def} res={md.res}");
+
         side = Side.Enemy;
         monsterData = md;
+        hero = null;
+
         if (md != null)
         {
             baseSpeed = md.spd;
             currentHp = md.hp;
             maxHp = md.hp;
-
             currentLoc = monsterData.loc;
+            if (currentLoc == Loc.None) currentLoc = Loc.Front;
         }
         else
         {
@@ -355,7 +358,7 @@ public class Combatant : MonoBehaviour
         return false;
     }
 
-    // === Buff/CC 브리지: 영웅은 Job으로, 몬스터는 내부로(추후 확장) ===
+    // === Buff/CC 브리지: 영웅은 Job으로, 몬스터는 내부로 ===
 
     // 능력치 버프 수치 조정
     public void AddStatus(BuffType type, int duration)
@@ -376,6 +379,7 @@ public class Combatant : MonoBehaviour
         else AddBuff(type, duration);
     }
 
+    // 버프 추가
     public void AddBuff(BuffType type, int duration)
     {
         if (hero != null) { hero.AddBuff(type, duration); Debug.Log($"[Buff/Add] {DisplayName}: +{type} ({duration}T, HeroDict)"); return; }
@@ -387,6 +391,7 @@ public class Combatant : MonoBehaviour
 
     }
 
+    // 버프 제거
     public void AddDebuff(BuffType type, int duration)
     {
         if (duration <= 0) duration = 1;
@@ -396,6 +401,19 @@ public class Combatant : MonoBehaviour
         int cur = _monsterDebuffTurns.TryGetValue(type, out var v) ? v : 0;
         _monsterDebuffTurns[type] = Mathf.Max(cur, duration);
         Debug.Log($"[Debuff/Add] {DisplayName}: +{type} ({duration}T, MonsterDict)");
+    }
+
+    // 특정 디버프 즉시 제거
+    public bool RemoveDebuff(BuffType type)
+    {
+        if (hero != null)
+        {
+            return hero.DebuffsDict != null && hero.DebuffsDict.Remove(type);
+        }
+        else
+        {
+            return _monsterDebuffTurns != null && _monsterDebuffTurns.Remove(type);
+        }
     }
 
     public bool HasBuff(BuffType type)

@@ -273,25 +273,25 @@ public class BattleManager : MonoBehaviour
             return;
         }
 
-        // 1) 정리 전, 직전 배우(anchor) 참조 확보
+        // 직전 캐릭터 참조
         UnitEntry anchor = _lastActorRef;
         Combatant anchorC = anchor != null ? anchor.combatant : null;
 
-        // 2) 사망/이탈 정리 (여기 '한 곳'에서만 수행)
+        // 사망 정리 (여기 '한 곳'에서만 수행)
         initiative = initiative.Where(u => u != null && u.IsAlive && u.combatant).ToList();
 
-        // 3) 몬스터 전멸 확인
+        // 몬스터 전멸 확인
         TryEndBattleIfEnemiesDefeated();
         if (initiative.Count == 0) return;
 
-        // 4) anchor의 '새 인덱스' 찾기 (오브젝트가 같으면 같은 참조)
+        // anchor의 '새 인덱스' 찾기 (오브젝트가 같으면 같은 참조)
         int baseIdx = -1;
         if (anchorC != null)
         {
             baseIdx = initiative.FindIndex(u => u.combatant == anchorC);
         }
 
-        // 5) 다음 배우로 이동 (anchor 뒤로 한 칸)
+        // 다음 캐릭터로 이동 (anchor 뒤로 한 칸)
         //    - anchor가 사라졌거나 첫 턴이면 baseIdx == -1 → 0부터 시작하도록 처리
         turnIndex = ((baseIdx < 0 ? -1 : baseIdx) + 1) % initiative.Count;
         var actor = initiative[turnIndex];
@@ -303,7 +303,7 @@ public class BattleManager : MonoBehaviour
             return;
         }
 
-        // '이번 턴 배우'를 다음 루프의 anchor로 기록
+        // '이번 턴 캐릭터'를 다음 루프의 anchor로 기록
         _lastActorRef = actor;
 
         ClearTauntIfOwnerTurnStarts(actor.combatant);       // actor가 도발 유닛일 경우 도발 해제
@@ -429,7 +429,7 @@ public class BattleManager : MonoBehaviour
         }
         else
         {
-            // 이미 꺼진 상태라면 하이라이트만 안전하게 정리하고 끝
+            // 이미 꺼진 상태라면 하이라이트만 정리하고 끝
             SkillTargetHighlighter.Instance?.ClearAll();
         }
 
@@ -539,6 +539,25 @@ public class BattleManager : MonoBehaviour
         return Mathf.Max(1, dmg);
     }
 
+    // 전투 시작 시 기절/도발 해제
+    private void ClearCrowdControlsAtBattleEnd()
+    {
+        var all = FindObjectsOfType<Combatant>(true);
+        foreach (var c in all)
+        {
+            if (c == null || !c.IsAlive) continue;
+            if (c.side != Side.Hero) continue; // 영웅만 유지 대상
+
+            // CC만 제거
+            c.RemoveDebuff(BuffType.Faint);
+            c.RemoveDebuff(BuffType.Taunt);
+        }
+
+        // 도발 소유자 레퍼런스도 정리(방어적)
+        _tauntHeroSide = null;
+        _tauntEnemySide = null;
+    }
+
     // ========================= 도발 기능 ======================
     // 도발 시작 (스킬 효과에서 호출)
     public void BeginTaunt(Combatant protector)
@@ -605,36 +624,45 @@ public class BattleManager : MonoBehaviour
         if (eff is AbilityBuff ab) return ab.value < 0;
 
         if (eff is HealEffect) return false;
-        // (있다면) HealEffect, Pure BuffEffect 등은 우호적으로 처리
-        // 필요시 추가: if (eff is HealEffect) return false; ...
 
         return false; // 기본은 Friendly 취급
     }
 
-    // 6) 도발 처리 / 한 스킬이 중복 적용되는 것 방지 (범위 공격) 
+    // 도발 처리 / 한 스킬이 중복 적용되는 것 방지 (범위 공격) 
     private void ApplySkillEffectsWithTaunt(Combatant caster, Skill skill, List<Combatant> finalTargets)
     {
         if (caster == null || skill == null || finalTargets == null || finalTargets.Count == 0) return;
 
-        foreach (var eff in skill.effects)
+        int _prevCorrection = SkillCastContext.CorrectionHit;   // 보정치 복구용
+        SkillCastContext.CorrectionHit = skill.correctionHit;
+
+        try
         {
-            Debug.Log($"[Skill/Apply] {caster.DisplayName} uses '{skill.skillName}' → Effect={eff.GetType().Name}, Targets={finalTargets.Count}");
 
-            var appliedOnce = new HashSet<Combatant>(); // 같은 이펙트가 같은 대상에 여러 번 들어가는 것 방지
-            foreach (var tgt in finalTargets)
+            foreach (var eff in skill.effects)
             {
-                if (tgt == null || !tgt.IsAlive) continue;
+                Debug.Log($"[Skill/Apply] {caster.DisplayName} uses '{skill.skillName}' → Effect={eff.GetType().Name}, Targets={finalTargets.Count}");
 
-                var realTarget = RedirectPerEffectIfTaunt(caster, eff, tgt);
-                if (!appliedOnce.Add(realTarget))
+                var appliedOnce = new HashSet<Combatant>(); // 같은 이펙트가 같은 대상에 여러 번 들어가는 것 방지
+                foreach (var tgt in finalTargets)
                 {
-                    Debug.Log($"[Skill/SkipDuplicate] Effect={eff.GetType().Name} already applied to {realTarget.DisplayName}");
-                    continue; // 같은 이펙트가 같은 타깃에 중복 적용되는 것 차단
-                }
+                    if (tgt == null || !tgt.IsAlive) continue;
 
-                Debug.Log($"[Skill/Effect→Target] {eff.GetType().Name} → {realTarget.DisplayName}");
-                eff?.Apply(caster, realTarget);
+                    var realTarget = RedirectPerEffectIfTaunt(caster, eff, tgt);
+                    if (!appliedOnce.Add(realTarget))
+                    {
+                        Debug.Log($"[Skill/SkipDuplicate] Effect={eff.GetType().Name} already applied to {realTarget.DisplayName}");
+                        continue; // 같은 이펙트가 같은 타깃에 중복 적용되는 것 차단
+                    }
+
+                    Debug.Log($"[Skill/Effect→Target] {eff.GetType().Name} → {realTarget.DisplayName}");
+                    eff?.Apply(caster, realTarget);
+                }
             }
+        }
+        finally
+        {
+            SkillCastContext.CorrectionHit = _prevCorrection;       // 원래 보정치로 복구 (다음 스킬에 영향 X)
         }
     }
 
@@ -725,24 +753,25 @@ public class BattleManager : MonoBehaviour
     // 전투 승리 후 전투 패널 초기화 / 이동 UI 전환
     void EndBattle_Victory()
     {
-        // 1) 타게팅/하이라이트/UI 정리
+        // 타게팅/하이라이트/UI 정리
         SkillTargetHighlighter.Instance?.ClearAll();
         CancelTargeting();                   // 대상 지정 상태 강제 종료
         uiManager?.ClearSkillSelection();
         uiManager?.CloseAll();               // UIManager에 있는 통합 닫기
+        ClearCrowdControlsAtBattleEnd();
 
         OnSkillCommitted = null;
 
-        // 2) 내부 턴 상태 초기화
+        // 턴 상태 초기화
         initiative?.Clear();
         turnIndex = -1;
 
-        // 3) === 보상 산정: 소울 1개 고정 + 코인 랜덤 ===
+        // 보상 산정
         var soulType = (SoulType)UnityEngine.Random.Range(0, 3); // 0~2 (3종)
         int soulAmount = 1;                                      // ✔ 고정 1
         int coinAmount = UnityEngine.Random.Range(coinRangePerBattle.x, coinRangePerBattle.y + 1);
 
-        // 4) 누적 저장(던전 내 보상 전체)
+        // 보상 누적 저장(던전 내 보상 전체)
         if (RunReward.Instance == null)
         {
             var go = new GameObject("RunReward");
@@ -750,14 +779,14 @@ public class BattleManager : MonoBehaviour
         }
         RunReward.Instance.AddBattleDrop(soulType, soulAmount, coinAmount); // 저장 훅 타도록
 
-        // 5) 토스트 표시는 DungeonManager에 위임(애니메이션 포함)
+        // 토스트 표시 위임
         if (DungeonManager.instance)
             DungeonManager.instance.ShowBattleRewardToast(soulType, soulAmount, coinAmount);
-    
+
         // 던전 퀘스트 진행 알림(전투 1회 클리어)
         DungeonManager.instance?.NotifyBattleWon();
 
-        // 6) 던전 UI 복구(중앙집중)
+        // 6) 던전 UI 복구
         if (DungeonManager.instance)
             DungeonManager.instance.ShowDungeonUIAfterBattle();     // UI 복구 및 보상 UI
 

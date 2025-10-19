@@ -51,7 +51,7 @@ public class SpawnerPlacer : MonoBehaviour
     const string kPlacedPrefix = "EnemySpawner_";
     Transform _container; // 실제 생성 부모
 
-    static bool s_placedThisPlay;  // 플레이 중 1회만
+    private bool s_placedThisPlay;
 
     void Awake()
     {
@@ -60,6 +60,7 @@ public class SpawnerPlacer : MonoBehaviour
 
     void Start()
     {
+        // 스포너 자동 배치
         if (runOnStart && !s_placedThisPlay)
         {
             PlaceNow();

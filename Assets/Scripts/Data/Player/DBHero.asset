@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   jobs:
   - id_job: 0
-    portrait: {fileID: 0}
+    portrait: {fileID: 21300000, guid: 16d097a716fd54d428e357f8b9d0092f, type: 3}
     name_job: "\uC131\uAE30\uC0AC"
     level: 0
     exp: 0
@@ -29,7 +29,7 @@ MonoBehaviour:
     jobCategory: 0
     equippedItemId: 0
   - id_job: 1
-    portrait: {fileID: 0}
+    portrait: {fileID: 21300000, guid: 8f32888aa219cdd49a92544b77c3812a, type: 3}
     name_job: "\uB098\uBB34\uAFBC"
     level: 0
     exp: 0

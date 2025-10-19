@@ -16,9 +16,10 @@ public class ListUI : MonoBehaviour
         public TextMeshProUGUI label;
         public GameObject panel;
         [HideInInspector] public Material baseMaterial;
+        [HideInInspector] public bool materialReady;    // 중복 복제 방지
     }
 
-    [SerializeField] private List<ToggleImagepair> listTabToggles;
+    [SerializeField] private List<ToggleImagepair> listTabToggles;      // 0 = 이름 1 = 직업 2 = 레벨
     [SerializeField] private List<ToggleImagepair> mainTabToggles;
 
     [SerializeField] private GameObject infoPanel;
@@ -27,10 +28,10 @@ public class ListUI : MonoBehaviour
     [SerializeField] private ListUpManager listUpManager;
     [SerializeField] private Employment employment;
 
-    private Color defaultTextColor = new Color(185f / 255f, 185f / 255f, 185f / 255f, 1f);
-    private Color selectedTextColor = new Color(1f, 1f, 1f, 1f);
-    private Color selectedOutlineColor = new Color(164f / 255f, 109f / 255f, 9f / 255f, 1f);
-    private float selectedOutlineWidth = 0.18f;
+    private readonly Color defaultTextColor = new Color(185f / 255f, 185f / 255f, 185f / 255f, 1f);
+    private readonly Color selectedTextColor = new Color(1f, 1f, 1f, 1f);
+    private readonly Color selectedOutlineColor = new Color(164f / 255f, 109f / 255f, 9f / 255f, 1f);
+    private const float selectedOutlineWidth = 0.18f;
 
 
     private Toggle currentListTab;
@@ -38,55 +39,47 @@ public class ListUI : MonoBehaviour
 
     void OnEnable()
     {
-        for (int i = 0; i < listTabToggles.Count; i++)
-        {
-            int index = i;
-            if (index == 0)
-            {
-                listTabToggles[index].toggle.isOn = true;
-                currentListTab = listTabToggles[index].toggle;
-            }
-            else
-            {
-                listTabToggles[index].toggle.isOn = false;
-            }
-        }
-
-        for (int i = 0; i < mainTabToggles.Count; i++)
-        {
-            int index = i;
-            if (index == 0)
-            {
-                mainTabToggles[index].toggle.isOn = true;
-                currentMainTab = mainTabToggles[index].toggle;
-            }
-            else
-            {
-                mainTabToggles[index].toggle.isOn = false;
-            }
-        }
+        InitExclusiveToggles(listTabToggles, ref currentListTab);
+        InitExclusiveToggles(mainTabToggles, ref currentMainTab);
 
         SetListTabToggles();
         SetMainTabToggles();
 
         UpdateToggle(listTabToggles);
+
+        NotifySortChangedByCurrentListTab();
     }
 
+    // 토글 초기화
+    private void InitExclusiveToggles(List<ToggleImagepair> pairs, ref Toggle currentTab)
+    {
+        for (int i = 0; i < pairs.Count; i++)
+        {
+            var t = pairs[i].toggle;
+            bool on = (i == 0);
+            t.isOn = on;
+            if (on) currentTab = t;
+        }
+    }
+
+    // 리스트 탭 바인딩
     void SetListTabToggles()
     {
-        foreach (ToggleImagepair pair in listTabToggles)
+        foreach (var pair in listTabToggles)
         {
-            pair.baseMaterial = new Material(pair.label.fontMaterial);
-            pair.label.fontMaterial = pair.baseMaterial;
+            PrepareMaterialIfNeeded(pair);
+
+            pair.toggle.onValueChanged.RemoveAllListeners();
             pair.toggle.onValueChanged.AddListener((isOn) =>
             {
                 OnToggleChanged(listTabToggles, pair, ref currentListTab);
+                if (isOn) NotifySortChanged(pair); // 정렬 기준 변경
             });
         }
-
         UpdateToggle(listTabToggles);
     }
 
+    // 리스트 탭 바인딩
     void SetMainTabToggles()
     {
         foreach (ToggleImagepair pair in mainTabToggles)
@@ -105,50 +98,72 @@ public class ListUI : MonoBehaviour
 
     void OnToggleChanged(List<ToggleImagepair> togglepairs, ToggleImagepair pair, ref Toggle currentTab)
     {
-        if (currentTab == pair.toggle)
-            return;
-
+        if (currentTab == pair.toggle && pair.toggle.isOn) return;
         currentTab = pair.toggle;
-
         UpdateToggle(togglepairs);
     }
 
-    void UpdateToggle(List<ToggleImagepair> toggleImagepairs)
+    // 토글 비주얼 적용
+    void UpdateToggle(List<ToggleImagepair> pairs)
     {
-        foreach (ToggleImagepair pair in toggleImagepairs)
+        for (int i = 0; i < pairs.Count; i++)
         {
-            bool ison = pair.toggle.isOn;
+            var pair = pairs[i];
+            bool isOn = pair.toggle.isOn;
 
-            if (ison)
+            if (pair.panel) pair.panel.SetActive(isOn);
+
+            if (pair.background) pair.background.SetActive(isOn);
+            pair.label.color = isOn ? selectedTextColor : defaultTextColor;
+
+            // TMP 머티리얼 파라미터 적용
+            var mat = pair.label.fontMaterial;
+            if (isOn)
             {
-                if (pair.panel != null) pair.panel.SetActive(true);
-
-                pair.background.SetActive(true);
-                pair.label.color = selectedTextColor;
-                pair.label.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, selectedOutlineWidth);
-                pair.label.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, selectedOutlineColor);
+                mat.SetFloat(ShaderUtilities.ID_OutlineWidth, selectedOutlineWidth);
+                mat.SetColor(ShaderUtilities.ID_OutlineColor, selectedOutlineColor);
+                // Underlay(그림자)
+                mat.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0.5f);
+                mat.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 1.5f);
+                mat.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -1.5f);
+                mat.SetColor(ShaderUtilities.ID_UnderlayColor, new Color(0, 0, 0, 0.5f));
                 pair.label.alpha = 1f;
-
-                // ✅ 그림자(Underlay) 설정
-                pair.label.fontMaterial.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0.5f);
-                pair.label.fontMaterial.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 1.5f);
-                pair.label.fontMaterial.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -1.5f);
-                pair.label.fontMaterial.SetColor(ShaderUtilities.ID_UnderlayColor, new Color(0, 0, 0, 0.5f)); // 약간 반투명한 검정
             }
-
-            if (!ison)
+            else
             {
-                if (pair.panel != null) pair.panel.SetActive(false);
+                mat.SetFloat(ShaderUtilities.ID_OutlineWidth, 0f);
+                mat.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0f);
+                mat.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 0f);
+                mat.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, 0f);
+                mat.SetColor(ShaderUtilities.ID_UnderlayColor, new Color(0, 0, 0, 0f));
+            }
+        }
+    }
 
-                pair.background.SetActive(false);
-                pair.label.color = defaultTextColor;
-                pair.label.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0f);
+    // 정렬 토글 전달
+    private void NotifySortChanged(ToggleImagepair pair)
+    {
+        if (listUpManager == null) return;
 
-                // ✅ 그림자 제거
-                pair.label.fontMaterial.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0f);
-                pair.label.fontMaterial.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 0f);
-                pair.label.fontMaterial.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, 0f);
-                pair.label.fontMaterial.SetColor(ShaderUtilities.ID_UnderlayColor, new Color(0, 0, 0, 0f));
+        int idx = listTabToggles.IndexOf(pair);
+        switch (idx)
+        {
+            case 0: listUpManager.SetSortType(ListUpManager.SortType.Name); break;
+            case 1: listUpManager.SetSortType(ListUpManager.SortType.Job); break;
+            case 2: listUpManager.SetSortType(ListUpManager.SortType.Level); break;
+            default: listUpManager.SetSortType(ListUpManager.SortType.Name); break;
+        }
+    }
+
+    // 초기화
+    private void NotifySortChangedByCurrentListTab()
+    {
+        for (int i = 0; i < listTabToggles.Count; i++)
+        {
+            if (listTabToggles[i].toggle.isOn)
+            {
+                NotifySortChanged(listTabToggles[i]);
+                break;
             }
         }
     }
@@ -166,6 +181,7 @@ public class ListUI : MonoBehaviour
             employment.ResetButtonImage();
 
             listUpManager.RecoveryPanelState(false);
+            listUpManager.ApplyPanelState(false);
         }
         else if (toggle == mainTabToggles[1])
         {
@@ -174,16 +190,17 @@ public class ListUI : MonoBehaviour
             listUpManager.EmployPanelState(false);
             listUpManager.PricePanelState(false);
 
-            listUpManager.RecoveryPanelState(false);
-        }
-        else if (toggle == mainTabToggles[2])
-        {
-            listUpManager.ResetButtonImage();
-            
-            listUpManager.EmployPanelState(false);
-            listUpManager.PricePanelState(false);
-
             listUpManager.RecoveryPanelState(true);
+            listUpManager.ApplyPanelState(true);
         }
+    }
+    
+    // 라벨 디자인 머테리얼 복제 적용
+    private void PrepareMaterialIfNeeded(ToggleImagepair pair)
+    {
+        if (pair.materialReady || pair.label == null) return;
+        pair.baseMaterial = new Material(pair.label.fontMaterial);
+        pair.label.fontMaterial = pair.baseMaterial;
+        pair.materialReady = true;
     }
 }

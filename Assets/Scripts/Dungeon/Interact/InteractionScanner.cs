@@ -18,6 +18,9 @@ public class InteractionScanner : MonoBehaviour
         ScanForInteractable();
     }
 
+    // 강제 스캔 (InteractableManager 호출)
+    public void ForceOneScan() => ScanForInteractable();
+
     void ScanForInteractable()
     {
         Vector3 origin = transform.position + Vector3.up * 1.2f;

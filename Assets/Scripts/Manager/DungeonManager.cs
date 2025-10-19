@@ -102,9 +102,6 @@ public class DungeonManager : MonoBehaviour
     {
         if (instance != null && instance != this) { Destroy(gameObject); return; }
         instance = this;
-
-        // ✅ 전투 시작 이벤트 구독(게임 시작부터 살아있게)
-        EnemySpawner.OnBattleStart += HandleBattleStart;
     }
 
     void Start()
@@ -123,7 +120,7 @@ public class DungeonManager : MonoBehaviour
         // 1) PartyBridge → DungeonInventory로 스냅샷 1회 적용
         //ApplyInitialInventoryFromBridge_Once();
 
-        _totalBattlesInThisDungeon = FindObjectsOfType<EnemySpawner>(true).Length; // 이번 던전 전투 총 수
+        StartCoroutine(CoLateCountSpawners()); // 스포너 배치
         _battlesCleared = 0;
 
         InitQuestOnEnter(); // 던전 입장 시 퀘스트 HUD 세팅
@@ -136,7 +133,17 @@ public class DungeonManager : MonoBehaviour
         CaptureDungeonEntrySnapshot();      // 입장 시 현재 파티 정보 저장
     }
 
-    void Onable() { EnemySpawner.OnBattleStart += HandleBattleStart; }
+    private IEnumerator CoLateCountSpawners()
+    {
+        // [역할] 스포너 배치가 끝난 다음 프레임에 전투 수를 계산
+        yield return null; // 한 프레임 대기
+        _totalBattlesInThisDungeon = FindObjectsOfType<EnemySpawner>(true).Length;
+        // 필요시 퀘스트 HUD 리프레시
+        UpdateQuestHud();
+    }
+
+
+    void OnEnable() { EnemySpawner.OnBattleStart += HandleBattleStart; }
     void OnDisable() { EnemySpawner.OnBattleStart -= HandleBattleStart; }
 
     public Transform partyTransform;
@@ -155,6 +162,7 @@ public class DungeonManager : MonoBehaviour
 
         moveLeft.SetActive(false);
         moveRight.SetActive(false);
+        InteractableManager.instance?.EnterBattleMode();        // 전투 시작 -> 상호작용 중지   
 
         battleUI.SetActive(true);
 
@@ -164,11 +172,11 @@ public class DungeonManager : MonoBehaviour
     // 전투 종료 => UI 전환
     public void ShowDungeonUIAfterBattle()
     {
-        // TODO: 전투 보상 화면 추가
-
         if (battleUI) battleUI.SetActive(false);
+
         if (moveLeft) moveLeft.SetActive(true);
         if (moveRight) moveRight.SetActive(true);
+        InteractableManager.instance?.ExitBattleMode();         // 전투 종료 -> 상호작용 복구
 
         if (rewardButton) rewardButton.interactable = true;
     }

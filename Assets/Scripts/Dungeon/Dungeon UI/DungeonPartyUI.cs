@@ -30,7 +30,8 @@ public class DungeonPartyUI : MonoBehaviour
     [SerializeField] private List<SlotRefs> slots = new List<SlotRefs>(4);
 
     [Header("Options")]
-    [SerializeField] private bool autoPopulateFromPartyBridge = true; // OnEnable 시 자동 바인딩
+    [SerializeField] private bool autoPopulateFromPartyBridge = true; // [역할] OnEnable 때 PartyBridge에서 자동 주입
+    [SerializeField] private bool autoSelectFirstOnEnable = true;     // [역할] 활성화 시 첫 유효 슬롯 자동 선택
 
     [Header("좌측: 영웅 정보 패널(던전 전용)")]
     [SerializeField] private Image infoHeroImage;
@@ -48,8 +49,8 @@ public class DungeonPartyUI : MonoBehaviour
     [SerializeField] private Image equipIcon;
     [SerializeField] private TMP_Text equipName;
 
-    [Header("선택 표시 옵션")]
-    [SerializeField] private bool autoSelectFirstOnEnable = false;
+    [Header("전투 패널 연동")]
+    [SerializeField] private UIManager battleUIManager;     // [역할] 슬롯 선택 시 전투용 패널(UIManager)도 동일 영웅으로 갱신/바인딩
 
     // 내부 상태
     private readonly Job[] _heroes = new Job[4];
@@ -60,7 +61,8 @@ public class DungeonPartyUI : MonoBehaviour
     {
         WireButtonsOnce();
         TryPopulateFromPartyBridge();
-        ResetSelectionToNone();
+        if (autoSelectFirstOnEnable) SelectFirstValid();
+        else ResetSelectionToNone();
     }
 
 
@@ -69,35 +71,30 @@ public class DungeonPartyUI : MonoBehaviour
         ResetSelectionToNone();
     }
 
-    // ▶ 외부에서 직접 파티 주입 가능하도록 공개 메서드 추가
+    // [역할] 외부에서 파티 배열을 넘겨와 슬롯/패널을 채움(최대 4명)
     public void ApplyHeroes(Job[] heroes)
     {
         for (int i = 0; i < _heroes.Length; i++)
             _heroes[i] = (heroes != null && i < heroes.Length) ? heroes[i] : null;
 
         ApplyHeroesToSlots();
-        ResetSelectionToNone();
+        if (autoSelectFirstOnEnable) SelectFirstValid();
+        else ResetSelectionToNone();
     }
 
-
-    /// <summary>
-    /// PartyBridge에서 현재 파티를 읽어 UI에 반영
-    /// </summary>
+    // [역할] PartyBridge에서 현재 파티를 읽어 UI에 반영
     private void TryPopulateFromPartyBridge()
     {
         if (!autoPopulateFromPartyBridge) return;
 
-        var party = PartyBridge.Instance?.ActiveParty; // 0~3
+        var party = PartyBridge.Instance?.ActiveParty;
         for (int i = 0; i < 4; i++)
             _heroes[i] = (party != null && i < party.Count) ? party[i] : null;
 
         ApplyHeroesToSlots();
     }
 
-
-    /// <summary>
-    /// 외부에서 파티를 직접 세팅하고 싶을 때 사용(최대 4명 반영)
-    /// </summary>
+    // [역할] 슬롯의 초상 활성/원본 스프라이트 캐시
     private void ApplyHeroesToSlots()
     {
         for (int i = 0; i < slots.Count; i++)
@@ -107,7 +104,7 @@ public class DungeonPartyUI : MonoBehaviour
 
             if (hero == null)
             {
-                if (s.portrait) s.portrait.enabled = false;
+                if (s?.portrait) s.portrait.enabled = false;
                 continue;
             }
 
@@ -123,22 +120,21 @@ public class DungeonPartyUI : MonoBehaviour
         }
     }
 
-    // --- 슬롯 클릭/선택 ------------------------------------------------------
-
+    // [역할] 버튼 리스너 연결(중복 방지)
     private void WireButtonsOnce()
     {
         for (int i = 0; i < slots.Count; i++)
         {
-            int index = i;
+            int idx = i;
             var s = slots[i];
             if (s?.button == null) continue;
 
-            // 중복리스너 방지
             s.button.onClick.RemoveAllListeners();
-            s.button.onClick.AddListener(() => OnSlotClicked(index));
+            s.button.onClick.AddListener(() => OnSlotClicked(idx));
         }
     }
 
+    // [역할] 슬롯 선택 → 던전 HUD 갱신(현재값만) + 전투용 UIManager에 동일 영웅 전달
     private void OnSlotClicked(int index)
     {
         if (index < 0 || index >= _heroes.Length) return;
@@ -146,16 +142,18 @@ public class DungeonPartyUI : MonoBehaviour
         if (hero == null) return;
 
         SetSelected(index);
-        // 좌측/하단 패널 갱신(전투 X, 던전 전용)
-        RefreshHeroInfoPanel(hero);
+        RefreshHeroInfoPanel(hero);  // 던전 HUD: Set(hp,max)만 호출(프리뷰 X) :contentReference[oaicite:3]{index=3}
         RefreshEquipRow(hero);
+
+        // ★ 전투 패널(UIManager)도 같은 영웅으로 동기화(실시간 바인딩/프리뷰는 UIManager 쪽에서)
+        if (battleUIManager) battleUIManager.ShowHeroInfo(hero);  // 내부에서 TryBind(c) 수행 :contentReference[oaicite:4]{index=4}
     }
 
+    // [역할] 선택 비주얼 토글
     private void SetSelected(int index)
     {
         if (_currentIndex == index) return;
 
-        // 기존 선택 해제(원래 스프라이트 복구)
         if (_currentIndex >= 0 && _currentIndex < slots.Count)
         {
             var prev = slots[_currentIndex];
@@ -169,7 +167,6 @@ public class DungeonPartyUI : MonoBehaviour
 
         _currentIndex = index;
 
-        // 새 선택: 선택 스프라이트로 교체
         if (_currentIndex >= 0 && _currentIndex < slots.Count)
         {
             var cur = slots[_currentIndex];
@@ -206,7 +203,6 @@ public class DungeonPartyUI : MonoBehaviour
     {
         ResetSelectionVisualsOnly();
         _currentIndex = -1;
-        // 좌측/하단 패널 비움
         ClearHeroInfoPanel();
         ClearEquipRow();
     }
@@ -224,122 +220,74 @@ public class DungeonPartyUI : MonoBehaviour
         ResetSelectionToNone();
     }
 
-    // --- 좌측 정보 패널(던전 전용) ------------------------------------------
-
+    // ---------- 던전 전용 “현재값만” 갱신 ----------
     private void RefreshHeroInfoPanel(Job hero)
     {
-        // ★ 선택되었을 때는 보이게
         if (infoHeroImage) infoHeroImage.enabled = true;
         if (infoHpBar) infoHpBar.gameObject.SetActive(true);
 
-        if (infoHeroImage) infoHeroImage.sprite = GetPortrait(hero);
-        if (infoName) infoName.text = SafeName(hero);
-        if (infoLevel) infoLevel.text = $"Lv.{GetLevel(hero)}";
+        if (infoHeroImage) infoHeroImage.sprite = hero?.portrait;
+        if (infoName) infoName.text = hero?.name_job ?? "-";
+        if (infoLevel) infoLevel.text = $"Lv.{(hero?.level ?? 1)}";
 
-        // HP
-        int hp = GetHp(hero);
-        int hpMax = GetHpMax(hero);
+        int hp = hero?.hp ?? 0;
+        int hpMax = Mathf.Max(1, hero?.maxHp ?? 1);
         if (infoHp) infoHp.text = $"{hp}/{hpMax}";
-        if (infoHpBar) infoHpBar.Set(hp, hpMax);
+        if (infoHpBar) infoHpBar.Set(hp, hpMax); // ★ 프리뷰 없이 현재값만 적용 :contentReference[oaicite:5]{index=5}
 
-        // 스탯(프로젝트의 Job/Combatant/Status 구조에 맞춰 아래 접근자만 매핑해주면 됨)
-        if (infoDef) infoDef.text = $"방어: {GetDef(hero)}";
-        if (infoRes) infoRes.text = $"저항: {GetRes(hero)}";
-        if (infoSpd) infoSpd.text = $"민첩: {GetSpd(hero)}";
-        if (infoHit) infoHit.text = $"명중: {GetHit(hero)}";
-
-        // 버프/디버프, 상세 효과 등이 필요하면 여기서 추가로 채워줘
-        // (현재 요구사항은 능력치 + 장비 노출이므로 최소구성만 반영)
+        if (infoDef) infoDef.text = $"방어: {hero?.def ?? 0}";
+        if (infoRes) infoRes.text = $"저항: {hero?.res ?? 0}";
+        if (infoSpd) infoSpd.text = $"민첩: {hero?.spd ?? 0}";
+        if (infoHit) infoHit.text = $"명중: {hero?.hit ?? 0}";
     }
 
     private void ClearHeroInfoPanel()
     {
-        // ★ 선택 전에는 완전히 숨김
         if (infoHeroImage)
         {
-            infoHeroImage.enabled = false;   // 렌더 끔
+            infoHeroImage.enabled = false;
             infoHeroImage.sprite = null;
         }
 
         if (infoHpBar)
         {
-            infoHpBar.gameObject.SetActive(false); // 전체 비활성
-            infoHpBar.Set(0, 1);                   // 내부 값은 기본값으로
+            infoHpBar.gameObject.SetActive(false);
+            infoHpBar.Set(0, 1);
         }
 
         if (infoName) infoName.text = "";
         if (infoLevel) infoLevel.text = "";
-        if (infoHp) infoHp.text = "";  // HP 텍스트도 숨김 느낌을 주려면 빈 문자열 유지
+        if (infoHp) infoHp.text = "";
         if (infoDef) infoDef.text = "";
         if (infoRes) infoRes.text = "";
         if (infoSpd) infoSpd.text = "";
         if (infoHit) infoHit.text = "";
     }
 
-    // --- 하단 장비/아이템 ----------------------------------------------------
-
     private void RefreshEquipRow(Job hero)
     {
-        if (equipRow) equipRow.SetActive(true);   // ★ 항상 켜둠
+        if (equipRow) equipRow.SetActive(true);
 
         var item = hero?.equippedItem;
         bool hasItem = item != null;
 
         if (equipIcon)
         {
-            equipIcon.enabled = hasItem;          // ★ 내용만 토글
-            if (hasItem) equipIcon.sprite = item.icon;
-            else equipIcon.sprite = null;
+            equipIcon.enabled = hasItem;
+            equipIcon.sprite = hasItem ? item.icon : null;
         }
 
         if (equipName)
         {
-            equipName.enabled = hasItem;          // ★ 내용만 토글
-            equipName.text = hasItem
-                ? (string.IsNullOrEmpty(item.name_item) ? "장비" : item.name_item)
-                : ""; // 혹은 "장비 없음"
+            equipName.enabled = hasItem;
+            equipName.text = hasItem ? (string.IsNullOrEmpty(item.name_item) ? "장비" : item.name_item) : "";
         }
     }
 
     private void ClearEquipRow()
     {
-        if (equipRow) equipRow.SetActive(true);   // ★ 항상 켜둠
-
-        if (equipIcon)
-        {
-            equipIcon.enabled = false;
-            equipIcon.sprite = null;
-        }
-        if (equipName)
-        {
-            equipName.enabled = false;
-            equipName.text = "";
-        }
-    }
-
-    // --- 아래는 프로젝트 의존 Getter들을 한 곳에 모아둔 어댑터 ----------------
-    // 네 Job/Combatant/Status 구조에 맞게만 매핑해주면, UI 로직은 그대로 재사용 가능
-
-    // ---- 접근자 (Job 필드명은 네 프로젝트 기준) ----
-    private static string SafeName(Job h) => h?.name_job ?? "Unknown";
-    private static int GetLevel(Job h) => h?.level ?? 1;
-    private static Sprite GetPortrait(Job h) => h?.portrait;
-    private static int GetHp(Job h) => h?.hp ?? 0;
-    private static int GetHpMax(Job h) => h?.maxHp ?? Math.Max(h?.hp ?? 0, 1);
-    private static int GetDef(Job h) => h?.def ?? 0;
-    private static int GetRes(Job h) => h?.res ?? 0;
-    private static int GetSpd(Job h) => h?.spd ?? 0;
-    private static int GetHit(Job h) => h?.hit ?? 0;
-
-    private static Sprite GetEquippedItemSprite(Job hero)
-    {
-        // 예시: hero.equipMain?.icon
-        return hero?.equippedItem?.icon;
-    }
-
-    private static string GetEquippedItemName(Job hero)
-    {
-        // 예시: hero.equipMain?.displayName
-        return hero?.equippedItem?.name_item;
+        if (equipRow) equipRow.SetActive(true);
+        if (equipIcon) { equipIcon.enabled = false; equipIcon.sprite = null; }
+        if (equipName) { equipName.enabled = false; equipName.text = ""; }
     }
 }

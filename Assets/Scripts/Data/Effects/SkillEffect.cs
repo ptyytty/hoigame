@@ -12,49 +12,160 @@ public class SkillEffect
 {
     public int duration;
 
-    public virtual void Apply(Combatant user, Combatant target){}
+    public virtual void Apply(Combatant user, Combatant target) { }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Damage / Heal
 // ─────────────────────────────────────────────────────────────────────────────
+
+// 기본 데미지
 [Serializable]
 public class DamageEffect : SkillEffect
 {
-    public int damage;
+    public int damage;                  // 데미지
+    public int correctionHitOverride;   // 명중 보정
 
     public override void Apply(Combatant user, Combatant target)
     {
         if (!target || !target.IsAlive) return;
-        int before = target.currentHp;                // 디버그용 나중에 삭제
-        // 전투 런타임 경로(권장)
-        target.ApplyDamage(Mathf.Max(0, damage));
 
-        Debug.Log($"[Effect/Damage] {user?.DisplayName} → {target.DisplayName} : -{damage} HP ({before}→{target.currentHp})");
+        // 명중 판정
+        int atkHit = HitFormula.ResolveHit(user);
+        int tgtSpd = HitFormula.ResolveSpeed(target);
+        int corr   = (correctionHitOverride != 0) ? correctionHitOverride : SkillCastContext.CorrectionHit;
+
+        bool isHit = HitFormula.RollToHit(atkHit, tgtSpd, corr, out int chance, out float roll);
+        if (!isHit)
+        {
+            Debug.Log($"[HitCheck/MISS] {user?.DisplayName} → {target.DisplayName} | chance={chance}%, roll={roll:F1} | hit={atkHit}, spd={tgtSpd}, corr={corr}");
+            return;
+        }
+        Debug.Log($"[HitCheck/HIT]  {user?.DisplayName} → {target.DisplayName} | chance={chance}%, roll={roll:F1} | hit={atkHit}, spd={tgtSpd}, corr={corr}");
+
+        // 2) 피해 계산/적용
+        int def = DamageFormula.ResolveDefense(target);
+        int final = DamageFormula.ComputeFinalDamage(damage, def);
+
+        target.ApplyDamage(final);
+        Debug.Log($"[Effect/Damage] raw={damage}, def={def}, final={final}");
     }
 }
 
+//-------------- 마법 데미지 ---------------
+[Serializable]
+public class MagicDamageEffect : SkillEffect
+{
+    public int damage;
+    public int correctionHitOverride;
+
+    public override void Apply(Combatant user, Combatant target)
+    {
+        if (!target || !target.IsAlive) return;
+
+        // 명중 판정
+        int atkHit = HitFormula.ResolveHit(user);
+        int tgtSpd = HitFormula.ResolveSpeed(target);
+        int corr   = (correctionHitOverride != 0) ? correctionHitOverride : SkillCastContext.CorrectionHit;
+
+        bool isHit = HitFormula.RollToHit(atkHit, tgtSpd, corr, out int chance, out float roll);
+        if (!isHit) { Debug.Log($"[Hit/MISS Magic] chance={chance} roll={roll:F1}"); return; }
+
+        // 저항 반영
+        int res   = target.GetCurrentResistance();              // 저항 조회
+        int final = Mathf.Max(0, damage - Mathf.Max(0, res));   // 정수 차감
+
+        target.ApplyDamage(final);
+        Debug.Log($"[MagicDamage] raw={damage}, res={res}, final={final}");
+    }
+}
+
+/* ------------- 표식 데미지 ------------- */
+[Serializable]
 public class SignDamageEffect : SkillEffect
 {
     public int damage;
-    public float bonusOnSign = 0.15f;     // 표식 추가 피해
+    public float bonusOnSign = 0.15f;   // 표식 추가 피해 배율
+    public int correctionHitOverride;
 
     public override void Apply(Combatant user, Combatant target)
     {
         if (!target || !target.IsAlive) return;
 
-        bool marked = target.HasDebuff(BuffType.Sign) || target.Marked;
-        int final = marked ? Mathf.RoundToInt(damage * (1f + bonusOnSign)) : damage;
+        // 명중 판정
+        int atkHit = HitFormula.ResolveHit(user);
+        int tgtSpd = HitFormula.ResolveSpeed(target);
+        int corr   = (correctionHitOverride != 0) ? correctionHitOverride : SkillCastContext.CorrectionHit;
 
-        int before = target.currentHp;                // 디버그용 나중에 삭제
+        bool isHit = HitFormula.RollToHit(atkHit, tgtSpd, corr, out int chance, out float roll);
+        if (!isHit)
+        {
+            Debug.Log($"[HitCheck/MISS] {user?.DisplayName} → {target.DisplayName} | chance={chance}%, roll={roll:F1} | hit={atkHit}, spd={tgtSpd}, corr={corr} (SignDamage)");
+            return;
+        }
+        Debug.Log($"[HitCheck/HIT]  {user?.DisplayName} → {target.DisplayName} | chance={chance}%, roll={roll:F1} | hit={atkHit}, spd={tgtSpd}, corr={corr} (SignDamage)");
+
+        // 표식 보너스 반영
+        bool marked = target.HasDebuff(BuffType.Sign) || target.Marked;
+        int raw = marked ? Mathf.RoundToInt(damage * (1f + bonusOnSign)) : damage;
+
+        int def = DamageFormula.ResolveDefense(target);
+        int final = DamageFormula.ComputeFinalDamage(raw, def);
 
         target.ApplyDamage(final);
-
-        Debug.Log($"[Effect/SignDamage] {user?.DisplayName} → {target.DisplayName} : base={damage}, marked={marked}, -{final} ({before}→{target.currentHp})");
-
+        Debug.Log($"[Effect/SignDamage] base={damage}, marked={marked}, raw={raw}, def={def}, final={final}");
     }
 }
 
+// 명중 보정 전달용
+public static class SkillCastContext
+{
+    public static int CorrectionHit { get; set; } = 0;
+}
+
+// 명중률 계산
+static class HitFormula
+{
+    /// <summary> 명중값 호출</summary>
+    public static int ResolveHit(Combatant c)
+        => c ? Mathf.Max(0, c.GetCurrentHit()) : 0;
+
+    /// <summary> 민첩값 호출</summary>
+    public static int ResolveSpeed(Combatant c)
+        => c ? Mathf.Max(0, c.EffectiveSpeed) : 0;
+
+    /// <summary> 명중 확률 판정 </summary>
+    public static bool RollToHit(int attackerHit, int targetSpd, int correction,
+                                 out int chance, out float roll)
+    {
+        chance = Mathf.Clamp(attackerHit - (targetSpd * 3) + correction, 0, 100);
+        roll = UnityEngine.Random.value * 100f;
+        Debug.Log($"[HitFormula] atkHit={attackerHit}, tgtSpd={targetSpd}, corr={correction}, chance={chance}, roll={roll:F1}");
+        return roll < chance;
+    }
+}
+
+/* =========================================================
+ *  방어 적용 데미지 계산
+ *  final = raw - (raw * def / 100)   // 소수점 내림
+ * =========================================================*/
+static class DamageFormula
+{
+    /// <summary> 방어값 조회 </summary>
+    public static int ResolveDefense(Combatant target)
+        => target ? Mathf.Max(0, target.GetCurrentDefense()) : 0;
+
+    /// <summary> 최종 피해 계산(정수 내림) </summary>
+    public static int ComputeFinalDamage(int raw, int defense)
+    {
+        raw = Mathf.Max(0, raw);
+        defense = Mathf.Max(0, defense);
+        int final = raw - (raw * defense) / 100; // 정수연산 → 자동 내림
+        return Mathf.Max(0, final);
+    }
+}
+
+//============ 회복 ===============
 [Serializable]
 public class HealEffect : SkillEffect
 {
@@ -104,16 +215,56 @@ public class AbilityBuff : SkillEffect
         bool added = target.TryAddAbilityModFirstWins(ability, value, duration);
         if (!added)
         {
-            Debug.Log($"[AbilityBuff] ignored duplicate ({ability}, {(value>=0?"+":"")}{value}) on {target.DisplayName}");
+            Debug.Log($"[AbilityBuff] ignored duplicate ({ability}, {(value >= 0 ? "+" : "")}{value}) on {target.DisplayName}");
             return;
         }
 
         if (value >= 0) target.AddBuff(ability, duration);
         else target.AddDebuff(ability, duration);
 
-        Debug.Log($"[Effect/AbilityMod] {user?.DisplayName} → {target.DisplayName} : {ability} {(value>=0?"+":"")}{value} ({duration}T)");
+        Debug.Log($"[Effect/AbilityMod] {user?.DisplayName} → {target.DisplayName} : {ability} {(value >= 0 ? "+" : "")}{value} ({duration}T)");
     }
 
+}
+
+// 디버프 제거
+public class CleanseDebuffEffect : SkillEffect
+{
+    public BuffType[] removeTypes = new BuffType[]
+    {
+        BuffType.Burn,     // 화상
+        BuffType.Poison,   // 중독
+        BuffType.Bleeding,  // 출혈
+        BuffType.Faint,
+        BuffType.Taunt
+    };
+
+    public override void Apply(Combatant user, Combatant target)
+    {
+        if (target == null || !target.IsAlive) return;
+        if (removeTypes == null || removeTypes.Length == 0) return;
+
+        int removed = 0;
+
+        // 지정된 디버프들을 개별적으로 제거 (스택/지속과 무관하게 즉시)
+        for (int i = 0; i < removeTypes.Length; i++)
+        {
+            var t = removeTypes[i];
+            // Combatant에 앞서 추가한 RemoveDebuff(BuffType)가 있다고 가정
+            bool ok = target.RemoveDebuff(t);
+            if (ok) removed++;
+        }
+
+        // 아이콘/상태판 UI 즉시 갱신 훅이 있다면 호출
+        try
+        {
+            var m = target.GetType().GetMethod("RefreshEffectIcons", Type.EmptyTypes);
+            if (m != null) m.Invoke(target, null);
+        }
+        catch {  }
+
+        Debug.Log($"[Effect/CleanseDebuff] {user?.DisplayName} → {target.DisplayName} | removed={removed}/{removeTypes.Length}");
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -156,9 +307,8 @@ public class SpecialSkillEffect : SkillEffect
 }
 
 
-
 // ─────────────────────────────────────────────────────────────────────────────
-// 개별 디버프 타입들 — 최소한 "타입만" 명시 (세부 효과는 추후 확장)
+// 개별 디버프 타입들 — 최소한 "타입만" 명시
 // ─────────────────────────────────────────────────────────────────────────────
 [Serializable] public class PoisonEffect : DebuffEffect { public override BuffType DebuffType => BuffType.Poison; }
 [Serializable] public class BleedingEffect : DebuffEffect { public override BuffType DebuffType => BuffType.Bleeding; }
@@ -180,6 +330,6 @@ public class TauntEffect : DebuffEffect
         // 도발 보호자는 '항상 시전자'
         BattleManager.Instance.BeginTaunt(user);
         Debug.Log($"[Effect/Taunt] {user.DisplayName} 가 도발 시작 (duration={duration})");
-        // duration은 BM 쪽에서 '도발자 자신의 턴 시작'에 해제되므로 여기선 별도 타이머 불필요
+        // duration은 BattleManager 쪽에서 '도발자 자신의 턴 시작'에 해제되므로 여기선 별도 타이머 불필요
     }
 }

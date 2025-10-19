@@ -18,7 +18,6 @@ public static class MonsterSkill
                 area = Area.Single,
                 monsterId = 1001,
                 type = SkillType.Damage,
-                correctionHit = 0,
                 effects = new List<SkillEffect> {
                     new DamageEffect { damage = 12 }
                 }
@@ -37,7 +36,6 @@ public static class MonsterSkill
                 area = Area.Single,
                 monsterId = 1002,
                 type = SkillType.Buff,
-                correctionHit = 0,
                 effects = new List<SkillEffect> {
                     new TauntEffect {duration = 1}
                 }
@@ -51,7 +49,6 @@ public static class MonsterSkill
                 area = Area.Single,
                 monsterId = 1002,
                 type = SkillType.Damage,
-                correctionHit = 0,
                 effects = new List<SkillEffect> {
                     new DamageEffect { damage = 10 }
                 }
@@ -70,7 +67,6 @@ public static class MonsterSkill
                 area = Area.Row,
                 monsterId = 1003,
                 type = SkillType.Damage,
-                correctionHit = 0,
                 effects = new List<SkillEffect> {
                     new DamageEffect { damage = 8}
                 }
@@ -89,7 +85,6 @@ public static class MonsterSkill
                 area = Area.Entire,
                 monsterId = 1004,
                 type = SkillType.Buff,
-                correctionHit = 0,
                 effects = new List<SkillEffect> {
                     new AbilityBuff { value = 5, ability = BuffType.Damage }
                 }
@@ -103,7 +98,6 @@ public static class MonsterSkill
                 area = Area.Single,
                 monsterId = 1004,
                 type = SkillType.Damage,
-                correctionHit = 0,
                 effects = new List<SkillEffect> {
                     new DamageEffect { damage = 6 }
                 }
@@ -122,7 +116,6 @@ public static class MonsterSkill
                 area = Area.Single,
                 monsterId = 1005,
                 type = SkillType.Debuff,
-                correctionHit = 0,
                 effects = new List<SkillEffect> {
                     new FaintEffect {duration = 2}
                 }
@@ -136,7 +129,6 @@ public static class MonsterSkill
                 area = Area.Single,
                 monsterId = 1005,
                 type = SkillType.Damage,
-                correctionHit = 0,
                 effects = new List<SkillEffect> {
                     new DamageEffect { damage = 18 }
                 }
@@ -155,7 +147,6 @@ public static class MonsterSkill
                 area = Area.Single,
                 monsterId = 1006,
                 type = SkillType.Damage,
-                correctionHit = 0,
                 effects = new List<SkillEffect> {
                     new DamageEffect { damage = 10 }
                 }
@@ -174,7 +165,6 @@ public static class MonsterSkill
                 area = Area.Single,
                 monsterId = 1007,
                 type = SkillType.Buff,
-                correctionHit = 0,
                 effects = new List<SkillEffect> {
                     new DamageEffect { damage = 8 },
                     new PoisonEffect { duration = 3}
@@ -194,7 +184,6 @@ public static class MonsterSkill
                 area = Area.Single,
                 monsterId = 1008,
                 type = SkillType.Debuff,
-                correctionHit = 0,
                 effects = new List<SkillEffect> {
                     new SignEffect { duration = 2}
                 }
@@ -208,7 +197,6 @@ public static class MonsterSkill
                 area = Area.Row,
                 monsterId = 1008,
                 type = SkillType.SignDamage,
-                correctionHit = 0,
                 effects = new List<SkillEffect> {
                     new SignDamageEffect { damage = 8 }
                 }

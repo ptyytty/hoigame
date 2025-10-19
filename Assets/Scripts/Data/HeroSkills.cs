@@ -76,7 +76,7 @@ public class HeroSkills
             type = SkillType.Damage,
             correctionHit = -15,
             effects = new List<SkillEffect>{
-                new DamageEffect {damage = 10},
+                new DamageEffect {damage = 10, correctionHitOverride = -15},
                 new BleedingEffect {duration = 2, probability = 0.8f}
             }
         },
@@ -204,15 +204,14 @@ public class HeroSkills
         },
         new Skill{
             skillId = 2,
-            skillName = "백스텝",
-            target = Target.Self,
-            loc = Loc.Front,
-            area = Area.Single,
+            skillName = "난사",
+            target = Target.Enemy,
+            loc = Loc.Back,
+            area = Area.Row,
             heroId = 4,
-            type = SkillType.Special,
+            type = SkillType.Damage,
             effects = new List<SkillEffect>{
-                new AbilityBuff{duration = 2, value = 2, ability = BuffType.Speed}
-                // 후열 이동 코드
+                new SignDamageEffect{damage = 12, correctionHitOverride = -10}
             }
         },
         new Skill{
@@ -299,14 +298,14 @@ public class HeroSkills
         },
         new Skill{
             skillId = 3,
-            skillName = "기도",
-            target = Target.Ally,
+            skillName = "고행",
+            target = Target.Enemy,
             loc = Loc.Back,
             area = Area.Single,
             heroId = 6,
-            type = SkillType.Buff,
+            type = SkillType.Damage,
             effects = new List<SkillEffect>{
-                new AbilityBuff{ability = BuffType.Remove}
+                new MagicDamageEffect{ damage = 14 }
             }
         }
     };
@@ -348,7 +347,7 @@ public class HeroSkills
             heroId = 7,
             type = SkillType.Buff,
             effects = new List<SkillEffect>{
-                new AbilityBuff{ability = BuffType.Remove}
+                new CleanseDebuffEffect{ removeTypes = new[]{ BuffType.Burn, BuffType.Poison, BuffType.Bleeding } }
             }
         }
     };

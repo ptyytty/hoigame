@@ -22,6 +22,7 @@ public abstract class ListUIBase<TData> : MonoBehaviour
     [SerializeField] private string targetImagePath;
 
     [Header("Hero Info")]
+    [SerializeField] private Image heroImage;
     [SerializeField] private TMP_Text heroName;
     [SerializeField] private TMP_Text heroHp;
     [SerializeField] private TMP_Text heroDef;
@@ -224,7 +225,8 @@ public abstract class ListUIBase<TData> : MonoBehaviour
     // ===== Info panel =====
     public void ShowHeroInfo(Job hero)
     {
-        if (heroName) heroName.text = $"{hero.name_job}";
+        if (heroImage) heroImage.sprite = hero.portrait;
+        if (heroName) heroName.text = $"{hero.displayName ?? hero.name_job}";
         if (heroHp) heroHp.text = $"{hero.hp}";
         if (heroDef) heroDef.text = $"{hero.def}";
         if (heroRes) heroRes.text = $"{hero.res}";

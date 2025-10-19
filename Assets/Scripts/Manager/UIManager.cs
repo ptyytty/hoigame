@@ -68,9 +68,12 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Transform debuffRoot;  // 디버프 칩 부모(빨강)
     [SerializeField] private GameObject effectTagPrefab; // 텍스트 하나 달린 간단 칩 프리팹
 
-    // 텍스트/색상 지정
+    // 텍스트 색상 지정
     private static readonly Color BuffTextColor = new Color(0.25f, 0.85f, 0.35f); // 초록
     private static readonly Color DebuffTextColor = new Color(0.95f, 0.30f, 0.30f); // 빨강
+
+    private Color _statNeutralColor;       // 기본 글자색 저장
+    private bool _statNeutralCaptured = false;
 
     private Job _currentHeroRef; // 현재 패널에 표시 중인 영웅 저장
 
@@ -102,6 +105,12 @@ public class UIManager : MonoBehaviour
         if (infoPanel != null) infoPanel.isOpen = false;
 
         currentOpen = null;
+
+        if (heroDef && !_statNeutralCaptured)
+        {
+            _statNeutralColor = heroDef.color;
+            _statNeutralCaptured = true;
+        }
     }
 
     void Start()
@@ -265,34 +274,61 @@ public class UIManager : MonoBehaviour
 
         _currentHeroRef = hero;
 
-        heroName.text = $"{hero.name_job}";
-        heroHp.text = $"{hero.hp}";
+        heroName.text  = $"{hero.name_job}";
+        heroHp.text    = $"{hero.hp}";
         heroLevel.text = $"Lv.{hero.level}";
+
         Combatant c = Combatant.FindByHero(hero);
         if (c != null)
         {
-            heroDef.text = $"방어: {c.GetCurrentDefense()}";
-            heroRes.text = $"저항: {c.GetCurrentResistance()}";
-            heroSpd.text = $"민첩: {c.GetCurrentSpeed()}";
-            heroHit.text = $"명중: {c.GetCurrentHit()}";
+            // Combatant 현재 능력치 변화값 확인
+            int curDef = c.GetCurrentDefense();
+            int curRes = c.GetCurrentResistance();
+            int curSpd = c.GetCurrentSpeed();
+            int curHit = c.GetCurrentHit();
 
-            if (heroHpBar) heroHpBar.Bind(c);
+            // 텍스트 색상 갱신
+            SetStatText(heroDef, "방어", hero.def, curDef);
+            SetStatText(heroRes, "저항", hero.res, curRes);
+            SetStatText(heroSpd, "민첩", hero.spd, curSpd);
+            SetStatText(heroHit, "명중", hero.hit, curHit);
+
+            if (heroHpBar) heroHpBar.TryBind(c);
         }
         else
         {
-            // Combatant를 못 찾은 경우의 안전망(원본)
-            heroDef.text = $"방어: {hero.def}";
-            heroRes.text = $"저항: {hero.res}";
-            heroSpd.text = $"민첩: {hero.spd}";
-            heroHit.text = $"명중: {hero.hit}";
+            // 기본값
+            SetStatText(heroDef, "방어", hero.def, hero.def);
+            SetStatText(heroRes, "저항", hero.res, hero.res);
+            SetStatText(heroSpd, "민첩", hero.spd, hero.spd);
+            SetStatText(heroHit, "명중", hero.hit, hero.hit);
         }
 
         RefreshItem(hero);
         RefreshEffects(hero);
     }
 
+    // 능력치 변화에 따른 텍스트 색상 변경
+    private void SetStatText(TMP_Text label, string prefix, int baseVal, int currentVal)
+    {
+        if (!label) return;
+
+        // 중립색 아직 못잡았으면 지금 라벨의 색을 중립으로 저장
+        if (!_statNeutralCaptured)
+        {
+            _statNeutralColor = label.color;
+            _statNeutralCaptured = true;
+        }
+
+        label.text = $"{prefix}: {currentVal}";
+
+        if (currentVal > baseVal)       label.color = BuffTextColor;
+        else if (currentVal < baseVal)  label.color = DebuffTextColor;
+        else                            label.color = _statNeutralColor;
+    }
+
     //=========== 적용 중인 효과 ============
-    // ① 효과 UI 갱신
+    // 효과 UI 갱신
     private void RefreshEffects(Job hero)
     {
         if (hero == null) return;

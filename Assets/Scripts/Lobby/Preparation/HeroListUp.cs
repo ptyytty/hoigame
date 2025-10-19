@@ -36,6 +36,16 @@ public class HeroListUp : ListUIBase<Job>
     {
         base.OnEnable();
         RefreshHeroList();
+
+        // 의무실 잠금 변경 시 리스트 즉시 반영
+        Recovery.OnLocksChanged -= RefreshHeroList;   // 중복 방지
+        Recovery.OnLocksChanged += RefreshHeroList;
+    }
+
+    protected override void OnDisable()
+    {
+        base.OnDisable();
+        Recovery.OnLocksChanged -= RefreshHeroList;
     }
 
     // 정렬 순서 전열(1) → 후열(2) → 기타(0)
@@ -101,6 +111,8 @@ public class HeroListUp : ListUIBase<Job>
         // 현재 파티 상태로 '리스트 버튼 잠금' 재적용(파티에 들어간 인스턴스는 비활성)
         if (partySelector != null)
             SetButtonsForParty(partySelector.GetInPartyInstanceSet());
+
+        ApplyRecoveryLocksToButtons();
     }
 
     // 영웅 위치에 따른 버튼 비활성화
@@ -110,10 +122,13 @@ public class HeroListUp : ListUIBase<Job>
         {
             var job = dataList[i];
             bool canUseLoc = job.loc == requiredLoc || job.loc == (int)Loc.None;
-            bool inParty = !string.IsNullOrEmpty(job.instanceId) &&
-                             inPartyHeroId.Contains(job.instanceId);
-            buttons[i].interactable = canUseLoc && !inParty;
+            bool inParty = !string.IsNullOrEmpty(job.instanceId) && inPartyHeroId.Contains(job.instanceId);
+
+            bool interactable = canUseLoc && !inParty && !IsRecoveryLocked(job);
+            if (buttons[i]) buttons[i].interactable = interactable;
         }
+
+        ApplyRecoveryLocksToButtons();
     }
 
     // 기존 시그니처도 남겨서 호환(필요 시 내부에서 빈 Set로 위 메서드 호출)
@@ -122,13 +137,17 @@ public class HeroListUp : ListUIBase<Job>
                                            Job[] assignedHeroes)
     {
         int n = Mathf.Min(buttons.Count, dataList.Count);
-    for (int i = 0; i < n; i++)
-    {
-        var job = dataList[i];
-        bool canUseLoc = job.loc == requiredLoc || job.loc == (int)Loc.None;
-        bool inParty   = IsInParty(job, inPartyInstanceIds, assignedHeroes);
-        if (buttons[i]) buttons[i].interactable = canUseLoc && !inParty;
-    }
+        for (int i = 0; i < n; i++)
+        {
+            var job = dataList[i];
+            bool canUseLoc = job.loc == requiredLoc || job.loc == (int)Loc.None;
+            bool inParty = IsInParty(job, inPartyInstanceIds, assignedHeroes);
+
+            bool interactable = canUseLoc && !inParty && !IsRecoveryLocked(job);
+            if (buttons[i]) buttons[i].interactable = interactable;
+        }
+
+        ApplyRecoveryLocksToButtons();
     }
 
     public void SetButtonsForParty(HashSet<string> inPartyheroId)
@@ -136,41 +155,43 @@ public class HeroListUp : ListUIBase<Job>
         for (int i = 0; i < buttons.Count; i++)
         {
             var job = dataList[i];
-            bool inParty = !string.IsNullOrEmpty(job.instanceId) &&
-                           inPartyheroId.Contains(job.instanceId);
-            if (inParty) buttons[i].interactable = false;
+            bool inParty = !string.IsNullOrEmpty(job.instanceId) && inPartyheroId.Contains(job.instanceId);
+            bool interactable = !inParty && !IsRecoveryLocked(job); // 🔒 잠금 포함
+            if (buttons[i]) buttons[i].interactable = interactable;
         }
+        ApplyRecoveryLocksToButtons();
     }
 
     public void SetButtonsForParty(HashSet<string> inPartyInstanceIds,
                                    Job[] assignedHeroes)
     {
         int n = Mathf.Min(buttons.Count, dataList.Count);
-    for (int i = 0; i < n; i++)
-    {
-        var job = dataList[i];
-        if (IsInParty(job, inPartyInstanceIds, assignedHeroes))
-            if (buttons[i]) buttons[i].interactable = false;
-    }
+        for (int i = 0; i < n; i++)
+        {
+            var job = dataList[i];
+            bool inParty = IsInParty(job, inPartyInstanceIds, assignedHeroes);
+            bool interactable = !inParty && !IsRecoveryLocked(job); // 🔒 잠금 포함
+            if (buttons[i]) buttons[i].interactable = interactable;
+        }
+        ApplyRecoveryLocksToButtons();
     }
 
-    // ✅ 신규: 방금 배치된 hero에 해당하는 버튼 즉시 비활성화
+    // 배치된 hero 버튼 비활성화
     public void DisableButtonFor(Job hero)
     {
         int n = Mathf.Min(buttons.Count, dataList.Count);
 
-    // 1) instanceId 매칭
-    if (!string.IsNullOrEmpty(hero.instanceId))
-    {
+        // instanceId 우선
+        if (!string.IsNullOrEmpty(hero.instanceId))
+        {
+            for (int i = 0; i < n; i++)
+                if (dataList[i] != null && dataList[i].instanceId == hero.instanceId)
+                { if (buttons[i]) buttons[i].interactable = !IsRecoveryLocked(hero); return; }
+        }
+        // 참조 동일성 fallback
         for (int i = 0; i < n; i++)
-            if (dataList[i] != null && dataList[i].instanceId == hero.instanceId)
-            { if (buttons[i]) buttons[i].interactable = false; return; }
-    }
-
-    // 2) 참조 동일성 fallback
-    for (int i = 0; i < n; i++)
-        if (object.ReferenceEquals(dataList[i], hero))
-        { if (buttons[i]) buttons[i].interactable = false; return; }
+            if (object.ReferenceEquals(dataList[i], hero))
+            { if (buttons[i]) buttons[i].interactable = !IsRecoveryLocked(hero); return; }
     }
 
     public void ResetHeroListState()
@@ -181,6 +202,7 @@ public class HeroListUp : ListUIBase<Job>
         if (partySelector != null) SetButtonsForParty(partySelector.GetInPartyInstanceSet());
 
         ApplyFrontBackSpriteAll();
+        ApplyRecoveryLocksToButtons();
     }
 
     public void RefreshHeroList()
@@ -188,6 +210,7 @@ public class HeroListUp : ListUIBase<Job>
         ClearList();
         LoadList();
         ApplyFrontBackSpriteAll();
+        ApplyRecoveryLocksToButtons();
     }
 
     protected override void SetLabel(Button button, Job hero)
@@ -196,7 +219,7 @@ public class HeroListUp : ListUIBase<Job>
         TMP_Text jobText = button.transform.Find("Text_Job").GetComponent<TMP_Text>();
         TMP_Text levelText = button.transform.Find("Text_Level").GetComponent<TMP_Text>();
 
-        nameText.text = hero.name_job;
+        nameText.text = hero.displayName;
         jobText.text = hero.name_job.ToString();
         levelText.text = $"Lv.{hero.level}";
     }
@@ -225,16 +248,39 @@ public class HeroListUp : ListUIBase<Job>
 
     // 유틸 확인
     bool IsInParty(Job job, HashSet<string> inPartyInstanceIds, Job[] assignedHeroes)
-{
-    // 1) instanceId 최우선
-    if (!string.IsNullOrEmpty(job.instanceId) && inPartyInstanceIds != null)
-        if (inPartyInstanceIds.Contains(job.instanceId)) return true;
+    {
+        // 의무실 잠금(회복 확정 후, 던전 다녀오기 전까지)
+        if (!string.IsNullOrEmpty(job.instanceId) && Recovery.LockedInstanceIds.Contains(job.instanceId))
+            return true;
 
-    // 2) 마지막 보루: 참조 동일성
-    if (assignedHeroes != null)
-        for (int i = 0; i < assignedHeroes.Length; i++)
-            if (object.ReferenceEquals(assignedHeroes[i], job)) return true;
+        // instanceId 최우선
+        if (!string.IsNullOrEmpty(job.instanceId) && inPartyInstanceIds != null)
+            if (inPartyInstanceIds.Contains(job.instanceId)) return true;
 
-    return false;
-}
+        // 참조 동일성
+        if (assignedHeroes != null)
+            for (int i = 0; i < assignedHeroes.Length; i++)
+                if (object.ReferenceEquals(assignedHeroes[i], job)) return true;
+
+        return false;
+    }
+
+    // 의무실 사용 영웅 버튼 비활성화
+    void ApplyRecoveryLocksToButtons()
+    {
+        int n = Mathf.Min(buttons.Count, dataList.Count);
+        for (int i = 0; i < n; i++)
+        {
+            var job = dataList[i];
+            if (IsRecoveryLocked(job) && buttons[i])
+                buttons[i].interactable = false; // 출력은 유지, 선택만 금지
+        }
+    }
+
+    // 의무실 잠금 영웅 조회
+    bool IsRecoveryLocked(Job job)
+    {
+        return !string.IsNullOrEmpty(job.instanceId)
+            && Recovery.LockedInstanceIds.Contains(job.instanceId);
+    }
 }
