@@ -98,6 +98,10 @@ public class DungeonInventory : MonoBehaviour
         return result;
     }
 
+    /// <summary>
+    /// 던전 진입 시 인벤토리 적용
+    /// </summary>
+    /// <param name="snap">ConsumeItem, count</param>
     public void ApplySnapshot(List<SlotDTO> snap)
     {
         InitializeSlots(); // 슬롯 비우고 6칸 재초기화

@@ -85,7 +85,7 @@ public class DungeonManager : MonoBehaviour
     private readonly Dictionary<string, HeroEntrySnapshot> _entry = new(); // key = instanceId
 
     [Serializable]
-    private class HeroEntrySnapshot
+    private class HeroEntrySnapshot     // 파티 정보
     {
         public string instanceId;
         public int startLevel;
@@ -96,7 +96,7 @@ public class DungeonManager : MonoBehaviour
     [SerializeField] private Button rewardButton;
     [SerializeField] private ResultRewardGrid resultRewardGrid;     // 보상
 
-    private bool _dungeonClearShown = false;                   // 중복 방지
+    private bool _dungeonClearShown = false;                        // 중복 방지
 
     void Awake()
     {
@@ -106,10 +106,10 @@ public class DungeonManager : MonoBehaviour
 
     void Start()
     {
-        // 자동 찾기(인스펙터 비워도 OK)
+        // 자동 찾기
         if (!dungeonInventory) dungeonInventory = FindObjectOfType<DungeonInventory>(true);
 
-        // 1) PartyBridge → DungeonInventory 스냅샷 1회 적용
+        // PartyBridge → DungeonInventory 스냅샷 1회 적용 (인벤토리)
         var snap = PartyBridge.Instance?.dungeonLoadoutSnapshot;
         if (dungeonInventory && snap != null && snap.Count > 0)
         {
@@ -117,14 +117,11 @@ public class DungeonManager : MonoBehaviour
             PartyBridge.Instance.dungeonLoadoutSnapshot = null;
         }
 
-        // 1) PartyBridge → DungeonInventory로 스냅샷 1회 적용
-        //ApplyInitialInventoryFromBridge_Once();
+        StartCoroutine(CoLateCountSpawners());  // 스포너 배치
+        _battlesCleared = 0;                    // 완료 전투 횟수 초기화
 
-        StartCoroutine(CoLateCountSpawners()); // 스포너 배치
-        _battlesCleared = 0;
-
-        InitQuestOnEnter(); // 던전 입장 시 퀘스트 HUD 세팅
-        _questRewardGiven = false;
+        InitQuestOnEnter();                     // 던전 입장 시 퀘스트 HUD 세팅
+        _questRewardGiven = false;              // 퀘스트 상태 초기화
 
         // 2) 바인더 연결(이벤트 구독 + 즉시 그리기)
         if (inventoryBinder && dungeonInventory)
@@ -135,13 +132,42 @@ public class DungeonManager : MonoBehaviour
 
     private IEnumerator CoLateCountSpawners()
     {
-        // [역할] 스포너 배치가 끝난 다음 프레임에 전투 수를 계산
+        // 스포너 배치가 끝난 다음 프레임에 전투 수를 계산
         yield return null; // 한 프레임 대기
         _totalBattlesInThisDungeon = FindObjectsOfType<EnemySpawner>(true).Length;
+
+        if (_quest != null && _quest.questId == "all_combat_completed")
+        {
+            _quest.targetCount = Mathf.Max(1, _totalBattlesInThisDungeon); // 실제 전투 수로 갱신
+            _quest.current = Mathf.Min(_quest.current, _quest.targetCount); // 진행도 상한 보정
+        }
         // 필요시 퀘스트 HUD 리프레시
         UpdateQuestHud();
     }
 
+    // =========== 던전 입장 직후 파티 정보 저장 =============
+    private void CaptureDungeonEntrySnapshot()
+    {
+        _entry.Clear();
+
+        var party = PartyBridge.Instance?.ActiveParty;
+        if (party == null || party.Count == 0) return;
+
+        foreach (var h in party)        // 파티 영웅 정보 저장
+        {
+            if (h == null) continue;
+            var key = string.IsNullOrEmpty(h.instanceId) ? h.id_job.ToString() : h.instanceId;  // null = id_job    !null = instanceId
+
+            _entry[key] = new HeroEntrySnapshot
+            {
+                instanceId = key,
+                startLevel = h.level,
+                startExp = h.exp,
+                startHp = h.hp,
+                startMaxHp = Mathf.Max(1, h.maxHp),
+            };
+        }
+    }
 
     void OnEnable() { EnemySpawner.OnBattleStart += HandleBattleStart; }
     void OnDisable() { EnemySpawner.OnBattleStart -= HandleBattleStart; }
@@ -153,35 +179,7 @@ public class DungeonManager : MonoBehaviour
 
     public MoveDirection currentDir { get; private set; }
 
-    // ─────────────────────────────────────
-    // ▼ 전투 시작 => 이동 정지, UI 전환
-    void HandleBattleStart(IReadOnlyList<Job> heroes, IReadOnlyList<GameObject> enemies)
-    {
-        StopMoveHard();        // 이동 중이면 즉시 정지
-                               // 필요하면 여기서 입력 UI 숨김, 카메라 홀드 등도 같이 처리 가능
-
-        moveLeft.SetActive(false);
-        moveRight.SetActive(false);
-        InteractableManager.instance?.EnterBattleMode();        // 전투 시작 -> 상호작용 중지   
-
-        battleUI.SetActive(true);
-
-        if (rewardButton) rewardButton.interactable = false;
-    }
-
-    // 전투 종료 => UI 전환
-    public void ShowDungeonUIAfterBattle()
-    {
-        if (battleUI) battleUI.SetActive(false);
-
-        if (moveLeft) moveLeft.SetActive(true);
-        if (moveRight) moveRight.SetActive(true);
-        InteractableManager.instance?.ExitBattleMode();         // 전투 종료 -> 상호작용 복구
-
-        if (rewardButton) rewardButton.interactable = true;
-    }
-    // ─────────────────────────────────────
-
+    // ==================== 던전 이동 =========================
     void Update()
     {
         if (isMoving)
@@ -191,6 +189,7 @@ public class DungeonManager : MonoBehaviour
         }
     }
 
+    // 버튼 연결
     public void StartMove(int dir)
     {
         currentDir = (MoveDirection)dir;  //정수 -> 열거형 캐스팅
@@ -208,7 +207,7 @@ public class DungeonManager : MonoBehaviour
         }
     }
 
-    public void StopMove() { isMoving = false; }
+    public void StopMove() { isMoving = false; }    // EnentTrigger 연결
     public void StopMoveHard() { isMoving = false; /* 필요 시 추가로 속도/트위닝도 여기서 끊기 */ }
     public void ResumeMove() { isMoving = true; }           // 전투 끝나고 다시 움직일 때 호출
     public void ResumeMoveIfNeeded() { /* 조건부 재개가 필요하면 여기에 로직 */ }
@@ -221,67 +220,37 @@ public class DungeonManager : MonoBehaviour
             return dir == MoveDirection.Left ? Vector3.forward : Vector3.back;
     }
 
-    // =========== 던전 입장 직후 파티 정보 =============
-    private void CaptureDungeonEntrySnapshot()
+    // ─────────────────────────────────────
+    // 전투 시작 => 이동 정지, UI 전환
+    void HandleBattleStart(IReadOnlyList<Job> heroes, IReadOnlyList<GameObject> enemies)
     {
-        _entry.Clear();
+        StopMoveHard();        // 파티 즉시 정지
 
-        var party = PartyBridge.Instance?.ActiveParty;
-        if (party == null || party.Count == 0) return;
+        // UI 전환
+        moveLeft.SetActive(false);
+        moveRight.SetActive(false);
+        InteractableManager.instance?.EnterBattleMode();        // 전투 시작 -> 상호작용 중지   
+        battleUI.SetActive(true);
 
-        foreach (var h in party)
-        {
-            if (h == null) continue;
-            var key = string.IsNullOrEmpty(h.instanceId) ? h.id_job.ToString() : h.instanceId;
-
-            _entry[key] = new HeroEntrySnapshot
-            {
-                instanceId = key,
-                startLevel = h.level,
-                startExp = h.exp,
-                startHp = h.hp,
-                startMaxHp = Mathf.Max(1, h.maxHp),
-            };
-        }
+        if (rewardButton) rewardButton.interactable = false;    // 전체 보상 창 상호작용 불가
     }
 
-    // ======= 인벤토리 =======
-    void ApplyInitialInventoryFromBridge_Once()
+    // 전투 종료 => UI 전환
+    public void ShowDungeonUIAfterBattle()
     {
-        if (!dungeonInventory)
-        {
-            Debug.LogWarning("[DungeonManager] DungeonInventory 미할당");
-            return;
-        }
+        if (battleUI) battleUI.SetActive(false);
 
-        var bridge = PartyBridge.Instance;
-        if (bridge == null)
-        {
-            Debug.LogWarning("[DungeonManager] PartyBridge 미존재");
-            return;
-        }
+        if (moveLeft) moveLeft.SetActive(true);
+        if (moveRight) moveRight.SetActive(true);
+        InteractableManager.instance?.ExitBattleMode();         // 전투 종료 -> 상호작용 복구
 
-        var snap = bridge.dungeonLoadoutSnapshot;
-        if (snap == null || snap.Count == 0)
-        {
-            Debug.Log("[DungeonManager] 적용할 인벤토리 스냅샷 없음(빈 상태 유지)");
-            return;
-        }
-
-        dungeonInventory.ApplySnapshot(snap);   // ← 던전 6칸에 직접 반영
-        bridge.dungeonLoadoutSnapshot = null;   // 재적용 방지
-        Debug.Log("[DungeonManager] 브릿지 스냅샷을 DungeonInventory에 적용 완료");
+        if (rewardButton) rewardButton.interactable = true;
     }
+    // ─────────────────────────────────────
 
-    // ✔ 보상 토스트만 띄우는 공개 메서드 (BattleManager에서 호출)
+    // 보상 토스트만 띄우는 공개 메서드 (BattleManager, InteractableManager에서 호출)
     public void ShowBattleRewardToast(SoulType soulType, int soulAmount, int coins)
     {
-        if (!rewardToastPanel || !rewardPanelBinder)
-        {
-            Debug.LogWarning("[DungeonManager] Reward toast refs missing.");
-            return;
-        }
-
         // 내용 바인딩
         rewardPanelBinder.Bind(soulType, soulAmount, coins);
 
@@ -303,33 +272,25 @@ public class DungeonManager : MonoBehaviour
     // 던전 입장 시 1회 호출: 퀘스트 선택 및 HUD 표기
     private void InitQuestOnEnter()
     {
-        // 1) DB에서 현재 던전에 유효한 퀘스트 목록 취득
+        // DB에서 현재 던전에 유효한 퀘스트 목록 조회
         var candidates = QuestDB.questLists.FindAll(q => q.dungeonId != null && q.dungeonId.Contains(currentDungeonId));
         // 없으면 전체에서 아무거나
         if (candidates == null || candidates.Count == 0) candidates = QuestDB.questLists;
 
-        // 2) 무작위 1개 선택
+        // 무작위 1개 선택
         var pick = candidates[UnityEngine.Random.Range(0, Mathf.Max(1, candidates.Count))];
 
-        // 3) 런타임 상태 구성(샘플 정책)
+        // 런타임 상태 구성
         _quest = new DungeonQuestRuntime
         {
             questId = pick.questId,
             displayName = pick.questname,
             isCompleted = false,
-            // 예시: "모든 전투 완료"라면 목표치를 던전 내 전투 수로 설정해도 됨(당장은 0=수동완료)
-            targetCount = 0, // 필요 시 외부에서 세팅
+            targetCount = 0, // 퀘스트 클리어 수치
             current = 0
         };
 
-        // '모든 전투 완료' 퀘스트면 목표치를 스포너 수로 설정
-        if (_quest.questId == "all_combat_completed")
-        {
-            _quest.targetCount = Mathf.Max(1, _totalBattlesInThisDungeon);
-            _quest.current = 0;
-        }
-
-        // 4) HUD 반영
+        // HUD 반영
         UpdateQuestHud();
     }
 
@@ -343,14 +304,14 @@ public class DungeonManager : MonoBehaviour
             questText.color = (_quest != null && _quest.isCompleted) ? questCompleteColor : questIncompleteColor;
         }
 
-        // 토글 체크 (Unity 기본 체크마크 사용 시)
+        // 클리어 토글
         if (questToggle)
         {
             questToggle.isOn = _quest != null && _quest.isCompleted;
             questToggle.interactable = false; // 유저 클릭 방지(표시용)
         }
 
-        // 커스텀 체크마크 이미지가 있다면 보조로 On/Off
+        // 클리어 체크마크
         if (questCheckmark)
             questCheckmark.enabled = _quest != null && _quest.isCompleted;
     }

@@ -42,6 +42,10 @@ public class Recovery : MonoBehaviour
         public HealthBarUI hpBar;
     }
 
+    [Header("HP Text Colors")]
+    [SerializeField] private Color hpTextColorCurrent = new Color(1f, 0.2f, 0.2f, 1f); // 빨강
+    [SerializeField] private Color hpTextColorHealed = new Color(0.2f, 0.9f, 0.3f, 1f); // 초록
+
     [Header("Fixed 3 Slots (assign in Inspector)")]
     [SerializeField] private SlotView[] slots = new SlotView[3];
 
@@ -85,7 +89,7 @@ public class Recovery : MonoBehaviour
             if (v?.confirmButton)
             {
                 v.confirmButton.onClick.RemoveAllListeners();
-                v.confirmButton.onClick.AddListener(() => OnClickConfirm(idx)); // 슬롯별 회복 확정
+                v.confirmButton.onClick.AddListener(() => OnClickConfirm(idx)); // 슬롯 잠금
             }
         }
         RefreshAll(); // 시작 시 빈 상태로
@@ -185,6 +189,14 @@ public class Recovery : MonoBehaviour
             RefreshSlot(index);
             ApplyPreviewToSlot(index);
 
+            // 텍스트를 '현재/최대' + 빨강으로 덮어쓰기
+            if (slots[index]?.hpText)
+            {
+                GetHpPair(_heroes[index], out int hp, out int max);
+                slots[index].hpText.text = $"{hp}/{max}";
+                slots[index].hpText.color = hpTextColorCurrent;
+            }
+
             // ✅ 확인 버튼 표시 + 라벨 "확인"
             EnableConfirmButton(index, true, true);
             SetConfirmVisual(index, scheduled: false);
@@ -234,6 +246,14 @@ public class Recovery : MonoBehaviour
             SetConfirmVisual(index, scheduled: false);
             EnableConfirmButton(index, false, false); // ← 숨김
 
+            // 텍스트를 '현재/최대' + 빨강으로 복구
+            if (v.hpText)
+            {
+                GetHpPair(hero, out int hp0, out int max0);
+                v.hpText.text = $"{hp0}/{max0}";
+                v.hpText.color = hpTextColorCurrent;
+            }
+
             // ✅ 슬롯은 계속 상호작용 가능
             if (v.slotButton) v.slotButton.interactable = true;
 
@@ -251,7 +271,16 @@ public class Recovery : MonoBehaviour
         if (healAmount == 0) return;         // 회복 예정량이 0이면 확정 의미가 없음
 
         // 프리뷰(미래 체력)만 표시 유지 — 실제 회복은 나중에 CommitScheduledHeals에서
-        if (v.hpBar) v.hpBar.ShowPreviewDelta(+healAmount, HealthBarUI.PreviewType.Heal);
+        if (v.hpBar) v.hpBar.ShowPreviewDeltaAnimated(+healAmount, HealthBarUI.PreviewType.Heal, 0.25f);
+
+        // 텍스트를 '회복 후 값/최대' + 초록으로
+        GetHpPair(hero, out int hp, out int max);
+        int after = Mathf.Min(hp + healAmount, max);
+        if (v.hpText)
+        {
+            v.hpText.text = $"{after}/{max}";
+            v.hpText.color = hpTextColorHealed;
+        }
 
         // 슬롯 잠금(던전 갈 때까지 유지) + 버튼 라벨 “취소”
         _confirmLocked[index] = true;
@@ -297,15 +326,16 @@ public class Recovery : MonoBehaviour
 
             // 예정량 커밋
             int after = Mathf.Min(hp + healAmount, max);
-            SetHp(hero, after, max);
 
-            // UI 반영: 실제값으로 Set, 프리뷰 제거
-            if (v.hpBar)
-            {
-                // 커밋 애니메이션을 쓰고 싶다면 v.hpBar.CommitPreview(0.2f) 후 Set 동기화
-                v.hpBar.ClearPreview();
-                v.hpBar.Set(after, max);
-            }
+            // 1) 안전: 프리뷰 타겟이 맞게 보정(확인 버튼에서 이미 ShowPreviewDelta 했다면 생략 가능)
+            if (v.hpBar) v.hpBar.ShowPreviewDelta(after - hp, HealthBarUI.PreviewType.Heal);
+
+            // 2) 애니메이션 커밋 (게이지가 부드럽게 현재→프리뷰로 이동)
+            //    - 내부적으로 CoAnimateCommit이 동작하며 끝나면 프리뷰를 지우고 최종 Set까지 수행
+            //    - 기본 0.25f 정도가 체감이 좋음 (원한다면 직렬화 필드로 뺄 것)
+            if (v.hpBar) v.hpBar.CommitPreview(0.25f);
+
+            // 3) 텍스트도 최종 수치로 동기화
             if (v.hpText) v.hpText.text = $"{after}/{max}";
         }
 
@@ -365,6 +395,23 @@ public class Recovery : MonoBehaviour
         if (v.hpBar) v.hpBar.Set(hp, max);
         if (v.hpText) v.hpText.text = $"{hp}/{max}";
 
+        // 🔽 아래 덮어쓰기: 확정된 슬롯이면 프리뷰 + 텍스트 초록(회복 후), 아니면 텍스트 빨강(현재값)
+        if (_confirmLocked[i] && healAmount > 0)
+        {
+            if (v.hpBar) v.hpBar.ShowPreviewDelta(+healAmount, HealthBarUI.PreviewType.Heal);
+            int after = Mathf.Min(hp + healAmount, max);
+            if (v.hpText)
+            {
+                v.hpText.text = $"{after}/{max}";
+                v.hpText.color = hpTextColorHealed;
+            }
+        }
+        else
+        {
+            if (v.hpBar) v.hpBar.ClearPreview();
+            if (v.hpText) v.hpText.color = hpTextColorCurrent;
+        }
+
         EnableConfirmButton(i, filled, filled && !_confirmLocked[i]);
     }
 
@@ -374,12 +421,54 @@ public class Recovery : MonoBehaviour
         var v = (i >= 0 && i < slots.Length) ? slots[i] : null;
         if (v == null || v.hpBar == null) return;
 
-        if (_heroes[i] == null || healAmount == 0)
+        var hero = _heroes[i];
+
+        // 슬롯이 비었거나 힐량이 0이면: 프리뷰 제거 + 텍스트 초기화/빨강
+        if (hero == null || healAmount == 0)
         {
             v.hpBar.ClearPreview();
+            if (v.hpText)
+            {
+                if (hero != null)
+                {
+                    GetHpPair(hero, out int hp, out int max);
+                    v.hpText.text = $"{hp}/{max}";
+                }
+                else
+                {
+                    v.hpText.text = "";
+                }
+                v.hpText.color = hpTextColorCurrent;
+            }
             return;
         }
-        v.hpBar.ShowPreviewDelta(+healAmount, HealthBarUI.PreviewType.Heal);
+
+        // 여기서부터는 슬롯에 영웅이 있고 healAmount > 0 인 상황
+        if (_confirmLocked[i])
+        {
+            // ✅ 확정된 슬롯만 프리뷰 유지 + 텍스트는 '회복 후 값/최대' + 초록
+            v.hpBar.ShowPreviewDelta(+healAmount, HealthBarUI.PreviewType.Heal);
+
+            GetHpPair(hero, out int hp, out int max);
+            int after = Mathf.Min(hp + healAmount, max);
+            if (v.hpText)
+            {
+                v.hpText.text = $"{after}/{max}";
+                v.hpText.color = hpTextColorHealed;
+            }
+        }
+        else
+        {
+            // ⛔ 비확정 슬롯: 프리뷰 금지 + 텍스트 '현재/최대' + 빨강
+            v.hpBar.ClearPreview();
+
+            GetHpPair(hero, out int hp, out int max);
+            if (v.hpText)
+            {
+                v.hpText.text = $"{hp}/{max}";
+                v.hpText.color = hpTextColorCurrent;
+            }
+        }
     }
 
     /// 확인 버튼의 표시/상호작용 상태를 제어

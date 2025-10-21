@@ -16,7 +16,7 @@ public sealed class PartyBridge : MonoBehaviour
     private readonly List<Job> _activeParty = new(4);
     public IReadOnlyList<Job> ActiveParty => _activeParty;
 
-    //    - 던전 진입 시 DungeonManager가 1회 적용 후 null 로 클리어
+    // 던전 진입 시 DungeonManager가 1회 적용 후 null 로 클리어
     public List<DungeonInventory.SlotDTO> dungeonLoadoutSnapshot;
 
     private void Awake()

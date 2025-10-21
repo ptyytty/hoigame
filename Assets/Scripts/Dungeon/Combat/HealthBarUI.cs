@@ -24,7 +24,8 @@ public class HealthBarUI : MonoBehaviour
     private Combatant bound;             // ★ 선택적 바인딩 대상(전투 UI 등)
     private int curHp, maxHp;            // 현재/최대 체력(내부 유지)
     private int previewTargetHp = -1;    // 프리뷰 타겟 HP(없으면 -1)
-    private Coroutine animCo;            // 커밋 애니메이션 핸들
+    private Coroutine animCo;            // 회복 커밋 (빨간 바)
+    private Coroutine previewCo;         // 의무실 고정 (초록)
 
     private void Awake()
     {
@@ -92,6 +93,12 @@ public class HealthBarUI : MonoBehaviour
         ShowPreviewTo(target, type);
     }
 
+    // 역할: delta만큼 회복/피해 등의 프리뷰를 'dur' 동안 부드럽게 표시
+    public void ShowPreviewDeltaAnimated(int delta, PreviewType type, float dur = 0.25f)
+    {
+        ShowPreviewToAnimated(curHp + delta, type, dur);
+    }
+
     /// <summary>
     /// 절대값 targetHp로 변화했을 때의 프리뷰를 표시(스킬 계산으로 타겟이 이미 있을 때).
     /// </summary>
@@ -109,13 +116,42 @@ public class HealthBarUI : MonoBehaviour
         fillFuture.color = type switch
         {
             PreviewType.Damage => damageColor,
+            PreviewType.Dot => dotColor,
+            PreviewType.Shield => shieldColor,
+            _ => healColor
+        };
+
+        fillFuture.enabled = true;                         // 프리뷰 레이어 켜기
+        SetFill(fillFuture, Ratio(previewTargetHp, maxHp));// 미래 길이 적용
+    }
+    
+    // 역할: 타겟 HP까지 프리뷰 바(fillFuture)를 'dur' 동안 부드럽게 증가
+    public void ShowPreviewToAnimated(int targetHp, PreviewType type, float dur = 0.25f)
+    {
+        if (!fillFuture) return;
+
+        int t = Mathf.Clamp(targetHp, 0, maxHp);
+        if (type == PreviewType.Heal && clampOverheal)
+            t = Mathf.Clamp(t, 0, maxHp);
+
+        previewTargetHp = t;
+
+        fillFuture.color = type switch
+        {
+            PreviewType.Damage => damageColor,
             PreviewType.Dot    => dotColor,
             PreviewType.Shield => shieldColor,
             _                  => healColor
         };
 
-        fillFuture.enabled = true;                         // 프리뷰 레이어 켜기
-        SetFill(fillFuture, Ratio(previewTargetHp, maxHp));// 미래 길이 적용
+        float start = fillFuture.enabled ? fillFuture.fillAmount : Ratio(curHp, maxHp);
+        float end   = Ratio(previewTargetHp, maxHp);
+
+        fillFuture.enabled = true;
+
+        // 이전 프리뷰 애니메이션이 돌고 있으면 정지
+        if (previewCo != null) StopCoroutine(previewCo);
+        previewCo = StartCoroutine(CoAnimatePreview(start, end, Mathf.Max(0f, dur)));
     }
 
     /// <summary>
@@ -124,6 +160,8 @@ public class HealthBarUI : MonoBehaviour
     public void ClearPreview()
     {
         previewTargetHp = -1;
+        // 🔹 프리뷰 애니메이션 중이면 정지
+        if (previewCo != null) { StopCoroutine(previewCo); previewCo = null; }
         HideFuture();
     }
 
@@ -157,6 +195,29 @@ public class HealthBarUI : MonoBehaviour
     }
 
     //================= 내부 유틸 =================
+
+    // 역할: 프리뷰(초록) 이미지의 fillAmount만 시간에 따라 보간
+    private IEnumerator CoAnimatePreview(float from, float to, float dur)
+    {
+        if (dur <= 0f)
+        {
+            SetFill(fillFuture, to);
+            previewCo = null;
+            yield break;
+        }
+
+        float t = 0f;
+        while (t < dur)
+        {
+            t += Time.unscaledDeltaTime;
+            float k = Mathf.Clamp01(t / dur);
+            float v = Mathf.Lerp(from, to, k);
+            SetFill(fillFuture, v);
+            yield return null;
+        }
+        SetFill(fillFuture, to);
+        previewCo = null;
+    }
 
     /// <summary>현재→프리뷰 타겟으로 부드럽게 이동시키는 애니메이션.</summary>
     private IEnumerator CoAnimateCommit(int fromHp, int toHp, float dur)
@@ -202,8 +263,8 @@ public class HealthBarUI : MonoBehaviour
 
     private void OnDisable()
     {
-        // 장면 전환/패널 토글 중 코루틴/이벤트 누수 방지
         if (animCo != null) { StopCoroutine(animCo); animCo = null; }
+        if (previewCo != null) { StopCoroutine(previewCo); previewCo = null; } // 🔹 누수 방지
     }
 
     private void OnDestroy()
