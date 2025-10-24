@@ -54,6 +54,8 @@ public class SkillTargetHighlighter : MonoBehaviour
 
             var od = GetOrAddOutline(c.gameObject);
             od.outlineMaterial = outlineMaterial;
+
+            od.outlineMaterial = outlineMaterial;
             od.SetProperties(outlineColor, outlineWidth);
             od.EnableOutline(true);
         }
@@ -68,6 +70,8 @@ public class SkillTargetHighlighter : MonoBehaviour
             if (!od) { _cache.RemoveAt(i); continue; }
             od.EnableOutline(false);
         }
+
+        _cache.Clear();
     }
 
     // ── 내부 유틸 ──────────────────────────────
@@ -89,4 +93,6 @@ public class SkillTargetHighlighter : MonoBehaviour
         else if (!_cache.Contains(od)) _cache.Add(od);
         return od;
     }
+
+    void OnDisable() { ClearAll(); }
 }

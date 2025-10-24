@@ -39,6 +39,7 @@ public class DamageEffect : SkillEffect
         if (!isHit)
         {
             Debug.Log($"[HitCheck/MISS] {user?.DisplayName} → {target.DisplayName} | chance={chance}%, roll={roll:F1} | hit={atkHit}, spd={tgtSpd}, corr={corr}");
+            SkillCastContext.OnPerTargetHitResolved?.Invoke(target, false);
             return;
         }
         Debug.Log($"[HitCheck/HIT]  {user?.DisplayName} → {target.DisplayName} | chance={chance}%, roll={roll:F1} | hit={atkHit}, spd={tgtSpd}, corr={corr}");
@@ -48,6 +49,8 @@ public class DamageEffect : SkillEffect
         int final = DamageFormula.ComputeFinalDamage(damage, def);
 
         target.ApplyDamage(final);
+
+        SkillCastContext.OnPerTargetHitResolved?.Invoke(target, true);
         Debug.Log($"[Effect/Damage] raw={damage}, def={def}, final={final}");
     }
 }
@@ -69,13 +72,22 @@ public class MagicDamageEffect : SkillEffect
         int corr   = (correctionHitOverride != 0) ? correctionHitOverride : SkillCastContext.CorrectionHit;
 
         bool isHit = HitFormula.RollToHit(atkHit, tgtSpd, corr, out int chance, out float roll);
-        if (!isHit) { Debug.Log($"[Hit/MISS Magic] chance={chance} roll={roll:F1}"); return; }
+        if (!isHit)
+        {
+            Debug.Log($"[HitCheck/MISS] ...");
+            SkillCastContext.OnPerTargetHitResolved?.Invoke(target, false); // ← 추가
+            return;
+        }
+
+        Debug.Log($"[HitCheck/HIT] ...");
 
         // 저항 반영
         int res   = target.GetCurrentResistance();              // 저항 조회
         int final = Mathf.Max(0, damage - Mathf.Max(0, res));   // 정수 차감
 
         target.ApplyDamage(final);
+
+        SkillCastContext.OnPerTargetHitResolved?.Invoke(target, true);      // 명중 알림
         Debug.Log($"[MagicDamage] raw={damage}, res={res}, final={final}");
     }
 }
@@ -101,6 +113,7 @@ public class SignDamageEffect : SkillEffect
         if (!isHit)
         {
             Debug.Log($"[HitCheck/MISS] {user?.DisplayName} → {target.DisplayName} | chance={chance}%, roll={roll:F1} | hit={atkHit}, spd={tgtSpd}, corr={corr} (SignDamage)");
+            SkillCastContext.OnPerTargetHitResolved?.Invoke(target, false);
             return;
         }
         Debug.Log($"[HitCheck/HIT]  {user?.DisplayName} → {target.DisplayName} | chance={chance}%, roll={roll:F1} | hit={atkHit}, spd={tgtSpd}, corr={corr} (SignDamage)");
@@ -113,6 +126,8 @@ public class SignDamageEffect : SkillEffect
         int final = DamageFormula.ComputeFinalDamage(raw, def);
 
         target.ApplyDamage(final);
+
+        SkillCastContext.OnPerTargetHitResolved?.Invoke(target, true);
         Debug.Log($"[Effect/SignDamage] base={damage}, marked={marked}, raw={raw}, def={def}, final={final}");
     }
 }
@@ -121,6 +136,8 @@ public class SignDamageEffect : SkillEffect
 public static class SkillCastContext
 {
     public static int CorrectionHit { get; set; } = 0;
+
+    public static Action<Combatant /*target*/, bool /*isHit*/> OnPerTargetHitResolved;
 }
 
 // 명중률 계산

@@ -27,41 +27,66 @@ public class OutlineFixer : MonoBehaviour
 
     void Awake()
     {
-        // 메서드 역할: 자식 모든 SkinnedMeshRenderer에 안전설정 일괄 적용
         var smrs = GetComponentsInChildren<SkinnedMeshRenderer>(includeInactive: true);
         foreach (var smr in smrs)
         {
-            // 1) 컬링 관련 보정
+            // (1) 컬링 안정화
             smr.updateWhenOffscreen = updateWhenOffscreen;
 
-            // 2) 바운즈 확장 (로컬 바운즈를 배율만큼 키움)
-            //    주의: center는 그대로 두고 extents만 키워 과도한 드로우콜 증가를 피함
+            // (2) 넉넉한 바운즈
             var b = smr.localBounds;
             b.extents = b.extents * boundsScale;
             smr.localBounds = b;
 
-            // 3) (선택) 같은 SkinnedMeshRenderer에 아웃라인 머티리얼 부착
+            // (3) 아웃라인 머티리얼 추가(선택)
             if (outlineMaterial != null)
             {
                 var mats = smr.sharedMaterials;
-                bool hasOutline = false;
-
+                bool has = false;
                 if (avoidDuplicateOutlineMat)
                 {
-                    foreach (var m in mats)
-                    {
-                        if (m == outlineMaterial) { hasOutline = true; break; }
-                    }
+                    foreach (var m in mats) if (m == outlineMaterial) { has = true; break; }
                 }
-
-                if (!hasOutline)
+                if (!has)
                 {
                     var newMats = new Material[mats.Length + 1];
                     for (int i = 0; i < mats.Length; i++) newMats[i] = mats[i];
-                    newMats[newMats.Length - 1] = outlineMaterial; // 마지막 슬롯에 아웃라인
+                    newMats[newMats.Length - 1] = outlineMaterial;
                     smr.sharedMaterials = newMats;
                 }
             }
+
+            // (4) ★중요: 기본 상태는 항상 "두께 0"으로 시작시킴
+            //     -> 스폰되자마자 아웃라인이 보이는 문제를 원천 차단
+            var mpb = new MaterialPropertyBlock();
+            smr.GetPropertyBlock(mpb);
+            mpb.SetFloat(Shader.PropertyToID("_OutlineWidth"), 0f);
+            smr.SetPropertyBlock(mpb);
         }
     }
+
+    void Start()
+    {
+        foreach (var smr in GetComponentsInChildren<SkinnedMeshRenderer>())
+        {
+            FixBounds(smr, 2f); // 2배 확장
+            smr.updateWhenOffscreen = true; // 화면 밖에서도 업데이트 유지
+        }
+
+        foreach (var smr in GetComponentsInChildren<SkinnedMeshRenderer>())
+        {
+            smr.updateWhenOffscreen = true;
+        }
+
+    }
+
+    // [역할] SkinnedMeshRenderer의 Bounds를 확장해 아웃라인 클리핑 방지
+    void FixBounds(SkinnedMeshRenderer smr, float scale = 2f)
+    {
+        var bounds = smr.localBounds;
+        bounds.extents *= scale; // 경계 박스를 확장
+        smr.localBounds = bounds;
+    }
+
+
 }

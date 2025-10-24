@@ -66,7 +66,7 @@ public class DungeonPartySpawner : MonoBehaviour
         {
             var job = party[i];
             var slot = slots[i];
-            
+
 
             if (!slot.binder)
                 slot.binder = slot.root.gameObject.GetComponent<HeroVisualBinder>()

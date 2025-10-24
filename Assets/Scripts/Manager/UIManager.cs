@@ -71,6 +71,9 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Transform debuffRoot;  // 디버프 칩 부모(빨강)
     [SerializeField] private GameObject effectTagPrefab; // 텍스트 하나 달린 간단 칩 프리팹
 
+    [Header("Canvas Root")]
+    [SerializeField] private CanvasGroup canvasRoot;
+
     // 텍스트 색상 지정
     private static readonly Color BuffTextColor = new Color(0.25f, 0.85f, 0.35f); // 초록
     private static readonly Color DebuffTextColor = new Color(0.95f, 0.30f, 0.30f); // 빨강
@@ -335,6 +338,29 @@ public class UIManager : MonoBehaviour
         if (currentVal > baseVal) label.color = BuffTextColor;
         else if (currentVal < baseVal) label.color = DebuffTextColor;
         else label.color = _statNeutralColor;
+    }
+
+    /// <summary>
+    /// [역할] 전투 컷 중 전체 UI 가시성 토글(알파/상호작용).
+    /// 모바일 빌드에서도 가벼운 CanvasGroup 기반 페이드.
+    /// </summary>
+    public void SetCanvasVisible(bool visible, float fadeSeconds = 0.1f)
+    {
+        if (!canvasRoot) return;
+
+        canvasRoot.DOKill();
+
+        if (fadeSeconds <= 0f)
+        {
+            canvasRoot.alpha = visible ? 1f : 0f;
+        }
+        else
+        {
+            canvasRoot.DOFade(visible ? 1f : 0f, fadeSeconds).SetUpdate(true);
+        }
+
+        canvasRoot.blocksRaycasts = visible;
+        canvasRoot.interactable = visible;
     }
 
     //=========== 적용 중인 효과 ============

@@ -124,14 +124,12 @@ public class BattleManager : MonoBehaviour
                 int n = Mathf.Min(root.childCount, party.Count);
                 for (int i = 0; i < n; i++)
                 {
-                    var child = root.GetChild(i)?.gameObject;
-                    if (!child) continue;
+                    var slot = root.GetChild(i);
+                    if (!slot) continue;
 
-                    var c = child.GetComponent<Combatant>();
-                    if (c == null) c = child.AddComponent<Combatant>();
-
-                    // 상위 태그로 진영 자동 판단 + 해당 영웅 주입
-                    c.AutoInitByHierarchy(heroCandidate: party[i]);
+                    // [핵심] 슬롯/자식 트리에서 Combatant를 "한 개만" 남기고 초기화
+                    // var c = EnsurePartySlotCombatant(slot, party[i]);
+                    // if (!c) Debug.LogWarning($"[INIT] Party slot #{i} has no Combatant after ensure.");
                 }
             }
         }
@@ -718,20 +716,82 @@ public class BattleManager : MonoBehaviour
         };
     }
 
-    // 스킬 사용
+    // 스킬 사용 (애니메이션 연출 시작)
     void CastSkillResolved(Combatant caster, Skill skill, List<Combatant> finalTargets)
     {
-        if (!caster || skill == null) return;
+        if (!caster || skill == null || finalTargets == null || finalTargets.Count == 0) return;
+        StartCoroutine(ExecuteSkillWithAnimation(caster, skill, finalTargets));
+    }
 
-        if (finalTargets == null || finalTargets.Count == 0)
+    /// <summary>
+    /// [역할] 스킬 사용 연출 전체(컷) 시퀀스:
+    /// 1) 컷 시작 + 시전자 Attack 애니메이션
+    /// 2) (윈드업 대기) 후 실제 효과 적용
+    /// 3) 대상별 명중 결과에 따라 Hit 애니메이션만 재생
+    /// 4) 죽은 유닛 정리 + 컷 종료
+    /// </summary>
+    private System.Collections.IEnumerator ExecuteSkillWithAnimation(Combatant caster, Skill skill, List<Combatant> targets)
+    {
+        if (BattleCut.Instance) BattleCut.Instance.BeginCut();
+
+        var bridge = caster.GetComponentInChildren<CombatAnimator>()
+                     ?? caster.gameObject.AddComponent<CombatAnimator>();
+
+        // 1) 공격 트리거
+        bridge.PlayAttack();
+
+        // ★ 트리거 직후 1프레임 대기 → 다음 상태 길이를 정확히 얻기 위함
+        yield return null;
+
+        // 2) 총길이/윈드업 산출
+        float total = bridge.GuessAttackTotalSec(1.0f);     // 기본값 ↑
+        float windup = Mathf.Clamp(total * 0.35f, 0.25f, 0.6f); // 일반적인 타격 시점 범위
+
+        // 3) 타격 타이밍까지 대기
+        yield return new WaitForSeconds(windup);
+
+        // 4) 명중 결과 수집 핸들러 등록
+        var hitMap = new System.Collections.Generic.Dictionary<Combatant, bool>();
+        System.Action<Combatant, bool> handler = (tgt, isHit) => { if (tgt) hitMap[tgt] = isHit; };
+        SkillCastContext.OnPerTargetHitResolved += handler;
+
+        // 5) 실제 효과 적용
+        ApplySkillEffectsWithTaunt(caster, skill, targets);
+
+        // 6) 피격 리액션 (명중만)
+        foreach (var tgt in targets)
         {
-            Debug.Log("[Skill] 최종 대상 없음");
-            return;
+            if (!tgt || !tgt.IsAlive) continue;
+            if (hitMap.TryGetValue(tgt, out bool ok) && ok)
+            {
+                var tb = tgt.GetComponentInChildren<CombatAnimator>() ?? tgt.gameObject.AddComponent<CombatAnimator>();
+                tb.PlayHit();
+            }
         }
 
-        ApplySkillEffectsWithTaunt(caster, skill, finalTargets);
+        // 7) 나머지 꼬리 대기 + 컷 최소 길이 보장
+        float tail = Mathf.Max(0f, total - windup);
+        float minCutSec = 1.25f;   // ★ 최소 컷 길이(원하는 길이로 조절)
+        float startT = Time.time;
+
+        if (tail > 0.05f) yield return new WaitForSeconds(tail);
+
+        // (선택) 여유 홀드
+        float extraHold = 0.15f;
+        if (extraHold > 0f) yield return new WaitForSeconds(extraHold);
+
+        // 총 소요 시간이 너무 짧으면 보정
+        float elapsed = Time.time - startT;
+        float remain = Mathf.Max(0f, minCutSec - elapsed);
+        if (remain > 0f) yield return new WaitForSeconds(remain);
+
+        // 8) 정리
+        SkillCastContext.OnPerTargetHitResolved -= handler;   // ★ 반드시 해제
         DestroyDeadUnit();
+
+        if (BattleCut.Instance) BattleCut.Instance.EndCut();
     }
+    
 
     // 몬스터 생존 확인
     bool AnyEnemiesAlive()

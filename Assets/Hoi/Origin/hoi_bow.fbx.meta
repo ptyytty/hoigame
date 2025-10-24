@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: c60ced615cf6eed4b9227172a95cf88c
+guid: 231f436403e51814c9fa8d90080adb04
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
@@ -16,8 +16,7 @@ ModelImporter:
     optimizeGameObjects: 0
     removeConstantScaleCurves: 0
     motionNodeName: 
-    rigImportErrors: "Invalid Avatar Rig Configuration. Missing or invalid transform:\n\tRequired
-      human bone 'LeftFoot' not found\n"
+    rigImportErrors: 
     rigImportWarnings: 
     animationImportErrors: 
     animationImportWarnings: 
@@ -25,14 +24,43 @@ ModelImporter:
     animationDoRetargetingWarnings: 0
     importAnimatedCustomProperties: 0
     importConstraints: 0
-    animationCompression: 3
+    animationCompression: 1
     animationRotationError: 0.5
     animationPositionError: 0.5
     animationScaleError: 0.5
     animationWrapMode: 0
     extraExposedTransformPaths: []
     extraUserProperties: []
-    clipAnimations: []
+    clipAnimations:
+    - serializedVersion: 16
+      name: Armature|Armature|mixamo.com|Layer0
+      takeName: Armature|Armature|mixamo.com|Layer0
+      internalID: -4791504522942941401
+      firstFrame: 0
+      lastFrame: 106
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
     isReadable: 0
   meshes:
     lODScreenPercentages: []
@@ -72,7 +100,7 @@ ModelImporter:
     strictVertexDataChecks: 0
   tangentSpace:
     normalSmoothAngle: 60
-    normalImportMode: 0
+    normalImportMode: 1
     tangentImportMode: 3
     normalCalculationMode: 4
     legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
@@ -83,227 +111,7 @@ ModelImporter:
   humanDescription:
     serializedVersion: 3
     human: []
-    skeleton:
-    - name: hoi_bow(Clone)
-      parentName: 
-      position: {x: 0, y: 0, z: 0}
-      rotation: {x: 0, y: 0, z: 0, w: 1}
-      scale: {x: 1, y: 1, z: 1}
-    - name: Armature
-      parentName: hoi_bow(Clone)
-      position: {x: 0.031583376, y: 0.46581733, z: -0.093903795}
-      rotation: {x: -0.52138114, y: 0.44303268, z: 0.55509603, w: 0.47302452}
-      scale: {x: 36.603817, y: 36.60382, z: 36.603825}
-    - name: All_Ctrl
-      parentName: Armature
-      position: {x: -0, y: 4.897324e-10, z: -0.0036449588}
-      rotation: {x: 0.5213809, y: -0.44303274, z: -0.555096, w: 0.4730248}
-      scale: {x: 1.0000002, y: 0.9999999, z: 1}
-    - name: Hip
-      parentName: All_Ctrl
-      position: {x: -0, y: 0.016606487, z: 4.897313e-10}
-      rotation: {x: -0, y: -0, z: -0, w: 1}
-      scale: {x: 1.0000012, y: 0.9999999, z: 1.0000012}
-    - name: Spine01
-      parentName: Hip
-      position: {x: -0, y: 0.014352029, z: -4.440892e-16}
-      rotation: {x: 0.000000029802322, y: -0, z: 1.7763568e-15, w: 1}
-      scale: {x: 1.0000002, y: 1.0000001, z: 1.0000012}
-    - name: Spine02
-      parentName: Spine01
-      position: {x: 1.3969838e-11, y: 0.010251454, z: -1.2747478e-10}
-      rotation: {x: -0, y: -0, z: -0, w: 1}
-      scale: {x: 1.0000012, y: 1, z: 1.0000001}
-    - name: Head
-      parentName: Spine02
-      position: {x: -7.4505804e-11, y: 0.013212975, z: 0.000000002980232}
-      rotation: {x: -0, y: -0.000000021073417, z: 0.000000021073433, w: 1}
-      scale: {x: 1.0000018, y: 1, z: 1.0000026}
-    - name: Head_end
-      parentName: Head
-      position: {x: 0.000000001527369, y: 0.068343036, z: -0.0000000067055224}
-      rotation: {x: 0.000000059604645, y: 0.000000021073413, z: -0.000000021073435, w: 1}
-      scale: {x: 1.0000002, y: 1, z: 1.0000004}
-    - name: Head_end_end
-      parentName: Head_end
-      position: {x: -0, y: 0.068343006, z: 0}
-      rotation: {x: 0, y: -0, z: -0, w: 1}
-      scale: {x: 1, y: 1, z: 1}
-    - name: Shoulder_L
-      parentName: Spine02
-      position: {x: -0.004100579, y: 0.0116183115, z: -0.000000008493662}
-      rotation: {x: 0.00000025011664, y: -0.00000018494319, z: 0.79433644, w: 0.6074782}
-      scale: {x: 1.0000012, y: 1.0000014, z: 1.0000024}
-    - name: Arm_L
-      parentName: Shoulder_L
-      position: {x: -0.000000004172325, y: 0.014244435, z: 0.0000000036507843}
-      rotation: {x: 0.04029739, y: -0.0057211863, z: -0.1373098, w: 0.9896916}
-      scale: {x: 1.0000051, y: 1.0000014, z: 1.000003}
-    - name: Forearm_L
-      parentName: Arm_L
-      position: {x: -0.0000000063329932, y: 0.015948337, z: -5.9604643e-10}
-      rotation: {x: -0.03867734, y: 0.0015432093, z: 0.02423415, w: 0.9989566}
-      scale: {x: 0.99999726, y: 0.9999991, z: 0.99999857}
-    - name: Forearm_L_end
-      parentName: Forearm_L
-      position: {x: 0.0000000023841857, y: 0.01960943, z: 5.9604643e-10}
-      rotation: {x: 0.00000006332992, y: -0.00000031921073, z: -0.00000018326678, w: 1}
-      scale: {x: 1.0000031, y: 1.0000031, z: 1.0000018}
-    - name: bowBodyGeo
-      parentName: Forearm_L_end
-      position: {x: -0.005146334, y: -0.00579, z: -0.0002250415}
-      rotation: {x: 0.5080649, y: 0.394312, z: 0.19333944, w: 0.7409507}
-      scale: {x: -0.16453843, y: -0.16453832, z: -0.16453838}
-    - name: bowStringGeo
-      parentName: Forearm_L_end
-      position: {x: -0.005146334, y: -0.00579, z: -0.0002250415}
-      rotation: {x: 0.5080649, y: 0.394312, z: 0.19333944, w: 0.7409507}
-      scale: {x: -0.16453843, y: -0.16453832, z: -0.16453838}
-    - name: Forearm_L_end_end
-      parentName: Forearm_L_end
-      position: {x: -0, y: 0.019609392, z: 0}
-      rotation: {x: 0, y: -0, z: -0, w: 1}
-      scale: {x: 1, y: 1, z: 1}
-    - name: Shoulder_R
-      parentName: Spine02
-      position: {x: 0.0041005802, y: 0.011618313, z: -0.000000009536743}
-      rotation: {x: -0.00000022031432, y: -0.00000012533854, z: 0.79433644, w: -0.6074782}
-      scale: {x: 1.0000018, y: 1.0000039, z: 1.0000036}
-    - name: Arm_R
-      parentName: Shoulder_R
-      position: {x: 8.9406965e-10, y: 0.0142444335, z: 2.9802322e-10}
-      rotation: {x: -0.040297035, y: -0.0057212384, z: -0.13730958, w: -0.9896917}
-      scale: {x: 1.000004, y: 1, z: 1.0000038}
-    - name: Forearm_R
-      parentName: Arm_R
-      position: {x: -0.0000000023841857, y: 0.015948338, z: 0.0000000019371509}
-      rotation: {x: -0.038677283, y: -0.0015431453, z: -0.024234138, w: 0.9989567}
-      scale: {x: 0.99999994, y: 0.9999987, z: 1}
-    - name: Forearm_R_end
-      parentName: Forearm_R
-      position: {x: -0.0000000010430813, y: 0.019609427, z: -0.0000000016018747}
-      rotation: {x: 0.000000081956365, y: 0.00000029872163, z: 0.00000017197085, w: 1}
-      scale: {x: 1.0000018, y: 1.0000007, z: 1.0000027}
-    - name: Forearm_R_end_end
-      parentName: Forearm_R_end
-      position: {x: -0, y: 0.019609392, z: 0}
-      rotation: {x: 0, y: -0, z: -0, w: 1}
-      scale: {x: 1, y: 1, z: 1}
-    - name: Leg_L
-      parentName: Hip
-      position: {x: -0.013288912, y: 0.007758192, z: -0.000000013308633}
-      rotation: {x: 0.0046887607, y: 0.06565348, z: 0.99622315, w: 0.056631763}
-      scale: {x: 1.0000006, y: 1.0000044, z: 1.0000018}
-    - name: Foot_L
-      parentName: Leg_L
-      position: {x: 9.685754e-10, y: 0.012289064, z: 4.4703483e-10}
-      rotation: {x: -0.09265353, y: 0.00065937726, z: 0.0079875905, w: 0.9956662}
-      scale: {x: 1.0000027, y: 1.0000043, z: 1.0000025}
-    - name: Foot_L_end
-      parentName: Foot_L
-      position: {x: -2.2351741e-10, y: 0.013280342, z: 6.705522e-10}
-      rotation: {x: 0.000000007450579, y: 0.000000082945895, z: 0.000000022555463, w: 1}
-      scale: {x: 1, y: 1.0000033, z: 1.0000012}
-    - name: Foot_L_end_end
-      parentName: Foot_L_end
-      position: {x: -0, y: 0.013280334, z: 0}
-      rotation: {x: 0, y: -0, z: -0, w: 1}
-      scale: {x: 1, y: 1, z: 1}
-    - name: Leg_R
-      parentName: Hip
-      position: {x: 0.013288912, y: 0.007758192, z: -0.000000013308633}
-      rotation: {x: -0.0046892776, y: 0.06566142, z: 0.9962226, w: -0.05663164}
-      scale: {x: 1.000002, y: 1.0000023, z: 1.0000018}
-    - name: Foot_R
-      parentName: Leg_R
-      position: {x: 9.313225e-11, y: 0.012289064, z: 8.9406965e-10}
-      rotation: {x: -0.09264819, y: -0.00065982895, z: -0.007987471, w: 0.9956667}
-      scale: {x: 1.0000032, y: 1.0000086, z: 1.0000038}
-    - name: Foot_R_end
-      parentName: Foot_R
-      position: {x: 0.0000000013952376, y: 0.013280345, z: 3.259629e-10}
-      rotation: {x: -0.00000014156102, y: 0.000000058731523, z: -0.000000047926726, w: 1}
-      scale: {x: 1.0000043, y: 1.0000075, z: 1.0000054}
-    - name: Foot_R_end_end
-      parentName: Foot_R_end
-      position: {x: -0, y: 0.013280334, z: 0}
-      rotation: {x: 0, y: -0, z: -0, w: 1}
-      scale: {x: 1, y: 1, z: 1}
-    - name: body
-      parentName: hoi_bow(Clone)
-      position: {x: -0.19258513, y: 1.8485769, z: -0.0043949597}
-      rotation: {x: -0.05540041, y: 0.6819436, z: 0.72699106, w: -0.0580329}
-      scale: {x: 100.00003, y: 99.999985, z: 100}
-    - name: body.002
-      parentName: hoi_bow(Clone)
-      position: {x: -0.19258513, y: 1.8485769, z: -0.0043949597}
-      rotation: {x: -0.05540041, y: 0.6819436, z: 0.72699106, w: -0.0580329}
-      scale: {x: 100.00003, y: 99.999985, z: 100}
-    - name: body.003
-      parentName: hoi_bow(Clone)
-      position: {x: -0.19258513, y: 1.8485769, z: -0.0043949597}
-      rotation: {x: -0.05540041, y: 0.6819436, z: 0.72699106, w: -0.0580329}
-      scale: {x: 100.00003, y: 99.999985, z: 100}
-    - name: body.005
-      parentName: hoi_bow(Clone)
-      position: {x: -0.2976091, y: 1.8281393, z: 0.007909892}
-      rotation: {x: -0.055400405, y: 0.6819436, z: 0.72699106, w: -0.058032904}
-      scale: {x: 100.00003, y: 99.99998, z: 99.999985}
-    - name: body.006
-      parentName: hoi_bow(Clone)
-      position: {x: -2.0223677, y: 3.830906, z: -2.7868342}
-      rotation: {x: -0.05540041, y: 0.6819436, z: 0.72699106, w: -0.0580329}
-      scale: {x: 100.00003, y: 99.999985, z: 100}
-    - name: eye_left
-      parentName: hoi_bow(Clone)
-      position: {x: -4.845811, y: -0.04192567, z: -0.4080162}
-      rotation: {x: -0.7071069, y: 0, z: 0, w: 0.7071067}
-      scale: {x: 100, y: 100, z: 100}
-    - name: eye_left.001
-      parentName: hoi_bow(Clone)
-      position: {x: 0.89944947, y: 3.543355, z: -0.55404687}
-      rotation: {x: 0.22164, y: -0.5907568, z: 0.76011604, w: 0.15526049}
-      scale: {x: 105.148506, y: 105.14852, z: 105.14846}
-    - name: eye_left.002
-      parentName: hoi_bow(Clone)
-      position: {x: -4.798994, y: 0.016837835, z: -0.52911377}
-      rotation: {x: -0.7071069, y: 0, z: 0, w: 0.7071067}
-      scale: {x: 100, y: 100, z: 100}
-    - name: eye_left.003
-      parentName: hoi_bow(Clone)
-      position: {x: 0.83897245, y: 3.574234, z: -0.44392687}
-      rotation: {x: -0.07793721, y: 0.65765107, z: 0.74922335, w: -0.009231494}
-      scale: {x: 100.00003, y: 99.999985, z: 100.000015}
-    - name: eye_left.004
-      parentName: hoi_bow(Clone)
-      position: {x: 0.89944947, y: 3.543355, z: -0.55404687}
-      rotation: {x: 0.22164, y: -0.5907568, z: 0.76011604, w: 0.15526049}
-      scale: {x: 105.148506, y: 105.14852, z: 105.14846}
-    - name: eye_right
-      parentName: hoi_bow(Clone)
-      position: {x: -4.88187, y: -0.021615505, z: -1.624726}
-      rotation: {x: -0.7071069, y: 0, z: 0, w: 0.7071067}
-      scale: {x: 100, y: 100, z: 100}
-    - name: eye_right.001
-      parentName: hoi_bow(Clone)
-      position: {x: 0.89962894, y: 3.4583852, z: 0.75903106}
-      rotation: {x: -0.05875001, y: 0.8170214, z: 0.57332253, w: -0.01804775}
-      scale: {x: 100.000046, y: 99.99998, z: 100.00001}
-    - name: eye_right002
-      parentName: hoi_bow(Clone)
-      position: {x: -4.7806444, y: 0.041680098, z: -1.6891999}
-      rotation: {x: -0.7071069, y: 0, z: 0, w: 0.7071067}
-      scale: {x: 100, y: 100, z: 100}
-    - name: eye_right002.001
-      parentName: hoi_bow(Clone)
-      position: {x: 0.7903773, y: 3.4842227, z: 0.82479846}
-      rotation: {x: -0.08111353, y: 0.7809319, z: 0.6190817, w: 0.017432636}
-      scale: {x: 100.000046, y: 99.99997, z: 100.00002}
-    - name: tail
-      parentName: hoi_bow(Clone)
-      position: {x: -1.110111, y: 1.6111474, z: -0.02714681}
-      rotation: {x: -0.043397505, y: 0.6828126, z: 0.72585773, w: -0.070810676}
-      scale: {x: 100.00004, y: 99.999985, z: 100.000015}
+    skeleton: []
     armTwist: 0.5
     foreArmTwist: 0.5
     upperLegTwist: 0.5
@@ -314,13 +122,13 @@ ModelImporter:
     globalScale: 1
     rootMotionBoneName: 
     hasTranslationDoF: 0
-    hasExtraRoot: 1
+    hasExtraRoot: 0
     skeletonHasParents: 1
   lastHumanDescriptionAvatarSource: {instanceID: 0}
   autoGenerateAvatarMappingIfUnspecified: 1
   animationType: 2
   humanoidOversampling: 1
-  avatarSetup: 1
+  avatarSetup: 0
   addHumanoidExtraRootOnlyWhenUsingAvatar: 1
   importBlendShapeDeformPercent: 1
   remapMaterialsIfMaterialImportModeIsNone: 0

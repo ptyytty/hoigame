@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ef08a4ffc7be7041925b7afd13422f8, type: 3}
+  m_Name: Paladin
+  m_EditorClassIdentifier: 
+  characterPrefab: {fileID: 2552623010488599495, guid: edfe355497f3d684da61faeea3a0ea8c, type: 3}
+  baseController: {fileID: 9100000, guid: 40dbf3a9d4ecc6e48982215f011b71f3, type: 2}
+  overrideAttack: {fileID: -4791504522942941401, guid: a0dc96f951bda1a4e8141d835271acbe, type: 3}
+  idleOverride: {fileID: -203655887218126122, guid: 86b33abe2ef13c54c9df44e3e547471f, type: 3}
+  runOverride: {fileID: -203655887218126122, guid: 8e0cb3d71d6b36846be29beb7c1f2fd8, type: 3}
+  hitOverride: {fileID: -203655887218126122, guid: 8c3f7aa24efdd3f4a881000da2fa9f0f, type: 3}
+  jobId: 0
+  avatar: {fileID: 0}
