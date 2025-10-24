@@ -23,8 +23,13 @@ public class DungeonInventoryBinder : MonoBehaviour
     [Header("Dungeon Inventory")]
     [SerializeField] private DungeonInventory dungeonInventory; // 비워두면 자동 탐색
 
-    [Header("6 Slots (정적)")]
+    [Header("6 Slots")]
     [SerializeField] private SlotRefs[] slots = new SlotRefs[6];
+
+    public Action<int> OnSlotClicked;       // 슬롯 선택
+
+    private int _selectedIndex = -1;        // 선택한 인벤토리 슬롯 인덱스
+    public int SelectedIndex => _selectedIndex;
 
     void OnEnable()
     {
@@ -89,12 +94,13 @@ public class DungeonInventoryBinder : MonoBehaviour
         if (s == null || s.button == null) return;
         s.button.onClick.RemoveAllListeners();
 
-        // ❌ 즉시 소비/감소하지 않음.
-        //   추후: 파티 대상 선택 UI 열기 등으로 교체
+        // [역할] 슬롯 클릭 시 '선택만' 하고 소비하지 않음(추후 사용 버튼에서 소비)
         s.button.onClick.AddListener(() =>
         {
             Debug.Log($"[DungeonInventoryBinder] Slot {index} clicked (no consume yet).");
-            // TODO: 파티원 대상 선택 UI 열기 → 사용 확정 시 DungeonInventory.RemoveItemAt(index) 호출
+            _selectedIndex = index;              // ✅ 선택 캐시
+            OnSlotClicked?.Invoke(index);
+            // TODO: 선택 비주얼이 있다면 여기서 갱신
         });
     }
 
@@ -140,4 +146,11 @@ public class DungeonInventoryBinder : MonoBehaviour
 
         if (s.button) s.button.interactable = false;
     }
+
+    public void ClearSelection()
+    {
+        _selectedIndex = -1;
+        // 필요 시 슬롯 하이라이트/테두리 등 시각 효과도 여기서 해제
+    }
+
 }

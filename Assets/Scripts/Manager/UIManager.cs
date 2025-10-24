@@ -40,6 +40,9 @@ public class UIManager : MonoBehaviour
     [Header("Script")]
     [SerializeField] private CameraManager cameraManager;
     [SerializeField] private BattleManager battleManager;
+    [SerializeField] private DungeonPartyUI dungeonPartyUI;               // 파티 슬롯 초기화용
+    [SerializeField] private DungeonInventoryBinder dungeonInventoryUI;   // 아이템 선택 초기화용
+    [SerializeField] private DungeonItemController dungeonItemController;   // 인벤 패널 초기화용
 
     [Header("Skill Panels")]
     [SerializeField] private List<UIinfo> uiList = new List<UIinfo>();
@@ -126,9 +129,16 @@ public class UIManager : MonoBehaviour
             });
         }
 
-        infoPanel.onButton.onClick.AddListener(() => ToggleExclusive(infoPanel));
+        if (infoPanel?.onButton != null)
+            infoPanel.onButton.onClick.AddListener(() => ToggleExclusive(infoPanel));
 
-        invenPanel.onButton.onClick.AddListener(() => ToggleExclusive(invenPanel));
+        if (invenPanel?.onButton != null)
+            invenPanel.onButton.onClick.AddListener(() =>
+            {
+                // ✅ 인벤 버튼을 누를 때마다, 선택/표시 정보 싹 초기화
+                ClearDungeonContext();
+                ToggleExclusive(invenPanel);
+            });
     }
 
     void OnEnable()
@@ -274,8 +284,8 @@ public class UIManager : MonoBehaviour
 
         _currentHeroRef = hero;
 
-        heroName.text  = $"{hero.name_job}";
-        heroHp.text    = $"{hero.hp}";
+        heroName.text = $"{hero.name_job}";
+        heroHp.text = $"{hero.hp}";
         heroLevel.text = $"Lv.{hero.level}";
 
         Combatant c = Combatant.FindByHero(hero);
@@ -322,9 +332,9 @@ public class UIManager : MonoBehaviour
 
         label.text = $"{prefix}: {currentVal}";
 
-        if (currentVal > baseVal)       label.color = BuffTextColor;
-        else if (currentVal < baseVal)  label.color = DebuffTextColor;
-        else                            label.color = _statNeutralColor;
+        if (currentVal > baseVal) label.color = BuffTextColor;
+        else if (currentVal < baseVal) label.color = DebuffTextColor;
+        else label.color = _statNeutralColor;
     }
 
     //=========== 적용 중인 효과 ============
@@ -428,6 +438,16 @@ public class UIManager : MonoBehaviour
         // }
 
         // 또는 hero.equippedItem 같이 DTO에 있다면 그 경로로 바꿔서 사용
+    }
+
+    // 파티 슬롯 선택 초기화
+    public void ClearDungeonContext()
+    {
+        if (dungeonPartyUI) dungeonPartyUI.ResetSelectionAndPanel();   // 파티 선택/정보 숨김
+        if (dungeonInventoryUI) dungeonInventoryUI.ClearSelection();   // 인벤 선택 해제
+
+        // 🔑 전투용 InfoPanel은 건드리지 않고, 소비 아이템 패널만 초기화
+        if (dungeonItemController) dungeonItemController.ClearAllSelectionsAndPanel();
     }
 
     //===============================

@@ -305,60 +305,27 @@ public class PartySelector : MonoBehaviour
         Job hero = assignedHeroes[index];
         if (hero == null) { Debug.LogWarning("❌ 해당 슬롯에 영웅이 없습니다."); return; }
 
-        // 직업 카테고리 체크 그대로 유지
+        // 직업 카테고리 체크
         if (hero.jobCategory != item.jobCategory)
         {
             Debug.LogWarning($"❌ {item.name_item}은(는) {item.jobCategory} 전용");
             return;
         }
 
-        // 기존 장비 해제 → 스탯/ID 원복
+        // 기존 장비 해제 → 표기 스탯 원복 + ID 초기화
         if (hero.equippedItem != null)
         {
-            UnapplyItemStats(hero, hero.equippedItem);
+            EquipmentPreviewPatcher.RemoveFromJob(hero, hero.equippedItem); // ✅ 변경: 새 패처 사용
             hero.equippedItem = null;
-            hero.equippedItemId = 0;       // ★ 저장 id도 초기화
+            hero.equippedItemId = 0;
         }
 
-        // 새 장비 적용 → 스탯/ID 기록
+        // 새 장비 적용 → 표기 스탯 증분 + ID 기록
         hero.equippedItem = item;
-        hero.equippedItemId = item.id_item;  // ★ 아이템 고유 id 사용 (프로젝트의 필드명에 맞춰주세요)
-        ApplyItemStats(hero, item);
+        hero.equippedItemId = item.id_item;
+        EquipmentPreviewPatcher.ApplyToJob(hero, item);                  // ✅ 변경: 새 패처 사용
 
         Debug.Log($"✅ {hero.name_job} 장착: {item.name_item}");
-    }
-
-    // 아이템 착용
-    void ApplyItemStats(Job hero, EquipItem item)
-    {
-        switch (item.buffType[0])
-        {
-            case EquipItemBuffType.Def:
-                hero.def += item.value;
-                break;
-            case EquipItemBuffType.Spd:
-                hero.spd += item.value;
-                break;
-            case EquipItemBuffType.Hit:
-                hero.hit += item.value;
-                break;
-        }
-    }
-    // 아이템 해제
-    void UnapplyItemStats(Job hero, EquipItem item)
-    {
-        switch (item.buffType[0])
-        {
-            case EquipItemBuffType.Def:
-                hero.def -= item.value;
-                break;
-            case EquipItemBuffType.Spd:
-                hero.spd -= item.value;
-                break;
-            case EquipItemBuffType.Hit:
-                hero.hit -= item.value;
-                break;
-        }
     }
 
     void ResetSelection(int index)
@@ -453,7 +420,7 @@ public class PartySelector : MonoBehaviour
     }
 
 
-
+    // 장비 아이템 선택
     void OnEquipItemSelectedFromList(EquipItem item)
     {
         equipItem = item;

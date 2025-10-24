@@ -42,6 +42,9 @@ public class DungeonManager : MonoBehaviour
     public GameObject moveLeft;
     public GameObject moveRight;
 
+    [SerializeField] private DungeonPartySpawner partyVisual; // 파티 애니메이션 제어 창구
+    [SerializeField] private bool animateAllParty = true;           // true면 모든 슬롯에 동일 적용
+
     [Header("Battle UI")]
     public GameObject battleUI;
 
@@ -108,6 +111,7 @@ public class DungeonManager : MonoBehaviour
     {
         // 자동 찾기
         if (!dungeonInventory) dungeonInventory = FindObjectOfType<DungeonInventory>(true);
+        if (!partyVisual) partyVisual = FindObjectOfType<DungeonPartySpawner>(true);
 
         // PartyBridge → DungeonInventory 스냅샷 1회 적용 (인벤토리)
         var snap = PartyBridge.Instance?.dungeonLoadoutSnapshot;
@@ -177,6 +181,22 @@ public class DungeonManager : MonoBehaviour
     private bool isMoving = false;
     private bool isInFrontRow = true; // 앞열인지 뒷열인지 구분하는 변수
 
+    // 이동 애니메이션
+    private void SetRunAnim(bool run)
+    {
+        // [역할] 파티 애니메이션 Speed(0/1) 제어
+        if (!partyVisual) return;
+
+        // 슬롯 개수만큼 안전하게 반복
+        for (int i = 0; i < partyVisual.slots.Count; i++)
+        {
+            if (!animateAllParty && i != 0) break; // 필요 시 0번만 제어
+
+            var binder = partyVisual.slots[i].binder;
+            if (binder) binder.SetMoveSpeed01(run ? 1f : 0f);   // Speed 파라미터 세팅(Idle/Run 전환)
+        }
+    }
+
     public MoveDirection currentDir { get; private set; }
 
     // ==================== 던전 이동 =========================
@@ -195,6 +215,8 @@ public class DungeonManager : MonoBehaviour
         currentDir = (MoveDirection)dir;  //정수 -> 열거형 캐스팅
         isMoving = true;
 
+        SetRunAnim(true);
+
         if (currentDir == MoveDirection.Left && !isInFrontRow)
         {
             transform.Rotate(0, -180, 0);
@@ -207,9 +229,23 @@ public class DungeonManager : MonoBehaviour
         }
     }
 
-    public void StopMove() { isMoving = false; }    // EnentTrigger 연결
-    public void StopMoveHard() { isMoving = false; /* 필요 시 추가로 속도/트위닝도 여기서 끊기 */ }
-    public void ResumeMove() { isMoving = true; }           // 전투 끝나고 다시 움직일 때 호출
+    public void StopMove()      // EnentTrigger 연결
+    {
+        isMoving = false; 
+        SetRunAnim(false);      // 버튼에서 손 떼면 Idle로 복귀
+    }    
+    public void StopMoveHard() 
+    {
+        isMoving = false; 
+        SetRunAnim(false); // 강제 정지 시에도 Idle
+    }
+
+    public void ResumeMove()
+    {
+        isMoving = true;
+        SetRunAnim(true);  // 필요 시 재개 즉시 Run
+    }
+    
     public void ResumeMoveIfNeeded() { /* 조건부 재개가 필요하면 여기에 로직 */ }
 
     Vector3 GetMoveVector(MoveDirection dir)
@@ -245,6 +281,8 @@ public class DungeonManager : MonoBehaviour
         InteractableManager.instance?.ExitBattleMode();         // 전투 종료 -> 상호작용 복구
 
         if (rewardButton) rewardButton.interactable = true;
+
+        SetRunAnim(false);      // Idle 복귀
     }
     // ─────────────────────────────────────
 

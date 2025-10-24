@@ -31,7 +31,7 @@ public class DungeonPartyUI : MonoBehaviour
 
     [Header("Options")]
     [SerializeField] private bool autoPopulateFromPartyBridge = true; // [역할] OnEnable 때 PartyBridge에서 자동 주입
-    [SerializeField] private bool autoSelectFirstOnEnable = true;     // [역할] 활성화 시 첫 유효 슬롯 자동 선택
+    [SerializeField] private bool autoSelectFirstOnEnable = false;     // [역할] 활성화 시 첫 유효 슬롯 자동 선택
 
     [Header("좌측: 영웅 정보 패널(던전 전용)")]
     [SerializeField] private Image infoHeroImage;
@@ -51,6 +51,9 @@ public class DungeonPartyUI : MonoBehaviour
 
     [Header("전투 패널 연동")]
     [SerializeField] private UIManager battleUIManager;     // [역할] 슬롯 선택 시 전투용 패널(UIManager)도 동일 영웅으로 갱신/바인딩
+
+    public event System.Action<int, Job> OnHeroSelected;    // 선택된 영웅 외부 알림
+    public Job GetSelectedHero() => (_currentIndex >= 0) ? _heroes[_currentIndex] : null;   // 현재 선택 영웅 조회
 
     // 내부 상태
     private readonly Job[] _heroes = new Job[4];
@@ -147,6 +150,35 @@ public class DungeonPartyUI : MonoBehaviour
 
         // ★ 전투 패널(UIManager)도 같은 영웅으로 동기화(실시간 바인딩/프리뷰는 UIManager 쪽에서)
         if (battleUIManager) battleUIManager.ShowHeroInfo(hero);  // 내부에서 TryBind(c) 수행 :contentReference[oaicite:4]{index=4}
+
+        OnHeroSelected?.Invoke(index, hero);
+    }
+
+    // 선택 슬롯 인덱스
+    public int IndexOfHero(Job hero)
+    {
+        if (hero == null) return -1;
+        if (_currentIndex >= 0 && _currentIndex < _heroes.Length && _heroes[_currentIndex] == hero)
+            return _currentIndex;
+
+        for (int i = 0; i < _heroes.Length; i++)
+            if (_heroes[i] == hero)
+                return i;
+
+        return -1;
+    }
+
+    // 해당 영웅을 선택 슬롯으로 강제 선택
+    public void SelectHero(Job hero)
+    {
+        int idx = IndexOfHero(hero);
+        if (idx >= 0) OnSlotClicked(idx); // 내부에서 RefreshHeroInfoPanel 호출
+    }
+
+    // 선택/정보 UI 초기화 시키는 공개 메서드
+    public void ResetSelectionAndPanel()
+    {
+        ResetSelectionToNone();
     }
 
     // [역할] 선택 비주얼 토글
@@ -289,5 +321,35 @@ public class DungeonPartyUI : MonoBehaviour
         if (equipRow) equipRow.SetActive(true);
         if (equipIcon) { equipIcon.enabled = false; equipIcon.sprite = null; }
         if (equipName) { equipName.enabled = false; equipName.text = ""; }
+    }
+
+    /// <summary>
+    /// 역할: HP 바에 '이전→이후'로 회복 애니메이션을 재생하고, 패널을 즉시 최신값으로 동기화
+    /// </summary>
+    public void PlayHealAnimation(Job hero, int beforeHp, int afterHp, float previewDur = 0.25f, float commitDur = 0.2f)
+    {
+        if (hero == null) return;
+
+        int max = Mathf.Max(1, hero.maxHp);
+
+        if (infoHpBar)
+        {
+            infoHpBar.Set(beforeHp, max);
+            infoHpBar.ShowPreviewToAnimated(afterHp, HealthBarUI.PreviewType.Heal, previewDur);
+            StartCoroutine(CoCommitAfter(previewDur, commitDur));
+        }
+
+        // ⚠️ 여기서 RefreshHeroInfoPanel(hero)를 즉시 호출하면
+        //    infoHpBar.Set(hp,max)가 다시 불려 프리뷰(초록)가 사라집니다.
+        //    따라서 텍스트만 조용히 반영하고, 바는 HealthBarUI가 알아서 움직이게 둡니다.
+        if (infoHp) infoHp.text = $"{afterHp}/{max}";
+    }
+
+    private System.Collections.IEnumerator CoCommitAfter(float delay, float commitDur)
+    {
+        // 프리뷰가 끝날 때까지 기다렸다가
+        yield return new WaitForSecondsRealtime(Mathf.Max(0f, delay));
+        // 이제 현재 바만 부드럽게 따라 올라감
+        if (infoHpBar) infoHpBar.CommitPreview(commitDur);
     }
 }

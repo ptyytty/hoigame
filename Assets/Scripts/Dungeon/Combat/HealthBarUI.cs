@@ -128,9 +128,11 @@ public class HealthBarUI : MonoBehaviour
     // 역할: 타겟 HP까지 프리뷰 바(fillFuture)를 'dur' 동안 부드럽게 증가
     public void ShowPreviewToAnimated(int targetHp, PreviewType type, float dur = 0.25f)
     {
+        
         if (!fillFuture) return;
 
         int t = Mathf.Clamp(targetHp, 0, maxHp);
+        Debug.Log($"[HPBar] preview → {previewTargetHp} / {maxHp}");
         if (type == PreviewType.Heal && clampOverheal)
             t = Mathf.Clamp(t, 0, maxHp);
 

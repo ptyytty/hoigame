@@ -79,12 +79,26 @@ public class CameraManager : MonoBehaviour
         EnemySpawner.OnBattleStart += HandleBattleStart;
         EnemySpawner.OnEnemyFocusHint += HandleEnemyFocusHint;
 
-        // 타게팅 on/off & 스킬 커밋 시점 연동
-        if (BattleManager.Instance != null)
-        {
-            BattleManager.Instance.OnTargetingStateChanged += HandleTargetingState;
-            BattleManager.Instance.OnSkillCommitted += HandleSkillCommitted;
-        }
+        TrySubscribeBattleEvents();
+        StartCoroutine(SubscribeBMDeferred());      // 싱글톤 초기화 늦을 시 1프레임 뒤 재시도
+    }
+
+    IEnumerator SubscribeBMDeferred()
+    {
+        if (BattleManager.Instance != null) yield break;
+        yield return null; // 다음 프레임
+        TrySubscribeBattleEvents();
+    }
+
+    void TrySubscribeBattleEvents()
+    {
+        var bm = BattleManager.Instance;
+        if (bm == null) return;
+        // 중복 구독 방지하려면 일단 한번 해제 후 구독
+        bm.OnTargetingStateChanged -= HandleTargetingState;
+        bm.OnSkillCommitted       -= HandleSkillCommitted;
+        bm.OnTargetingStateChanged += HandleTargetingState;
+        bm.OnSkillCommitted        += HandleSkillCommitted;
     }
 
     void OnDisable()

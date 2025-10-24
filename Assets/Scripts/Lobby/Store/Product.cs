@@ -81,13 +81,13 @@ public class Product : MonoBehaviour
 
             slotImage.sprite = selectGeneralImage;
 
-            ItemInfoPanel.instance.ShowItemInfo(item.name_item,
-                                                item.description,
-                                                item.buffTypes,
-                                                null,
-                                                item.value,
-                                                item.price,
-                                                item.icon);
+            // ItemInfoPanel.instance.ShowItemInfo(item.name_item,
+            //                                     item.description,
+            //                                     item.buffTypes,
+            //                                     null,
+            //                                     item.effects,
+            //                                     item.price,
+            //                                     item.icon);
         });
     }
 
@@ -116,13 +116,13 @@ public class Product : MonoBehaviour
                 slotImage.sprite = selectedSprite;
             }
 
-            ItemInfoPanel.instance.ShowItemInfo(item.name_item,
-                                                item.description,
-                                                null,
-                                                item.effectText,
-                                                item.value,
-                                                item.price,
-                                                item.icon);
+            // ItemInfoPanel.instance.ShowItemInfo(item.name_item,
+            //                                     item.description,
+            //                                     null,
+            //                                     item.effectText,
+            //                                     item.value,
+            //                                     item.price,
+            //                                     item.icon);
         });
 
     }

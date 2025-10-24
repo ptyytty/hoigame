@@ -19,19 +19,11 @@ public class ConsumeItem
     public string iconName;
     public Sprite icon => Resources.Load<Sprite>($"Icons/Item/Consume/{iconName}");
     public ItemType itemType;
-    public int value;
-    public List<ConsumeBuffType> buffTypes;
     public ItemTarget itemTarget;
     public Area area;
     public string description;
 
-    public string ToBuffDescription()
-    {
-        if (buffTypes == null || buffTypes.Count == 0)
-            return "효과 없음";
-
-        return string.Join(", ", buffTypes.Select(bt => bt.ToKorean()));
-    }
+    public List<ItemEffectSpec> effects;
 
 }
 
@@ -46,11 +38,11 @@ public class EquipItem
     public JobCategory jobCategory;
     public ItemType itemType;
     public string effectText;
-    public int value;
-    public List<EquipItemBuffType> buffType;
     public string description;
-    public List<SpecialBuffType> specialBuffTypes;
+
+    public List<ItemEffectSpec> effects;
 }
+
 
 public enum ItemType
 {
