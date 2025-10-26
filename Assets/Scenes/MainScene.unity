@@ -27375,7 +27375,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a037040f092db1341ba7c2d99a658e25, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  buttonPrefab: {fileID: 6511868903866711177, guid: 6c2a1a28096d9be42a6c2de2fc36c3f9, type: 3}
+  buttonPrefab: {fileID: 1309743034889635097, guid: 0f534525e53d9db47a51f10b05912058, type: 3}
   contentParent: {fileID: 1523556767}
   globalDefaultSprite: {fileID: 21300000, guid: 8efd03668be3e464f9689f54cba3c158, type: 3}
   globalSelectedSprite: {fileID: 21300000, guid: 921505e588807da478f56acafb8ab0cf, type: 3}

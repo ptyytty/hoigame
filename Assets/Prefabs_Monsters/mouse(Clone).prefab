@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 1310601660696660953}
   - component: {fileID: 6776391271158752271}
   - component: {fileID: 4886411460953885877}
+  - component: {fileID: 3746444351048454028}
   m_Layer: 0
   m_Name: mouse(Clone)
   m_TagString: Untagged
@@ -83,3 +84,28 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &3746444351048454028
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5049789706711503226}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3d0a81c31907034f956a6f0c8dd5ecb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  root: {fileID: 1310601660696660953}
+  visual: {fileID: 1310601660696660953}
+  mainRenderer: {fileID: 4886411460953885877}
+  windupTime: 0.18
+  lungeTime: 0.14
+  recoverTime: 0.18
+  hitFlashTime: 0.08
+  backDistance: 0.25
+  forwardDistance: 0.35
+  windupScale: {x: 0.92, y: 1.08, z: 0.92}
+  impactScale: {x: 1.1, y: 0.9, z: 1.1}
+  colorProperty: _BaseColor
+  hitFlashColor: {r: 1, g: 1, b: 1, a: 1}

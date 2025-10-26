@@ -47,6 +47,7 @@ GameObject:
   - component: {fileID: 2491383635403556039}
   - component: {fileID: 4626069632819224339}
   - component: {fileID: 3876111281952575653}
+  - component: {fileID: 2993025872420890141}
   m_Layer: 0
   m_Name: eyeball_green
   m_TagString: Untagged
@@ -176,6 +177,31 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.07, y: 0.07, z: 0.07}
   m_Center: {x: -0.0007253606, y: -0.00000005401671, z: -0.000000006519258}
+--- !u!114 &2993025872420890141
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4148888686674371858}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3d0a81c31907034f956a6f0c8dd5ecb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  root: {fileID: 3663679309529005992}
+  visual: {fileID: 3663679309529005992}
+  mainRenderer: {fileID: 2491383635403556039}
+  windupTime: 0.18
+  lungeTime: 0.14
+  recoverTime: 0.18
+  hitFlashTime: 0.08
+  backDistance: 0.25
+  forwardDistance: 0.35
+  windupScale: {x: 0.92, y: 1.08, z: 0.92}
+  impactScale: {x: 1.1, y: 0.9, z: 1.1}
+  colorProperty: _BaseColor
+  hitFlashColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1 &5053540989309253563
 GameObject:
   m_ObjectHideFlags: 0
@@ -189,6 +215,7 @@ GameObject:
   - component: {fileID: 6710702856502564462}
   - component: {fileID: 189513540699978707}
   - component: {fileID: 9130565635155876057}
+  - component: {fileID: 6349034019796785269}
   m_Layer: 0
   m_Name: eyeball_red
   m_TagString: Untagged
@@ -318,6 +345,31 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.07, y: 0.07, z: 0.07}
   m_Center: {x: -0.000725301, y: 0.0000000055879354, z: -0.000000006519258}
+--- !u!114 &6349034019796785269
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5053540989309253563}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3d0a81c31907034f956a6f0c8dd5ecb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  root: {fileID: 5578297948625120513}
+  visual: {fileID: 5578297948625120513}
+  mainRenderer: {fileID: 6710702856502564462}
+  windupTime: 0.18
+  lungeTime: 0.14
+  recoverTime: 0.18
+  hitFlashTime: 0.08
+  backDistance: 0.25
+  forwardDistance: 0.35
+  windupScale: {x: 0.92, y: 1.08, z: 0.92}
+  impactScale: {x: 1.1, y: 0.9, z: 1.1}
+  colorProperty: _BaseColor
+  hitFlashColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1 &6567916305988671156
 GameObject:
   m_ObjectHideFlags: 0
@@ -331,6 +383,7 @@ GameObject:
   - component: {fileID: 4622119717155174241}
   - component: {fileID: 8789091579947340988}
   - component: {fileID: 3498462554843895123}
+  - component: {fileID: 3140494900403347459}
   m_Layer: 0
   m_Name: eyeball_brown
   m_TagString: Untagged
@@ -460,3 +513,28 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.07, y: 0.07, z: 0.07}
   m_Center: {x: -0.0007253606, y: 0.0000000055879354, z: -0.000000006519258}
+--- !u!114 &3140494900403347459
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6567916305988671156}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3d0a81c31907034f956a6f0c8dd5ecb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  root: {fileID: 5795637632671353870}
+  visual: {fileID: 5795637632671353870}
+  mainRenderer: {fileID: 4622119717155174241}
+  windupTime: 0.18
+  lungeTime: 0.14
+  recoverTime: 0.18
+  hitFlashTime: 0.08
+  backDistance: 0.25
+  forwardDistance: 0.35
+  windupScale: {x: 0.92, y: 1.08, z: 0.92}
+  impactScale: {x: 1.1, y: 0.9, z: 1.1}
+  colorProperty: _BaseColor
+  hitFlashColor: {r: 1, g: 1, b: 1, a: 1}

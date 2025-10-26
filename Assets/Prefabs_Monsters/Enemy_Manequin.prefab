@@ -45,6 +45,7 @@ GameObject:
   - component: {fileID: 7070329595838062957}
   - component: {fileID: 6689462817771072600}
   - component: {fileID: 4780896027022130962}
+  - component: {fileID: 853796801651986875}
   m_Layer: 0
   m_Name: mannequin
   m_TagString: Untagged
@@ -135,9 +136,11 @@ MonoBehaviour:
   currentHp: 0
   hero:
     id_job: 0
+    portrait: {fileID: 0}
     name_job: 
     level: 0
     exp: 0
+    maxHp: 0
     hp: 0
     def: 0
     res: 0
@@ -146,6 +149,7 @@ MonoBehaviour:
     loc: 0
     category: 0
     jobCategory: 0
+    equippedItemId: 0
   monsterData: {fileID: 11400000, guid: 73ba222be5005ca42b1ccfe500186539, type: 2}
   currentLoc: 1
 --- !u!65 &4780896027022130962
@@ -169,3 +173,28 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.07, y: 0.07, z: 0.07}
   m_Center: {x: -0.00016094418, y: -0.0011973848, z: -0.005381562}
+--- !u!114 &853796801651986875
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8727456277589147832}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3d0a81c31907034f956a6f0c8dd5ecb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  root: {fileID: 8238763299928545794}
+  visual: {fileID: 8238763299928545794}
+  mainRenderer: {fileID: 7070329595838062957}
+  windupTime: 0.18
+  lungeTime: 0.14
+  recoverTime: 0.18
+  hitFlashTime: 0.08
+  backDistance: 0.25
+  forwardDistance: 0.35
+  windupScale: {x: 0.92, y: 1.08, z: 0.92}
+  impactScale: {x: 1.1, y: 0.9, z: 1.1}
+  colorProperty: _BaseColor
+  hitFlashColor: {r: 1, g: 1, b: 1, a: 1}

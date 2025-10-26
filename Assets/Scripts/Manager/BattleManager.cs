@@ -265,75 +265,84 @@ public class BattleManager : MonoBehaviour
         SkillTargetHighlighter.Instance?.ClearAll();    // 아웃라인 제거
         uiManager?.ClearSkillSelection();               // 스킬 UI 초기화
 
+        PruneDeadUnitsAndFixAnchor();
+
         if (initiative == null || initiative.Count == 0)
         {
-            Debug.LogWarning("[Battle] No units in initiative.");
-            return;
+            // 적 전멸 승리 체크 (이미 처리되었을 수도 있지만 안전 재호출)
+            TryEndBattleIfEnemiesDefeated();
+
+            // 여기서 영웅도 모두 사망한 패배 루틴이 있다면 호출하면 됨.
+            // e.g., EndBattle_Defeat();
+
+            return; // ← Count==0 상태에서 modulo 연산에 들어가지 않도록 즉시 종료
         }
+
+        if (_lastActorRef != null && (!_lastActorRef.IsAlive || _lastActorRef.combatant == null))
+            _lastActorRef = null;
 
         // 직전 캐릭터 참조
         UnitEntry anchor = _lastActorRef;
         Combatant anchorC = anchor != null ? anchor.combatant : null;
 
-        // 사망 정리 (여기 '한 곳'에서만 수행)
-        initiative = initiative.Where(u => u != null && u.IsAlive && u.combatant).ToList();
-
-        // 몬스터 전멸 확인
-        TryEndBattleIfEnemiesDefeated();
-        if (initiative.Count == 0) return;
-
-        // anchor의 '새 인덱스' 찾기 (오브젝트가 같으면 같은 참조)
-        int baseIdx = -1;
-        if (anchorC != null)
-        {
-            baseIdx = initiative.FindIndex(u => u.combatant == anchorC);
-        }
-
-        // 다음 캐릭터로 이동 (anchor 뒤로 한 칸)
-        //    - anchor가 사라졌거나 첫 턴이면 baseIdx == -1 → 0부터 시작하도록 처리
-        turnIndex = ((baseIdx < 0 ? -1 : baseIdx) + 1) % initiative.Count;
+        turnIndex = ((anchorC == null ? -1 : initiative.FindIndex(u => u.combatant == anchorC)) + 1) % initiative.Count;
         var actor = initiative[turnIndex];
 
+        // 한 번 더 확인
         if (actor.combatant == null || !actor.combatant.IsAlive)
         {
             Debug.Log("[TurnSkip] 사망/무효 유닛 건너뜀");
+            NextTurn(); // 다음 후보로
+            return;
+        }
+
+        // 이번 턴의 앵커 갱신
+        _lastActorRef = actor;
+
+        ClearTauntIfOwnerTurnStarts(actor.combatant); // [역할] 도발 해제 타이밍
+
+        // 턴 시작 DOT/CC 처리: 죽거나 기절이면 바로 다음 턴
+        if (!ApplyStartOfTurnStatues(actor.combatant))
+        {
             NextTurn();
             return;
         }
 
-        // '이번 턴 캐릭터'를 다음 루프의 anchor로 기록
-        _lastActorRef = actor;
-
-        ClearTauntIfOwnerTurnStarts(actor.combatant);       // actor가 도발 유닛일 경우 도발 해제
-
-        // 턴 시작 시 상태 처리
-        if (!ApplyStartOfTurnStatues(actor.combatant))
-        {
-            NextTurn();         // 죽거나 기절이 -> 다음 턴
-            return;
-        }
-
-        // 디버그 출력
         Debug.Log($"[Turn] {actor.label}, SPD: {actor.spd}");
 
-        if (actor.isHero)       // 영웅 턴일 때  수행
+        if (actor.isHero)
         {
-            // 영웅: 스킬 UI 표시
             var hero = actor.hero;
             if (hero == null)
             {
                 Debug.LogWarning("[Battle] Hero is null on turn.");
-                NextTurn(); // 건너뛰기
+                NextTurn();
                 return;
             }
-
             ShowHeroSkill(hero);
-            OnSkillCommitted += EndTickOnce;        // 스킬 사용 이벤트 발동 시 턴 종료 틱 1회 적용
+            OnSkillCommitted += EndTickOnce; // [역할] 스킬 커밋 시 턴 종료 틱 1회
         }
-        else                    // 몬스터 턴일 때 수행
+        else
         {
             TryUseSkill_EnemyAI_Random(actor);
-            ApplyEndOfTurnTick(actor.combatant);
+        }
+    }
+
+    // 사망 유닛 제거
+    private void PruneDeadUnitsAndFixAnchor()
+    {
+        if (initiative == null) return;
+
+        // 리스트에서 사망/무효 유닛 제거
+        initiative = initiative
+            .Where(u => u != null && u.combatant != null && u.combatant.IsAlive)
+            .ToList();
+
+        // 앵커가 죽었거나 무효면 초기화하여 다음 턴 계산 꼬임 방지
+        if (_lastActorRef != null)
+        {
+            if (_lastActorRef.combatant == null || !_lastActorRef.combatant.IsAlive)
+                _lastActorRef = null;
         }
     }
 
@@ -461,7 +470,6 @@ public class BattleManager : MonoBehaviour
 
         RaiseSkillCommitted();
         CancelTargeting();
-        NextTurn();
     }
 
     // 스킬 사용 커밋, OnSkillCommited 이벤트 진행
@@ -734,25 +742,45 @@ public class BattleManager : MonoBehaviour
     {
         if (BattleCut.Instance) BattleCut.Instance.BeginCut();
 
-        var bridge = caster.GetComponentInChildren<CombatAnimator>()
-                     ?? caster.gameObject.AddComponent<CombatAnimator>();
+        Vector3 avgTargetPos = caster.transform.position;
+        if (targets != null && targets.Count > 0)
+        {
+            Vector3 sum = Vector3.zero; int cnt = 0;
+            foreach (var t in targets) { if (t) { sum += t.transform.position; cnt++; } }
+            if (cnt > 0) avgTargetPos = sum / cnt;
+        }
 
-        // 1) 공격 트리거
-        bridge.PlayAttack();
+        // (수정) 캐스터가 몬스터인지/영웅인지에 따라 애니메이터 선택
+        var monAnim = caster.GetComponentInChildren<MonsterAnimator>();
+        var heroAnim = caster.GetComponentInChildren<CombatAnimator>();
+
+        // (추가) 공격 방향 회전 + 공격 트리거
+        if (monAnim != null)
+        {
+            // [역할] 몬스터가 공격 직전 타깃을 바라보게 회전
+            monAnim.AimAt(avgTargetPos);
+            // [역할] 몸통 박치기(뒤→앞→복귀) 절차 애니메이션 시작
+            monAnim.PlayAttack();
+        }
+        else
+        {
+            // 영웅 애니메이션. (영웅도 회전시키고 싶으면 CombatAnimator에 AimAt을 추가해 동일 패턴 적용 가능)
+            heroAnim = heroAnim ?? caster.gameObject.AddComponent<CombatAnimator>();
+            heroAnim.PlayAttack();
+        }
 
         // ★ 트리거 직후 1프레임 대기 → 다음 상태 길이를 정확히 얻기 위함
         yield return null;
 
-        // 2) 총길이/윈드업 산출
-        float total = bridge.GuessAttackTotalSec(1.0f);     // 기본값 ↑
-        float windup = Mathf.Clamp(total * 0.35f, 0.25f, 0.6f); // 일반적인 타격 시점 범위
 
-        // 3) 타격 타이밍까지 대기
+        // 2) 총길이/윈드업 산출
+        float total = (heroAnim != null) ? heroAnim.GuessAttackTotalSec(1.0f) : 1.0f;
+        float windup = Mathf.Clamp(total * 0.35f, 0.25f, 0.6f);
         yield return new WaitForSeconds(windup);
 
         // 4) 명중 결과 수집 핸들러 등록
         var hitMap = new System.Collections.Generic.Dictionary<Combatant, bool>();
-        System.Action<Combatant, bool> handler = (tgt, isHit) => { if (tgt) hitMap[tgt] = isHit; };
+        Action<Combatant, bool> handler = (tgt, isHit) => { if (tgt) hitMap[tgt] = isHit; };
         SkillCastContext.OnPerTargetHitResolved += handler;
 
         // 5) 실제 효과 적용
@@ -762,11 +790,15 @@ public class BattleManager : MonoBehaviour
         foreach (var tgt in targets)
         {
             if (!tgt || !tgt.IsAlive) continue;
-            if (hitMap.TryGetValue(tgt, out bool ok) && ok)
-            {
-                var tb = tgt.GetComponentInChildren<CombatAnimator>() ?? tgt.gameObject.AddComponent<CombatAnimator>();
-                tb.PlayHit();
-            }
+
+            bool ok = hitMap.TryGetValue(tgt, out bool isHit) && isHit;
+            if (!ok) continue;
+
+            var tgtMon = tgt.GetComponentInChildren<MonsterAnimator>();
+            var tgtHero = tgt.GetComponentInChildren<CombatAnimator>();
+
+            if (tgtMon != null) tgtMon.PlayHit();   // [역할] 몬스터 피격(뒤로 튕김 + 플래시)
+            else tgtHero?.PlayHit(); // [역할] 영웅 피격 트리거
         }
 
         // 7) 나머지 꼬리 대기 + 컷 최소 길이 보장
@@ -790,8 +822,10 @@ public class BattleManager : MonoBehaviour
         DestroyDeadUnit();
 
         if (BattleCut.Instance) BattleCut.Instance.EndCut();
+
+        NextTurn();
     }
-    
+
 
     // 몬스터 생존 확인
     bool AnyEnemiesAlive()
@@ -905,9 +939,7 @@ public class BattleManager : MonoBehaviour
 
         Debug.Log($"[AI] {caster.DisplayName} uses {pick.skillName} → {targets.Count} target(s)");
         // 5) 실행
+        OnSkillCommitted += () => ApplyEndOfTurnTick(caster); // 적도 커밋 순간에 '턴 종료 틱'을 적용
         CastSkillResolved(caster, pick, targets);
-
-        // 6) 다음 턴
-        NextTurn();
     }
 }

@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 4556387033274937163}
   - component: {fileID: 1865452292283759123}
   - component: {fileID: 4039640172150256927}
+  - component: {fileID: 8809930113471039286}
   m_Layer: 0
   m_Name: computer
   m_TagString: Untagged
@@ -103,9 +104,11 @@ MonoBehaviour:
   currentHp: 0
   hero:
     id_job: 0
+    portrait: {fileID: 0}
     name_job: 
     level: 0
     exp: 0
+    maxHp: 0
     hp: 0
     def: 0
     res: 0
@@ -114,6 +117,7 @@ MonoBehaviour:
     loc: 0
     category: 0
     jobCategory: 0
+    equippedItemId: 0
   monsterData: {fileID: 11400000, guid: 620fb62cfd51eef4b81c07748fdd196d, type: 2}
   currentLoc: 1
 --- !u!65 &4039640172150256927
@@ -137,6 +141,31 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.07, y: 0.07, z: 0.07}
   m_Center: {x: 0, y: -0.000000059604645, z: 0}
+--- !u!114 &8809930113471039286
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2610809797148397214}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3d0a81c31907034f956a6f0c8dd5ecb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  root: {fileID: 3418413541383967780}
+  visual: {fileID: 3418413541383967780}
+  mainRenderer: {fileID: 4556387033274937163}
+  windupTime: 0.18
+  lungeTime: 0.14
+  recoverTime: 0.18
+  hitFlashTime: 0.08
+  backDistance: 0.25
+  forwardDistance: 0.35
+  windupScale: {x: 0.92, y: 1.08, z: 0.92}
+  impactScale: {x: 1.1, y: 0.9, z: 1.1}
+  colorProperty: _BaseColor
+  hitFlashColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1 &3565622668616989413
 GameObject:
   m_ObjectHideFlags: 0
@@ -150,6 +179,7 @@ GameObject:
   - component: {fileID: 3061144399113182000}
   - component: {fileID: 4073655475920515158}
   - component: {fileID: 1390123841428288177}
+  - component: {fileID: 8108123953234414045}
   m_Layer: 0
   m_Name: keyboard
   m_TagString: Untagged
@@ -240,9 +270,11 @@ MonoBehaviour:
   currentHp: 0
   hero:
     id_job: 0
+    portrait: {fileID: 0}
     name_job: 
     level: 0
     exp: 0
+    maxHp: 0
     hp: 0
     def: 0
     res: 0
@@ -251,6 +283,7 @@ MonoBehaviour:
     loc: 0
     category: 0
     jobCategory: 0
+    equippedItemId: 0
   monsterData: {fileID: 11400000, guid: ea597c8a10d0fda499e5a5784e4679af, type: 2}
   currentLoc: 1
 --- !u!65 &1390123841428288177
@@ -274,6 +307,31 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.07, y: 0.07, z: 0.07}
   m_Center: {x: -0.016265748, y: 0.010483158, z: -0.00029507803}
+--- !u!114 &8108123953234414045
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3565622668616989413}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3d0a81c31907034f956a6f0c8dd5ecb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  root: {fileID: 4192976874152829023}
+  visual: {fileID: 4192976874152829023}
+  mainRenderer: {fileID: 3061144399113182000}
+  windupTime: 0.18
+  lungeTime: 0.14
+  recoverTime: 0.18
+  hitFlashTime: 0.08
+  backDistance: 0.25
+  forwardDistance: 0.35
+  windupScale: {x: 0.92, y: 1.08, z: 0.92}
+  impactScale: {x: 1.1, y: 0.9, z: 1.1}
+  colorProperty: _BaseColor
+  hitFlashColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1 &5166601787701662297
 GameObject:
   m_ObjectHideFlags: 0
@@ -287,6 +345,7 @@ GameObject:
   - component: {fileID: 6679832770915906444}
   - component: {fileID: 5312696290382637115}
   - component: {fileID: 5909540675945749675}
+  - component: {fileID: 4934207895216321913}
   m_Layer: 0
   m_Name: mouse
   m_TagString: Untagged
@@ -377,9 +436,11 @@ MonoBehaviour:
   currentHp: 0
   hero:
     id_job: 0
+    portrait: {fileID: 0}
     name_job: 
     level: 0
     exp: 0
+    maxHp: 0
     hp: 0
     def: 0
     res: 0
@@ -388,6 +449,7 @@ MonoBehaviour:
     loc: 0
     category: 0
     jobCategory: 0
+    equippedItemId: 0
   monsterData: {fileID: 11400000, guid: 2aaa731c098f8f041b7e65c220f523de, type: 2}
   currentLoc: 1
 --- !u!65 &5909540675945749675
@@ -411,6 +473,31 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.07, y: 0.07, z: 0.07}
   m_Center: {x: 0.005059287, y: 0.00023717713, z: 0.0008767984}
+--- !u!114 &4934207895216321913
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5166601787701662297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3d0a81c31907034f956a6f0c8dd5ecb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  root: {fileID: 5546363669596293347}
+  visual: {fileID: 5546363669596293347}
+  mainRenderer: {fileID: 6679832770915906444}
+  windupTime: 0.18
+  lungeTime: 0.14
+  recoverTime: 0.18
+  hitFlashTime: 0.08
+  backDistance: 0.25
+  forwardDistance: 0.35
+  windupScale: {x: 0.92, y: 1.08, z: 0.92}
+  impactScale: {x: 1.1, y: 0.9, z: 1.1}
+  colorProperty: _BaseColor
+  hitFlashColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1 &7957492352594284339
 GameObject:
   m_ObjectHideFlags: 0
@@ -459,6 +546,7 @@ GameObject:
   - component: {fileID: 7909029099361886788}
   - component: {fileID: 7014375632718509657}
   - component: {fileID: 529956381842853441}
+  - component: {fileID: 5851063312647123063}
   m_Layer: 0
   m_Name: monitor
   m_TagString: Untagged
@@ -549,9 +637,11 @@ MonoBehaviour:
   currentHp: 0
   hero:
     id_job: 0
+    portrait: {fileID: 0}
     name_job: 
     level: 0
     exp: 0
+    maxHp: 0
     hp: 0
     def: 0
     res: 0
@@ -560,6 +650,7 @@ MonoBehaviour:
     loc: 0
     category: 0
     jobCategory: 0
+    equippedItemId: 0
   monsterData: {fileID: 11400000, guid: 6d5806eb55c27844db893a3de12600c1, type: 2}
   currentLoc: 1
 --- !u!65 &529956381842853441
@@ -583,3 +674,28 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.07, y: 0.07, z: 0.07}
   m_Center: {x: -0.0046658125, y: -0.000000029802322, z: 0.015792888}
+--- !u!114 &5851063312647123063
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8557534732422661009}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3d0a81c31907034f956a6f0c8dd5ecb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  root: {fileID: 9045946952045205803}
+  visual: {fileID: 9045946952045205803}
+  mainRenderer: {fileID: 7909029099361886788}
+  windupTime: 0.18
+  lungeTime: 0.14
+  recoverTime: 0.18
+  hitFlashTime: 0.08
+  backDistance: 0.25
+  forwardDistance: 0.35
+  windupScale: {x: 0.92, y: 1.08, z: 0.92}
+  impactScale: {x: 1.1, y: 0.9, z: 1.1}
+  colorProperty: _BaseColor
+  hitFlashColor: {r: 1, g: 1, b: 1, a: 1}
