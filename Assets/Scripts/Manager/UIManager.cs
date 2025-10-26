@@ -288,7 +288,7 @@ public class UIManager : MonoBehaviour
         _currentHeroRef = hero;
 
         heroName.text = $"{hero.name_job}";
-        heroHp.text = $"{hero.hp}";
+        heroHp.text = $"{hero.hp}/{hero.maxHp}";
         heroLevel.text = $"Lv.{hero.level}";
 
         Combatant c = Combatant.FindByHero(hero);

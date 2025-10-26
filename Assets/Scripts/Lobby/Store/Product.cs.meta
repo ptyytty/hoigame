@@ -3,7 +3,13 @@ guid: 4a55c42f49b547846b27d0a1b1672b2d
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - productName: {instanceID: 0}
+  - productPrice: {instanceID: 0}
+  - productImage: {instanceID: 0}
+  - coinImage: {fileID: 21300000, guid: 7f22a143dbfd0ec469c0719d7f2d79ea, type: 3}
+  - defaultGeneralImage: {instanceID: 0}
+  - selectGeneralImage: {instanceID: 0}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

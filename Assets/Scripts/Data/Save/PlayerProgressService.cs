@@ -92,6 +92,12 @@ public class PlayerProgressService : MonoBehaviour
         0, 3, 4, 6
     };
     #endregion
+    [Header("Starting Currencies (first-time seed)")]
+    [SerializeField] private int startGold = 5000;
+    [SerializeField] private int startRedSoul = 5;
+    [SerializeField] private int startBlueSoul = 5;
+    [SerializeField] private int startGreenSoul = 5;
+
     private bool _initialized = false;
 
 
@@ -129,6 +135,7 @@ public class PlayerProgressService : MonoBehaviour
 
         EnsureStartingHeroesFromDbIfEmpty(Current);
         EnsureStartingInventoryIfEmpty(Current);
+        EnsureStartingCurrenciesIfEmpty(Current);
 
         // 3) 저장 상태를 런타임으로 적용
         ApplyToRuntime(Current);
@@ -271,6 +278,83 @@ public class PlayerProgressService : MonoBehaviour
         }
     }
 
+    private void EnsureStartingCurrenciesIfEmpty(Save.SaveGame save)
+    {
+        if (save == null) return;
+
+        bool looksFresh = (save.gold == 0 && save.redSoul == 0 && save.blueSoul == 0 && save.greenSoul == 0)
+                          && (save.heroes == null || save.heroes.Count == 0);
+
+        if (!looksFresh) return;
+
+        if (startingInventory != null)
+        {
+            save.gold = startingInventory.startGold;
+            save.redSoul = startingInventory.startRedSoul;
+            save.blueSoul = startingInventory.startBlueSoul;
+            save.greenSoul = startingInventory.startGreenSoul;
+        }
+        else
+        {
+            save.gold = 5000;
+            save.redSoul = 10;
+            save.blueSoul = 10;
+            save.greenSoul = 10;
+        }
+    }
+
+    // 사망 영웅 제거
+    public int RemoveDeadHeroesOnDungeonExit(bool autoSave = true)
+    {
+        if (ownHero == null || ownHero.jobs == null || ownHero.jobs.Count == 0)
+            return 0;
+
+        // 1) 런타임에서 HP<=0 영웅의 인스턴스ID 수집
+        var deadIds = new HashSet<string>();
+        foreach (var j in ownHero.jobs)
+        {
+            if (j == null) continue;
+            if (j.hp <= 0 && !string.IsNullOrEmpty(j.instanceId))
+                deadIds.Add(j.instanceId);
+        }
+        if (deadIds.Count == 0) return 0;
+
+        // 2) 런타임 보유 목록에서 제거
+        ownHero.jobs.RemoveAll(j => j != null && !string.IsNullOrEmpty(j.instanceId) && deadIds.Contains(j.instanceId));
+
+        // 3) 세이브 DTO에서도 제거(안전망)
+        if (Current != null && Current.heroes != null)
+        {
+            Current.heroes.RemoveAll(h => !string.IsNullOrEmpty(h.heroUid) && deadIds.Contains(h.heroUid));
+        }
+
+        // 4) 인벤토리/화폐는 그대로 유지. UI가 보유 목록을 참조한다면 갱신 알림
+        InventoryApplied?.Invoke();
+
+        // 5) (옵션) 즉시 저장
+        if (autoSave) _ = SaveAsync();
+
+        Debug.Log($"[PPS] Removed dead heroes: {deadIds.Count}");
+        return deadIds.Count;
+    }
+
+    public int RemoveHeroesByInstanceIds(IEnumerable<string> instanceIds, bool autoSave = true)
+    {
+        if (instanceIds == null) return 0;
+        var deadIds = new HashSet<string>(instanceIds.Where(id => !string.IsNullOrEmpty(id)));
+
+        if (deadIds.Count == 0 || ownHero?.jobs == null) return 0;
+        ownHero.jobs.RemoveAll(j => j != null && !string.IsNullOrEmpty(j.instanceId) && deadIds.Contains(j.instanceId));
+
+        if (Current?.heroes != null)
+            Current.heroes.RemoveAll(h => !string.IsNullOrEmpty(h.heroUid) && deadIds.Contains(h.heroUid));
+
+        InventoryApplied?.Invoke();
+        if (autoSave) _ = SaveAsync();
+
+        Debug.Log($"[PPS] Removed by ids: {deadIds.Count}");
+        return deadIds.Count;
+    }
 
     // ========== 저장/로드 보조 ==========
     public async Task<bool> SaveAsync()         // Task: 작업의 단위를 반환해주는 변수  Task >> void(반환값X)   Task<int> >> int형 반환
@@ -384,6 +468,8 @@ public class PlayerProgressService : MonoBehaviour
         inventoryRuntime.blueSoul = save.blueSoul;
         inventoryRuntime.greenSoul = save.greenSoul;
 
+        inventoryRuntime.NotifyChanged();       // 데이터 적용 후 UI 갱신
+
         // ---- 아이템 ----
         InventoryApplied?.Invoke();
 
@@ -420,7 +506,6 @@ public class PlayerProgressService : MonoBehaviour
         if (save.gold < 0) save.gold = 0;
         save.redSoul = Mathf.Max(0, save.redSoul);
         save.blueSoul = Mathf.Max(0, save.blueSoul);
-        save.purpleSoul = Mathf.Max(0, save.purpleSoul);
         save.greenSoul = Mathf.Max(0, save.greenSoul);
 
         // 4) 스키마 버전 업 (현재 스키마가 2라고 가정)

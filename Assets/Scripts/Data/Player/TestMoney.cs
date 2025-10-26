@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[Obsolete("InventoryRuntime를 사용하세요. 이 SO는 더 이상 사용하지 않습니다.")]
 [CreateAssetMenu(fileName = "TestMoney", menuName = "Game/Create Test Money")]
 public class TestMoney : ScriptableObject
 {

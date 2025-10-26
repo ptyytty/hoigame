@@ -29,6 +29,12 @@ public static class ItemCatalog
         return item;
     }
 
+    public static ConsumeItem GetConsumeByName(string name)
+    {
+        BuildOnce();
+        return consumeMap.Values.FirstOrDefault(i => i.name_item == name);
+    }
+
     public static EquipItem GetEquip(int id)
     {
         BuildOnce();

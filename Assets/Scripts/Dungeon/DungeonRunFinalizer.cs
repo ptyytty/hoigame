@@ -53,6 +53,15 @@ public class DungeonRunFinalizer : MonoBehaviour
 
             // (2) 보상 반영 + 저장
             ApplyRunRewardsToWallet(RunReward.Instance ? RunReward.Instance.GetTotals() : null);
+
+            var pps = PlayerProgressService.Instance;
+            if (pps != null)
+            {
+                // [역할] HP<=0 영웅을 런타임/세이브 동시 제거. 곧바로 SaveProgressAsync가 저장하므로 autoSave는 false.
+                var removed = pps.RemoveDeadHeroesOnDungeonExit(autoSave: false);
+                Debug.Log($"[EndRun] Purged dead heroes: {removed}");
+            }
+        
             await SaveProgressAsync();
 
             // (3) 씬 전환
@@ -91,17 +100,13 @@ public class DungeonRunFinalizer : MonoBehaviour
     private void ApplyRunRewardsToWallet(DungeonRunRewardsData totals)
     {
         if (totals == null) return;
-        var wallet = InventoryRuntime.Instance;
-        if (wallet == null) return;
+        var w = InventoryRuntime.Instance;
+        if (!w) return;
 
-        wallet.Gold      = Mathf.Max(0, wallet.Gold + Mathf.Max(0, totals.coins));
-        wallet.redSoul   = Mathf.Max(0, wallet.redSoul   + GetSafe(totals.souls, 0));
-        wallet.blueSoul  = Mathf.Max(0, wallet.blueSoul  + GetSafe(totals.souls, 1));
-        wallet.greenSoul = Mathf.Max(0, wallet.greenSoul + GetSafe(totals.souls, 2));
-
-#if UNITY_EDITOR
-        Debug.Log($"[EndRun] Rewards Applied → Gold:{wallet.Gold}, Souls:[{wallet.redSoul},{wallet.blueSoul},{wallet.greenSoul}]");
-#endif
+        if (totals.coins > 0) w.AddGold(totals.coins);
+        w.AddSoul(JobCategory.Warrior, totals.souls != null && totals.souls.Length > 0 ? totals.souls[0] : 0);
+        w.AddSoul(JobCategory.Ranged, totals.souls != null && totals.souls.Length > 1 ? totals.souls[1] : 0);
+        w.AddSoul(JobCategory.Healer, totals.souls != null && totals.souls.Length > 2 ? totals.souls[2] : 0);
 
         if (RunReward.Instance) RunReward.Instance.Clear();
     }

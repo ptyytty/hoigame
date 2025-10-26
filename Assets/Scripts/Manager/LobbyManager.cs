@@ -75,6 +75,17 @@ public class LobbyManager : MonoBehaviour
 
             panelStore.SetActive(false);
             undoBtn.SetActive(false);
+
+            if (Product.CurrentSelected != null)
+            {
+                Product.CurrentSelected.ResetToDefaultImage();
+            }
+
+            // ✅ 아이템 정보창 닫기
+            if (ItemInfoPanel.instance != null)
+            {
+                ItemInfoPanel.instance.Hide();
+            }
         }
         else if (panelManagement.activeSelf)
         {
@@ -89,6 +100,7 @@ public class LobbyManager : MonoBehaviour
 
             listUpManager.ResetButtonImage();
             employment.ResetButtonImage();
+            listUpManager.ResetHeroListState();
         }
         else if (panelDungeonPreparation.activeSelf)
         {

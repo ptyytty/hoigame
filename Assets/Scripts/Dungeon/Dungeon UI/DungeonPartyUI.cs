@@ -235,6 +235,7 @@ public class DungeonPartyUI : MonoBehaviour
     {
         ResetSelectionVisualsOnly();
         _currentIndex = -1;
+        if (infoHpBar) infoHpBar.Unbind();
         ClearHeroInfoPanel();
         ClearEquipRow();
     }
@@ -262,16 +263,28 @@ public class DungeonPartyUI : MonoBehaviour
         if (infoName) infoName.text = hero?.name_job ?? "-";
         if (infoLevel) infoLevel.text = $"Lv.{(hero?.level ?? 1)}";
 
-        int hp = hero?.hp ?? 0;
-        int hpMax = Mathf.Max(1, hero?.maxHp ?? 1);
-        if (infoHp) infoHp.text = $"{hp}/{hpMax}";
-        if (infoHpBar) infoHpBar.Set(hp, hpMax); // ★ 프리뷰 없이 현재값만 적용 :contentReference[oaicite:5]{index=5}
+        // ★ 변경: Combatant 우선 바인딩
+        var c = Combatant.FindByHero(hero);
+        if (c != null && infoHpBar && infoHpBar.TryBind(c))
+        {
+            // 바인딩되면 HealthBarUI가 OnHpChanged로 계속 동기화함
+            if (infoHp) infoHp.text = $"{c.currentHp}/{Mathf.Max(1, c.maxHp)}";
+        }
+        else
+        {
+            // Combatant가 없으면 Job 데이터로 1회 세팅
+            int hp = hero?.hp ?? 0;
+            int hpMax = Mathf.Max(1, hero?.maxHp ?? 1);
+            if (infoHp) infoHp.text = $"{hp}/{hpMax}";
+            if (infoHpBar) infoHpBar.Set(hp, hpMax);  // 기존 로직
+        }
 
         if (infoDef) infoDef.text = $"방어: {hero?.def ?? 0}";
         if (infoRes) infoRes.text = $"저항: {hero?.res ?? 0}";
         if (infoSpd) infoSpd.text = $"민첩: {hero?.spd ?? 0}";
         if (infoHit) infoHit.text = $"명중: {hero?.hit ?? 0}";
     }
+    
 
     private void ClearHeroInfoPanel()
     {
@@ -283,6 +296,7 @@ public class DungeonPartyUI : MonoBehaviour
 
         if (infoHpBar)
         {
+            infoHpBar.Unbind();
             infoHpBar.gameObject.SetActive(false);
             infoHpBar.Set(0, 1);
         }

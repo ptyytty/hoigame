@@ -39,9 +39,6 @@ public class StoreManager : MonoBehaviour
     [Header("Button")]
     [SerializeField] Button applyBtn;
 
-    [Header("Dependencies")]
-    [SerializeField] private InventoryRuntime inventory;
-
     void Start()
     {
         // 아이템 타입 토글 (전체, 장비, 소모)
@@ -110,6 +107,24 @@ public class StoreManager : MonoBehaviour
         UpdateToggle(itemTypeToggleImagePairs);
         UpdateToggle(storeTypeToggleImagePairs);
         UpdateToggle(changeBuyOrSellToggle);
+
+        // 기본은 비활성화
+        applyBtn.onClick.AddListener(OnClickApply);
+
+        // ✅ 항상 싱글턴 기준으로 inventory 보정
+        var inv = InventoryRuntime.Instance;
+        if (inv != null)
+        {
+            InventoryRuntime.Instance.OnCurrencyChanged += UpdateApplyButtonState; // [역할] 재화 변동 시 버튼 재평가
+        }
+
+        UpdateApplyButtonState();
+    }
+
+    private void OnDestroy()
+    {
+        var inv = InventoryRuntime.Instance;
+        if (inv != null) inv.OnCurrencyChanged -= UpdateApplyButtonState;
     }
 
     // 상점 타입 토글 전환에 따른 패널 변경
@@ -139,6 +154,18 @@ public class StoreManager : MonoBehaviour
         itemToggleGroup.SetActive(isonline);
         ItemInfoPanel.instance.Hide();
 
+        if (Product.CurrentSelected != null)
+        {
+            Product.CurrentSelected.ResetToDefaultImage();
+        }
+
+        // ✅ 아이템 정보창 닫기
+        if (ItemInfoPanel.instance != null)
+        {
+            ItemInfoPanel.instance.Hide();
+        }
+
+        UpdateApplyButtonState();
     }
 
 
@@ -175,5 +202,98 @@ public class StoreManager : MonoBehaviour
                 pair.labelText.color = targetColor;
             }
         }
+    }
+
+    /// <summary>
+    /// Apply 버튼 클릭 시 선택된 상품을 구매 확정
+    /// </summary>
+    private void OnClickApply()
+    {
+        var selected = Product.CurrentSelected;
+        if (selected == null)
+        {
+            applyBtn.interactable = false;
+            Debug.Log("[Store] 구매할 상품이 선택되지 않았습니다.");
+            return;
+        }
+
+        var inv = InventoryRuntime.Instance;
+        if (inv == null)
+        {
+            Debug.LogError("[Store] InventoryRuntime 인스턴스를 찾을 수 없습니다!");
+            return;
+        }
+
+        int price = selected.Price;
+
+        // ⚠️ 최종 가드: TrySpendGold가 false면 절대 진행하지 않음
+        if (!inv.TrySpendGold(price))
+        {
+            Debug.Log("[Store] 골드 부족으로 구매 불가.");
+            UpdateApplyButtonState(); // 남은 골드 기준으로 즉시 버튼 상태 반영
+            return;
+        }
+
+        // 🛒 아이템 지급
+        if (selected.IsConsume && selected.BoundConsume != null)
+        {
+            inv.AddConsumeItem(selected.BoundConsume, 1);
+            Debug.Log($"[Store] {selected.BoundConsume.name_item}을(를) 1개 구매했습니다.");
+
+            // 소비 아이템은 보유량 갱신된 정보 다시 표시
+            ItemInfoPanel.instance.ShowItemInfo(
+                selected.BoundConsume.name_item,
+                selected.BoundConsume.description,
+                selected.Price,
+                selected.BoundConsume.icon,
+                selected.BoundConsume.effects
+            );
+        }
+        else if (selected.IsEquip && selected.BoundEquip != null)
+        {
+            inv.AddEquipItem(selected.BoundEquip);
+            Debug.Log($"[Store] {selected.BoundEquip.name_item} 장비를 구매했습니다.");
+
+            // 장비는 한 번만 구매 가능 → 버튼 비활성화 & 초기화
+            var btn = selected.GetComponent<Button>();
+            if (btn != null) btn.interactable = false;
+
+            selected.ResetToDefaultImage();
+            ItemInfoPanel.instance.Hide();
+
+            // 선택 상태 해제
+            typeof(Product)
+                .GetField("currentSelectedProduct", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+                ?.SetValue(null, null);
+        }
+        else
+        {
+            Debug.LogWarning("[Store] 선택된 상품이 유효하지 않습니다.");
+            return;
+        }
+
+        // 저장
+        if (PlayerProgressService.Instance != null)
+            _ = PlayerProgressService.Instance.SaveAsync();
+
+        // ⭐ 구매 후 버튼 상태 재평가(골드 변동 반영)
+        UpdateApplyButtonState();
+    }
+
+    public void UpdateApplyButtonState()
+    {
+        var inv = InventoryRuntime.Instance;
+        if (applyBtn == null || inv == null) return;
+
+        var selected = Product.CurrentSelected;
+
+        if (selected == null)
+        {
+            applyBtn.interactable = false;
+            return;
+        }
+
+        int price = selected.Price;
+        applyBtn.interactable = (inv.Gold >= price);
     }
 }

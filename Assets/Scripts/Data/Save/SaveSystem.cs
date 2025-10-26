@@ -38,6 +38,7 @@ public static class SaveSystem         // 인스턴스 없이 사용
         NormalizeAfterLoad(fresh);       // 로드 후 정규화 루틴
         return fresh;
     }
+    
 
     public static async System.Threading.Tasks.Task<Save.SaveGame> ResetToNewAsync()
     {
@@ -203,10 +204,9 @@ public static class SaveSystem         // 인스턴스 없이 사용
                 slots = new()          // 실제 슬롯 내용 초기화(전부 빈 칸)
             },
             gold = 5000,   // 재화 초기값
-            redSoul = 0,
-            blueSoul = 0,
-            purpleSoul = 0,
-            greenSoul = 0
+            redSoul = 5,
+            blueSoul = 5,
+            greenSoul = 5
         };
     }
 

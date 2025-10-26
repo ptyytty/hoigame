@@ -10,7 +10,7 @@ public class Job
     public int id_job;
     public Sprite portrait;
     public string name_job;     // 영웅 이름
-    public int level;
+    public int level = 1;
     public int exp;
     public int maxHp;           // 최대 체력
     public int hp;              // 현재 체력 (전투 후 체력)

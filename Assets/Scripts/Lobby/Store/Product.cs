@@ -15,6 +15,8 @@ public class Product : MonoBehaviour
     [SerializeField] private TMP_Text productName;
     [SerializeField] private TMP_Text productPrice;
     [SerializeField] private Image productImage;
+    [SerializeField] private Image coinImageObject;
+    [SerializeField] private Sprite coinImage;
     [SerializeField] private Sprite defaultGeneralImage;
     [SerializeField] private Sprite selectGeneralImage;
     [SerializeField] private List<JobSpritePair> jobSpritePairs;
@@ -62,32 +64,35 @@ public class Product : MonoBehaviour
         productName.text = item.name_item;
         productPrice.text = $"{item.price}";
         productImage.sprite = item.icon;
+        coinImageObject.sprite = coinImage;
 
         boundConsume = item;
         boundEquip = null;
         boundPrice = item.price;
 
+        // 소비형은 공통 일반 프레임 사용
         defaultSprite = defaultGeneralImage;
 
-        GetComponent<Button>().onClick.RemoveAllListeners();
-        GetComponent<Button>().onClick.AddListener(() =>
+        var btn = GetComponent<Button>();
+        btn.onClick.RemoveAllListeners();
+        btn.onClick.AddListener(() =>
         {
             if (currentSelectedProduct != null && currentSelectedProduct != this)
-            {
                 currentSelectedProduct.ResetToDefaultImage();
-            }
 
             currentSelectedProduct = this;
-
             slotImage.sprite = selectGeneralImage;
 
-            // ItemInfoPanel.instance.ShowItemInfo(item.name_item,
-            //                                     item.description,
-            //                                     item.buffTypes,
-            //                                     null,
-            //                                     item.effects,
-            //                                     item.price,
-            //                                     item.icon);
+            // 신규 시그니처: 공통 포맷으로 전달
+            ItemInfoPanel.instance.ShowItemInfo(
+            item.name_item,
+            item.description,
+            item.price,
+            item.icon,
+            item.effects
+        );
+
+            FindObjectOfType<StoreManager>()?.UpdateApplyButtonState();
         });
     }
 
@@ -96,46 +101,40 @@ public class Product : MonoBehaviour
         productName.text = item.name_item;
         productPrice.text = $"{item.price}";
         productImage.sprite = item.icon;
+        coinImageObject.sprite = coinImage;
 
         boundConsume = null;
         boundEquip = item;
         boundPrice = item.price;
 
-        GetComponent<Button>().onClick.RemoveAllListeners();
-        GetComponent<Button>().onClick.AddListener(() =>
+        var btn = GetComponent<Button>();
+        btn.onClick.RemoveAllListeners();
+        btn.onClick.AddListener(() =>
         {
             if (currentSelectedProduct != null && currentSelectedProduct != this)
-            {
                 currentSelectedProduct.ResetToDefaultImage();
-            }
 
             currentSelectedProduct = this;
 
             if (selectedSpriteDict.TryGetValue(currentCategory, out Sprite selectedSprite))
-            {
                 slotImage.sprite = selectedSprite;
-            }
 
-            // ItemInfoPanel.instance.ShowItemInfo(item.name_item,
-            //                                     item.description,
-            //                                     null,
-            //                                     item.effectText,
-            //                                     item.value,
-            //                                     item.price,
-            //                                     item.icon);
+            ItemInfoPanel.instance.ShowItemInfo(
+                item.name_item,
+                item.description,
+                item.price,
+                item.icon,
+                item.effects
+            );
+
+            FindObjectOfType<StoreManager>()?.UpdateApplyButtonState();
         });
 
     }
 
     public void ResetToDefaultImage()
     {
-        if (currentSelectedProduct.defaultSprite != null)
-        {
-            slotImage.sprite = defaultSprite;
-            return;
-        }
-
-        currentSelectedProduct.slotImage.sprite = defaultGeneralImage;
+        slotImage.sprite = defaultSprite != null ? defaultSprite : defaultGeneralImage;
     }
 
 }

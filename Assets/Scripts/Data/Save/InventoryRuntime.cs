@@ -14,6 +14,9 @@ public class InventoryRuntime : MonoBehaviour
     public int blueSoul;
     public int greenSoul;
 
+    // [역할] 재화 값이 바뀔 때 구독 UI/시스템에 알려주는 이벤트
+    public event System.Action OnCurrencyChanged;
+
     public enum CurrencyType { Gold, RedSoul, BlueSoul, GreenSoul }
 
     // === 내부 보유 구조 ===
@@ -39,6 +42,76 @@ public class InventoryRuntime : MonoBehaviour
             case CurrencyType.GreenSoul: greenSoul = value; break;
         }
     }
+
+    // === 편의 API: 골드 ===
+    /// <summary> [역할] 골드 지급(음수 방지, HUD 갱신) </summary>
+    public void AddGold(int amount)
+    {
+        if (amount <= 0) return;
+        Gold = Mathf.Max(0, Gold + amount);
+        OnCurrencyChanged?.Invoke();
+    }
+
+    /// <summary> [역할] 골드 차감 시도(성공 시 true, 실패 시 false) </summary>
+    public bool TrySpendGold(int amount)
+    {
+        if (amount <= 0) return true;
+        if (Gold < amount) return false;
+        Gold -= amount;
+        OnCurrencyChanged?.Invoke();
+        return true;
+    }
+
+    // === 편의 API: 소울(직군별) ===
+    /// <summary> [역할] 직군별 소울 현재 보유량 조회 </summary>
+    public int GetSoul(JobCategory category)
+    {
+        switch (category)
+        {
+            case JobCategory.Warrior: return redSoul;
+            case JobCategory.Ranged:  return blueSoul;
+            case JobCategory.Healer:  return greenSoul;
+            default:                  return 0;         // Special 등은 현재 미사용 정책
+        }
+    }
+
+    /// <summary> [역할] 직군별 소울 지급 </summary>
+    public void AddSoul(JobCategory category, int amount)
+    {
+        if (amount <= 0) return;
+        switch (category)
+        {
+            case JobCategory.Warrior: redSoul  = Mathf.Max(0, redSoul + amount); break;
+            case JobCategory.Ranged:  blueSoul = Mathf.Max(0, blueSoul + amount); break;
+            case JobCategory.Healer:  greenSoul= Mathf.Max(0, greenSoul + amount); break;
+            default: return;
+        }
+        OnCurrencyChanged?.Invoke();
+    }
+
+    /// <summary> [역할] 직군별 소울 차감 시도(성공/실패) </summary>
+    public bool TrySpendSoul(JobCategory category, int amount)
+    {
+        if (amount <= 0) return true;
+        switch (category)
+        {
+            case JobCategory.Warrior:
+                if (redSoul < amount) return false; redSoul -= amount; break;
+            case JobCategory.Ranged:
+                if (blueSoul < amount) return false; blueSoul -= amount; break;
+            case JobCategory.Healer:
+                if (greenSoul < amount) return false; greenSoul -= amount; break;
+            default: return false;
+        }
+        OnCurrencyChanged?.Invoke();
+        return true;
+    }
+
+    public bool HasEnoughSoul(JobCategory category, int required)
+        => GetSoul(category) >= required;
+
+    // === 내부 유틸 ===
+    private void RaiseChanged() => OnCurrencyChanged?.Invoke();     // [역할] 내부 로딩/복구 후 HUD 갱신 트리거
 
 
     // ---------- Save → Runtime ----------
@@ -162,4 +235,6 @@ public class InventoryRuntime : MonoBehaviour
         ownedConsume.Clear();
         ownedEquipItem.Clear();
     }
+
+    public void NotifyChanged() => OnCurrencyChanged?.Invoke();
 }

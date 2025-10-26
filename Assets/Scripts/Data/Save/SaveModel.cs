@@ -22,7 +22,6 @@ namespace Save
         public int gold;
         public int redSoul;
         public int blueSoul;
-        public int purpleSoul;
         public int greenSoul;
     }
 

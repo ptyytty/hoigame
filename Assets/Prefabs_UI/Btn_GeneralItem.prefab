@@ -559,6 +559,8 @@ MonoBehaviour:
   productName: {fileID: 8057066550115345636}
   productPrice: {fileID: 1048319794396975105}
   productImage: {fileID: 6693651289939563316}
+  coinImageObject: {fileID: 7705296979822980015}
+  coinImage: {fileID: 21300000, guid: 7f22a143dbfd0ec469c0719d7f2d79ea, type: 3}
   defaultGeneralImage: {fileID: 21300000, guid: b39ebad624cf096479171fee0cf3fbf8, type: 3}
   selectGeneralImage: {fileID: 21300000, guid: 2e84989c05c0f1e468e4e1cbcd1b0dbd, type: 3}
   jobSpritePairs:
