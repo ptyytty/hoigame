@@ -72,3 +72,18 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 Assets/google-services.json
+
+# --- Firebase / Secrets (DO NOT COMMIT) ---
+# Android / Desktop용 Firebase 구성파일
+Assets/google-services.json
+Assets/**/google-services*.json
+Assets/StreamingAssets/google-services-desktop.json
+
+# iOS Firebase 구성파일
+GoogleService-Info.plist
+Assets/**/GoogleService-Info.plist
+
+# 서명키(절대 커밋 금지)
+*.keystore
+*.jks
+*.p12
