@@ -79,7 +79,7 @@ public class ListUI : MonoBehaviour
         UpdateToggle(listTabToggles);
     }
 
-    // 리스트 탭 바인딩
+    // 메인 탭 바인딩
     void SetMainTabToggles()
     {
         foreach (ToggleImagepair pair in mainTabToggles)

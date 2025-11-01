@@ -20,27 +20,59 @@ public class StoreManager : MonoBehaviour
     }
 
     [Header("Toggle Images")]
-    public List<ToggleImagepair> itemTypeToggleImagePairs;  // 아이템 종류 토글
-    public List<ToggleImagepair> storeTypeToggleImagePairs; // 상점 토글
-    public List<ToggleImagepair> changeBuyOrSellToggle;     // 구매 판매 토글
+    public List<ToggleImagepair> itemTypeToggleImagePairs;            // 아이템 종류 토글
+    public List<ToggleImagepair> storeTypeToggleImagePairs;           // 상점 토글
+    public List<ToggleImagepair> changeBuyOrSellToggleImagePairs;     // 구매/판매 토글
+    public List<ToggleImagepair> selectItemToggleImagePairs;          // 아이템 정보 / 판매 목록 토글
 
     [Header("Panels")]
     [SerializeField] private GameObject localStore, onlineStore;
     [SerializeField] private GameObject itemToggleGroup;
     [SerializeField] private GameObject onlineBackground;
 
+    [SerializeField] GameObject panelRight;
+    [SerializeField] GameObject panelInfo;
+    [SerializeField] GameObject panelSearch;
+
+    [SerializeField] GameObject panelInfoToggle; // 온라인 상점 아이템 클릭 시 토글 패널
+    [SerializeField] GameObject panelMySalesList;   // 내 판매 목록 패널
+
     [Header("Toggle Group")]
-    [SerializeField] GameObject onlineToggleGroup, onlineSell, onlineBuy;
+    [SerializeField] GameObject onlineToggleGroup;
 
     private Toggle lastSelectedItemType = null;
     private Toggle lastSelectedStoreType = null;
     private Toggle lastSelectedOnlineStoreMode = null;
+    private Toggle lastSelectedItemInfo = null;
+
+    enum StoreKind { Local, Online }
+    private StoreKind currentStore = StoreKind.Local;
 
     [Header("Button")]
-    [SerializeField] Button applyBtn;
+    [SerializeField] GameObject btnApply;
+    [SerializeField] GameObject btnSell;
+
+    [Header("Scripts")]
+    [SerializeField] private ItemDisplay onlineItemDisplay;
+    [SerializeField] private SellPanel sellPanel;
+
+    void OnEnable()
+    {
+        InitExclusiveToggles(itemTypeToggleImagePairs, ref lastSelectedItemType);
+        InitExclusiveToggles(storeTypeToggleImagePairs, ref lastSelectedStoreType);
+        InitExclusiveToggles(changeBuyOrSellToggleImagePairs, ref lastSelectedOnlineStoreMode);
+        InitExclusiveToggles(selectItemToggleImagePairs, ref lastSelectedItemInfo);
+
+        UpdateToggle(itemTypeToggleImagePairs);
+        UpdateToggle(storeTypeToggleImagePairs);
+        UpdateToggle(changeBuyOrSellToggleImagePairs);
+        UpdateToggle(selectItemToggleImagePairs);
+    }
 
     void Start()
     {
+        Product.OnAnyProductClicked += HandleProductClicked;
+
         // 아이템 타입 토글 (전체, 장비, 소모)
         for (int i = 0; i < itemTypeToggleImagePairs.Count; i++)
         {
@@ -72,16 +104,34 @@ public class StoreManager : MonoBehaviour
         }
 
         // 구매/판매 전환 토글
-        for (int i = 0; i < changeBuyOrSellToggle.Count; i++)
+        for (int i = 0; i < changeBuyOrSellToggleImagePairs.Count; i++)
         {
             int index = i;
 
-            changeBuyOrSellToggle[i].toggle.onValueChanged.AddListener((isOn) =>
+            changeBuyOrSellToggleImagePairs[i].toggle.onValueChanged.AddListener((isOn) =>
             {
                 if (isOn)
                 {
-                    OnToggleChanged(changeBuyOrSellToggle[index].toggle, changeBuyOrSellToggle, ref lastSelectedOnlineStoreMode);
+                    OnToggleChanged(changeBuyOrSellToggleImagePairs[index].toggle, changeBuyOrSellToggleImagePairs, ref lastSelectedOnlineStoreMode);
+
+                    // ✅ 구매/판매 토글 연동
+                    bool isSell = (index == 1);
+                    onlineItemDisplay.isSellMode = isSell;
+                    onlineItemDisplay.RefreshItemList();
+
+                    if (currentStore == StoreKind.Online) SetOnlineIdleUI();
                 }
+            });
+        }
+
+        // 아이템 정보 토글
+        for (int i = 0; i < selectItemToggleImagePairs.Count; i++)
+        {
+            int index = i;
+            selectItemToggleImagePairs[i].toggle.onValueChanged.AddListener((isOn) =>
+            {
+                OnToggleChanged(selectItemToggleImagePairs[index].toggle, selectItemToggleImagePairs, ref lastSelectedItemInfo);
+                ShowSelectedItemPanel(index);
             });
         }
 
@@ -98,18 +148,27 @@ public class StoreManager : MonoBehaviour
             lastSelectedStoreType = storeTypeToggleImagePairs[0].toggle;
         }
 
-        if (changeBuyOrSellToggle.Count > 0)
+        if (changeBuyOrSellToggleImagePairs.Count > 0)
         {
-            changeBuyOrSellToggle[0].toggle.isOn = true;
-            lastSelectedOnlineStoreMode = changeBuyOrSellToggle[0].toggle;
+            changeBuyOrSellToggleImagePairs[0].toggle.isOn = true;
+            lastSelectedOnlineStoreMode = changeBuyOrSellToggleImagePairs[0].toggle;
+        }
+        if (selectItemToggleImagePairs.Count > 0)
+        {
+            selectItemToggleImagePairs[0].toggle.isOn = true;
+            lastSelectedItemInfo = selectItemToggleImagePairs[0].toggle;
         }
 
         UpdateToggle(itemTypeToggleImagePairs);
         UpdateToggle(storeTypeToggleImagePairs);
-        UpdateToggle(changeBuyOrSellToggle);
+        UpdateToggle(changeBuyOrSellToggleImagePairs);
+        UpdateToggle(selectItemToggleImagePairs);
+
+        ShowSelectedItemPanel(0);
 
         // 기본은 비활성화
-        applyBtn.onClick.AddListener(OnClickApply);
+        btnApply.GetComponent<Button>().onClick.AddListener(OnClickApply);
+        btnSell.GetComponent<Button>().onClick.AddListener(OnClickSell);
 
         // ✅ 항상 싱글턴 기준으로 inventory 보정
         var inv = InventoryRuntime.Instance;
@@ -125,6 +184,8 @@ public class StoreManager : MonoBehaviour
     {
         var inv = InventoryRuntime.Instance;
         if (inv != null) inv.OnCurrencyChanged -= UpdateApplyButtonState;
+
+        Product.OnAnyProductClicked -= HandleProductClicked;
     }
 
     // 상점 타입 토글 전환에 따른 패널 변경
@@ -133,41 +194,44 @@ public class StoreManager : MonoBehaviour
         bool islocal = index == 0;
         bool isonline = index == 1;
 
-        // 로컬 상점
         localStore.SetActive(islocal);
-        if (islocal) // 로컬 상점 전환 시 전체 토글로 초기화 / 로비 갔다와도 초기화
-        {
-            itemTypeToggleImagePairs[0].toggle.isOn = true;
-            lastSelectedItemType = itemTypeToggleImagePairs[0].toggle;
-
-            storeTypeToggleImagePairs[0].toggle.isOn = true;
-            lastSelectedStoreType = storeTypeToggleImagePairs[0].toggle;
-
-            changeBuyOrSellToggle[0].toggle.isOn = true;
-            lastSelectedOnlineStoreMode = changeBuyOrSellToggle[0].toggle;
-        }
-
-        // 온라인 상점
         onlineToggleGroup.SetActive(isonline);
         onlineStore.SetActive(isonline);
         onlineBackground.SetActive(isonline);
         itemToggleGroup.SetActive(isonline);
-        ItemInfoPanel.instance.Hide();
 
-        if (Product.CurrentSelected != null)
-        {
-            Product.CurrentSelected.ResetToDefaultImage();
-        }
+        currentStore = islocal ? StoreKind.Local : StoreKind.Online;
 
-        // ✅ 아이템 정보창 닫기
-        if (ItemInfoPanel.instance != null)
-        {
-            ItemInfoPanel.instance.Hide();
-        }
+        // 기존 선택 초기화
+        if (Product.CurrentSelected != null) Product.CurrentSelected.ResetToDefaultImage();
+        ItemInfoPanel.instance?.Hide();
+
+        // ✅ 오른쪽 패널 preset
+        if (islocal) SetLocalIdleUI();
+        else SetOnlineIdleUI();
 
         UpdateApplyButtonState();
     }
 
+    /// <summary>
+    /// [역할] 우측 패널 하위 탭(0: 아이템 정보, 1: 내 판매 목록)에 따라 콘텐츠 패널 토글
+    /// </summary>
+    private void ShowSelectedItemPanel(int index)
+    {
+        bool showInfo = (index == 0);
+        bool showMyList = (index == 1);
+
+        // 아이템 정보 탭
+        if (panelInfo) panelInfo.SetActive(showInfo);
+        // 내 판매 목록 탭
+        if (panelMySalesList) panelMySalesList.SetActive(showMyList);
+
+        // 판매 목록 탭 활성화 시, 최신 데이터로 갱신
+        if (showMyList && panelMySalesList != null)
+        {
+            // TODO: 최신 데이터 갱신 함수
+        }
+    }
 
     // 토글 전환
     void OnToggleChanged(Toggle changedToggle, List<ToggleImagepair> toggleGroup, ref Toggle lastSelectedToggle)    //ref: lastSelectedToggle 참조 호출
@@ -212,7 +276,7 @@ public class StoreManager : MonoBehaviour
         var selected = Product.CurrentSelected;
         if (selected == null)
         {
-            applyBtn.interactable = false;
+            btnApply.GetComponent<Button>().interactable = false;
             Debug.Log("[Store] 구매할 상품이 선택되지 않았습니다.");
             return;
         }
@@ -280,20 +344,143 @@ public class StoreManager : MonoBehaviour
         UpdateApplyButtonState();
     }
 
+    // 온라인 상점 아이템 판매
+    private void OnClickSell()
+    {
+        var selected = Product.CurrentSelected;
+        if (selected == null)
+        {
+            Debug.Log("[Store] 판매할 아이템이 선택되지 않았습니다.");
+            return;
+        }
+
+        var inv = InventoryRuntime.Instance;
+        int count = 1;
+
+        if (selected.IsConsume && selected.BoundConsume != null)
+        {
+            // 🔹 Find 대신 직접 반복문으로 탐색
+            foreach (var owned in inv.GetOwnedConsumeItems())
+            {
+                if (owned.itemData == selected.BoundConsume)
+                {
+                    count = owned.count;
+                    break;
+                }
+            }
+        }
+
+        sellPanel.Show(selected, count);
+    }
+
     public void UpdateApplyButtonState()
     {
         var inv = InventoryRuntime.Instance;
-        if (applyBtn == null || inv == null) return;
+        if (btnApply == null || inv == null) return;
 
         var selected = Product.CurrentSelected;
 
         if (selected == null)
         {
-            applyBtn.interactable = false;
+            btnApply.GetComponent<Button>().interactable = false;
             return;
         }
 
         int price = selected.Price;
-        applyBtn.interactable = (inv.Gold >= price);
+        btnApply.GetComponent<Button>().interactable = (inv.Gold >= price);
+    }
+
+    // 상품 클릭 이벤트
+    private void HandleProductClicked(Product p)
+    {
+        if (currentStore == StoreKind.Local)
+        {
+            // 로컬: Info + Apply 활성화
+            SetLocalSelectedUI();
+
+            // (로컬에서만) 정보 패널에 내용 채움
+            if (p.IsConsume)
+                ItemInfoPanel.instance.ShowItemInfo(p.BoundConsume.name_item, p.BoundConsume.description, p.Price, p.BoundConsume.icon, p.BoundConsume.effects);
+            else if (p.IsEquip)
+                ItemInfoPanel.instance.ShowItemInfo(p.BoundEquip.name_item, p.BoundEquip.description, p.Price, p.BoundEquip.icon, p.BoundEquip.effects);
+
+            UpdateApplyButtonState();
+        }
+        else
+        {
+            SetOnlineSelectedUI();
+        }
+    }
+
+    // ============ 패널 프리셋 =================
+
+    // 토글 초기화
+    private void InitExclusiveToggles(List<ToggleImagepair> pairs, ref Toggle currentTab)
+    {
+        for (int i = 0; i < pairs.Count; i++)
+        {
+            var t = pairs[i].toggle;
+            bool on = (i == 0);
+            t.isOn = on;
+            if (on) currentTab = t;
+        }
+    }
+
+    private void SetLocalIdleUI()
+    {
+        panelRight.SetActive(false); // 클릭 전엔 안 보이게
+
+        InitExclusiveToggles(changeBuyOrSellToggleImagePairs, ref lastSelectedOnlineStoreMode);
+        UpdateToggle(changeBuyOrSellToggleImagePairs);
+
+    }
+
+    // [역할] 로컬 상점: 상품 클릭 후
+    private void SetLocalSelectedUI()
+    {
+        panelRight.SetActive(true);
+        panelInfo.SetActive(true);
+        btnApply.SetActive(true);
+        btnSell.SetActive(false);
+        panelSearch.SetActive(false);
+        panelMySalesList.SetActive(false);
+        if (panelInfoToggle) panelInfoToggle.SetActive(false);
+        if (panelMySalesList) panelMySalesList.SetActive(false);
+    }
+
+    // [역할] 온라인 상점: 탭 진입 시
+    private void SetOnlineIdleUI()
+    {
+        panelRight.SetActive(true);
+        panelSearch.SetActive(true);
+        panelInfo.SetActive(false);
+        btnApply.SetActive(false);
+        btnSell.SetActive(false);
+        panelMySalesList.SetActive(false);
+        if (panelInfoToggle) panelInfoToggle.SetActive(false);
+        if (panelMySalesList) panelMySalesList.SetActive(false);
+
+        // 토글 초기화
+        InitExclusiveToggles(itemTypeToggleImagePairs, ref lastSelectedItemType);
+        UpdateToggle(itemTypeToggleImagePairs);
+
+        InitExclusiveToggles(selectItemToggleImagePairs, ref lastSelectedItemInfo);
+        UpdateToggle(selectItemToggleImagePairs);
+    }
+
+    // [역할] 온라인 상점: 상품 클릭 후
+    private void SetOnlineSelectedUI()
+    {
+        panelRight.SetActive(true);
+        panelSearch.SetActive(true);
+        panelInfo.SetActive(true);
+        btnApply.SetActive(false);
+        btnSell.SetActive(true);
+        panelMySalesList.SetActive(false);
+        if (panelInfoToggle) panelInfoToggle.SetActive(true);
+        if (panelMySalesList) panelMySalesList.SetActive(false);
+
+        InitExclusiveToggles(selectItemToggleImagePairs, ref lastSelectedItemInfo);
+        UpdateToggle(selectItemToggleImagePairs);
     }
 }

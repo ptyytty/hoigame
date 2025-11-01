@@ -64,7 +64,7 @@ public class NicknameUI : MonoBehaviour
         var raw = nicknameInput.text?.Trim();
         if (!IsNicknameValid(raw))
         {
-            messageText.text = "닉네임 형식을 확인하세요. (2~12자, 영문/숫자/한글/언더스코어)";
+            messageText.text = "닉네임 형식을 확인하세요. (2~8자, 영문/숫자/한글/언더스코어)";
             confirmButton.interactable = true;
             return;
         }
@@ -109,19 +109,19 @@ public class NicknameUI : MonoBehaviour
         }
         catch (System.Exception e)
         {
-            // (드물지만) 경합 시 에러 발생 가능 → 재시도 유도
+            // 경합 시 에러 발생 가능 → 재시도 유도
             messageText.text = "설정 중 오류가 발생했습니다. 다시 시도하세요.\n" + e.Message;
             confirmButton.interactable = true;
         }
     }
 
     /// <summary>
-    /// 닉네임 유효성 검사 (모바일 키보드 입력 고려, 한글/영문/숫자/언더스코어, 2~12자)
+    /// 닉네임 유효성 검사 (모바일 키보드 입력 고려, 한글/영문/숫자/언더스코어, 2~10자)
     /// </summary>
     private bool IsNicknameValid(string s)
     {
         if (string.IsNullOrEmpty(s)) return false;
-        if (s.Length < 2 || s.Length > 12) return false;
+        if (s.Length < 2 || s.Length > 10) return false;
         foreach (var ch in s)
         {
             if (!(char.IsLetterOrDigit(ch) || ch == '_' || IsKorean(ch)))

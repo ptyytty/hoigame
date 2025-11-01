@@ -41,6 +41,8 @@ public class Product : MonoBehaviour
     private JobCategory currentCategory;
     private Sprite defaultSprite;
 
+    public static event System.Action<Product> OnAnyProductClicked;
+
     void Awake()
     {
         spriteDict = jobSpritePairs.ToDictionary(p => p.category, p => p.sprite);
@@ -83,14 +85,15 @@ public class Product : MonoBehaviour
             currentSelectedProduct = this;
             slotImage.sprite = selectGeneralImage;
 
-            // 신규 시그니처: 공통 포맷으로 전달
+            //신규 시그니처: 공통 포맷으로 전달
             ItemInfoPanel.instance.ShowItemInfo(
             item.name_item,
             item.description,
             item.price,
             item.icon,
             item.effects
-        );
+            );
+            OnAnyProductClicked?.Invoke(this);
 
             FindObjectOfType<StoreManager>()?.UpdateApplyButtonState();
         });
@@ -126,7 +129,8 @@ public class Product : MonoBehaviour
                 item.icon,
                 item.effects
             );
-
+            OnAnyProductClicked?.Invoke(this);
+            
             FindObjectOfType<StoreManager>()?.UpdateApplyButtonState();
         });
 

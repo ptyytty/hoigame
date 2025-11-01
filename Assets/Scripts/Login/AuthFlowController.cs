@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// 로그인 씬에서 전반적인 인증 흐름을 오케스트레이션
+/// 로그인 씬에서 전반적인 인증 관리
 /// - 앱 시작 시 Silent Sign-In 시도
 /// - Google 로그인 성공 시 닉네임 UI 초기화
 /// - 실패/취소 시에는 수동 로그인 버튼으로 유도
