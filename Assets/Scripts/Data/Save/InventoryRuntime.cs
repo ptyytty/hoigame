@@ -69,9 +69,9 @@ public class InventoryRuntime : MonoBehaviour
         switch (category)
         {
             case JobCategory.Warrior: return redSoul;
-            case JobCategory.Ranged:  return blueSoul;
-            case JobCategory.Healer:  return greenSoul;
-            default:                  return 0;         // Special 등은 현재 미사용 정책
+            case JobCategory.Ranged: return blueSoul;
+            case JobCategory.Healer: return greenSoul;
+            default: return 0;         // Special 등은 현재 미사용 정책
         }
     }
 
@@ -81,9 +81,9 @@ public class InventoryRuntime : MonoBehaviour
         if (amount <= 0) return;
         switch (category)
         {
-            case JobCategory.Warrior: redSoul  = Mathf.Max(0, redSoul + amount); break;
-            case JobCategory.Ranged:  blueSoul = Mathf.Max(0, blueSoul + amount); break;
-            case JobCategory.Healer:  greenSoul= Mathf.Max(0, greenSoul + amount); break;
+            case JobCategory.Warrior: redSoul = Mathf.Max(0, redSoul + amount); break;
+            case JobCategory.Ranged: blueSoul = Mathf.Max(0, blueSoul + amount); break;
+            case JobCategory.Healer: greenSoul = Mathf.Max(0, greenSoul + amount); break;
             default: return;
         }
         OnCurrencyChanged?.Invoke();
@@ -199,10 +199,37 @@ public class InventoryRuntime : MonoBehaviour
         if (found.count <= 0) ownedConsume.Remove(found);
     }
 
+    // [역할] 소비 아이템을 수량만큼 감소시키고 0 이하이면 제거
+    public void RemoveConsumeItem(int itemId, int amount)
+    {
+        if (amount <= 0) return;
+
+        var slot = ownedConsume.Find(x => x.itemData != null && x.itemData.id_item == itemId);
+        if (slot == null) return;
+
+        slot.count = Mathf.Max(0, slot.count - amount);
+        if (slot.count == 0)
+            ownedConsume.Remove(slot);
+
+        // [역할] UI/HUD 등 구독자에게 변경 알림
+        NotifyChanged();
+    }
+
     public void AddEquipItem(EquipItem item)
     {
         // 장비는 1개씩 보유(필요 시 중복 허용)
         ownedEquipItem.Add(new OwnedItem<EquipItem>(item, 1));
+    }
+
+    public void RemoveEquipItem(int itemId)
+    {
+        var slot = ownedEquipItem.Find(x => x.itemData != null && x.itemData.id_item == itemId);
+        if (slot == null) return;
+
+        ownedEquipItem.Remove(slot);
+
+        // [역할] UI/HUD 등 구독자에게 변경 알림
+        NotifyChanged();
     }
 
     // PlayerProgressService가 쓰는 최소 API (슬롯 열람)

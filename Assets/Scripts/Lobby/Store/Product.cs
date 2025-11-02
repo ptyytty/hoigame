@@ -41,6 +41,9 @@ public class Product : MonoBehaviour
     private JobCategory currentCategory;
     private Sprite defaultSprite;
 
+    private string boundListingId;   // 온라인 구매용 listingId
+    private int onlinePrice;       // 온라인 표시 가격
+
     public static event System.Action<Product> OnAnyProductClicked;
 
     void Awake()
@@ -130,7 +133,7 @@ public class Product : MonoBehaviour
                 item.effects
             );
             OnAnyProductClicked?.Invoke(this);
-            
+
             FindObjectOfType<StoreManager>()?.UpdateApplyButtonState();
         });
 
@@ -140,5 +143,23 @@ public class Product : MonoBehaviour
     {
         slotImage.sprite = defaultSprite != null ? defaultSprite : defaultGeneralImage;
     }
+
+    // ============== 온라인 구매 아이템 버튼 ===============
+    /// <summary> [역할] 온라인 listingId를 보관 (구매 호출 시 사용) </summary>
+    public void BindListingId(string listingId) => boundListingId = listingId;
+
+    /// <summary> [역할] 온라인 가격 라벨을 갱신 </summary>
+    public void SetOnlinePrice(int price)
+    {
+        onlinePrice = price;
+        // 가격을 출력하는 TMP_Text가 있다면 여기서 갱신, 예:
+        // if (priceText) priceText.text = $"{price:N0}";
+    }
+
+    /// <summary> [역할] 현재 셀이 바인딩한 listingId를 조회 </summary>
+    public string GetListingId() => boundListingId;
+
+    /// <summary> [역할] 현재 셀의 온라인 가격 조회(표시/검증용) </summary>
+    public int GetOnlinePrice() => onlinePrice;
 
 }
