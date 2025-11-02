@@ -96,9 +96,9 @@ public class CameraManager : MonoBehaviour
         if (bm == null) return;
         // 중복 구독 방지하려면 일단 한번 해제 후 구독
         bm.OnTargetingStateChanged -= HandleTargetingState;
-        bm.OnSkillCommitted       -= HandleSkillCommitted;
+        bm.OnSkillCommitted -= HandleSkillCommitted;
         bm.OnTargetingStateChanged += HandleTargetingState;
-        bm.OnSkillCommitted        += HandleSkillCommitted;
+        bm.OnSkillCommitted += HandleSkillCommitted;
     }
 
     void OnDisable()
@@ -385,12 +385,14 @@ public class CameraManager : MonoBehaviour
     }
 
     // ======== OrthoSize 자동 조정 =========
-    // 기기별 가로폭 보정
+    // 3) Constant-Width 보정도 "유효 화면비" 기준으로
+    //    - 레터박스(16:9) 사용 시 보정이 과해질 수 있으니, 레터박스를 쓰면 끄는 걸 권장합니다.
+    //    - 쓰고 싶다면 아래처럼 유효 화면비 기준으로만 살짝 보정.
     private float CW(float size)
     {
         if (!applyConstantWidth) return size;
-        float curAspect = (Screen.height == 0) ? referenceAspect : (float)Screen.width / Screen.height;
-        return size * (referenceAspect / curAspect);
+        float curAspect = GetEffectiveAspect(); // ← 여기만 교체
+        return size * ((16f / 9f) / curAspect);
     }
 
     private static void SetOrthoSize(CinemachineVirtualCamera cam, float size)
@@ -445,10 +447,32 @@ public class CameraManager : MonoBehaviour
         return b;
     }
 
+    // 1) "현재 카메라에 적용된 유효 화면비"를 가져오는 헬퍼
+    //    - CameraLetterbox가 있으면 그 referenceAspect(=16:9)를 사용
+    //    - 없으면 Screen 비율 사용 (폴백)
+    private float GetEffectiveAspect()
+    {
+        var cam = Camera.main;
+        if (cam)
+        {
+            var lb = cam.GetComponent<CameraLetterbox>();
+            if (lb) return lb.referenceAspect;
+        }
+        return (Screen.height == 0) ? (16f / 9f) : (float)Screen.width / Screen.height;
+    }
+
+    // 2) Bounds → OrthoSize 계산에서 화면비를 "유효 화면비"로 교체
     private static float ComputeOrthoSizeByBounds(Bounds b, float pad, float min, float max)
     {
-        float aspect = (Screen.height == 0) ? 1f : (float)Screen.width / Screen.height;
+        // ※ 정적 메서드라면 Instance를 통해 aspect를 받도록 바꿔도 되고,
+        //    간단히 16:9 고정으로 써도 무방(레터박스 사용 중이므로).
+        float aspect = (CameraManager.Instance != null)
+            ? CameraManager.Instance.GetEffectiveAspect()
+            : 16f / 9f;
+
         float needed = Mathf.Max(b.extents.y, b.extents.x / aspect) * pad;
         return Mathf.Clamp(needed, min, max);
     }
+
+
 }

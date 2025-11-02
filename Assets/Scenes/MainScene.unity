@@ -1749,14 +1749,14 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 77128962}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: dcd1d6a04563d984b8f0123295fc68d1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   referenceAspect: 1.777778
-  lockFullRectInEditor: 0
   roundDigits: 4
+  lockFullRectInEditor: 0
 --- !u!1 &79063992
 GameObject:
   m_ObjectHideFlags: 0
@@ -11586,6 +11586,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0311739f8731ade4285a64aa76faf5d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  target: {fileID: 0}
+  applyInEditor: 1
+  editorThresholdPx: 2
+  runtimeThresholdPx: 1
 --- !u!1 &670857823
 GameObject:
   m_ObjectHideFlags: 0
@@ -15824,7 +15828,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &886004465
 RectTransform:
   m_ObjectHideFlags: 0
@@ -15842,7 +15846,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 143.42, y: -35.897}
+  m_AnchoredPosition: {x: 143.41998, y: -35.897}
   m_SizeDelta: {x: 330.65, y: 71.793}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!225 &886004466
@@ -25747,7 +25751,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 239.53, y: -175.07599}
+  m_AnchoredPosition: {x: 239.52979, y: -175.07599}
   m_SizeDelta: {x: -1102.9, y: -436.757}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1529669808
@@ -31108,7 +31112,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -43.510986, y: 0}
+  m_AnchoredPosition: {x: -43.510742, y: 0}
   m_SizeDelta: {x: 87.022, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1951395536
@@ -31165,6 +31169,17 @@ MonoBehaviour:
   btnConfirm: {fileID: 779239751}
   toggleFriendList: {fileID: 462850017}
   toggleRequestList: {fileID: 317330984}
+  tabToggles:
+  - toggle: {fileID: 462850017}
+    background: {fileID: 1285506675}
+    label: {fileID: 1589979618}
+    baseMaterial: {fileID: 0}
+    materialReady: 0
+  - toggle: {fileID: 317330984}
+    background: {fileID: 220942009}
+    label: {fileID: 1315669113}
+    baseMaterial: {fileID: 0}
+    materialReady: 0
   prefabFriendRow: {fileID: 957200314900744260, guid: 28a1c73971301f74daca40105ae04603, type: 3}
   prefabRequestRow: {fileID: 3396434465659363668, guid: 5adeec4e56a6e66449f3c6f5c294e611, type: 3}
   contentParent: {fileID: 1525208515}

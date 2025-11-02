@@ -1,7 +1,4 @@
-using UnityEngine;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
+
 
 /// <summary>
 /// [모바일 레터/필러박스 생성기 - 안정화 버전]
@@ -9,131 +6,159 @@ using UnityEditor;
 /// ▷ Screen.width/height 변화가 있을 때만 Rect를 1회 갱신(디바운싱)
 /// ▷ Editor Device Simulator의 미세 진동을 완화하기 위해 소수점 반올림 적용
 /// </summary>
+using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 [ExecuteAlways, RequireComponent(typeof(Camera))]
 public class CameraLetterbox : MonoBehaviour
 {
+    [Header("Aspect Settings")]
     [Tooltip("유지할 기준 화면비 (예: 16:9 = 16f/9f)")]
     public float referenceAspect = 16f / 9f;
 
-    [Tooltip("에디터에서 전체 화면으로 고정(레터박스 미표시)")]
+    [Tooltip("실수 비교시 반올림 자릿수 (미세 떨림 방지)")]
+    [Range(0, 7)] public int roundDigits = 5;
+
+    [Header("Editor Behavior")]
+    [Tooltip("에디터에서 '재생 중이 아닐 때'는 항상 풀 화면 Rect(0,0,1,1)로 고정하여 깜빡임 방지")]
     public bool lockFullRectInEditor = true;
 
-    [Tooltip("소수점 반올림 자릿수(시뮬레이터 떨림 방지)")]
-    [Range(3, 6)] public int roundDigits = 4;
-
     private Camera cam;
-    private int lastW = -1, lastH = -1;
-    private float lastRefAspect = -1f;
-    private Rect lastRect;                 // 마지막으로 적용한 Rect
-    private bool isApplying = false;       // 재진입 보호 플래그
+    private Vector2Int lastScreenSize = Vector2Int.zero;
+    private Rect lastAppliedRect = new Rect(0, 0, 1, 1);
 
-    void OnEnable()
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Unity Messages
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    // 역할: 참조 캐시 및 초기 적용
+    private void Awake()
     {
-        cam = GetComponent<Camera>();
-        ApplyRect(true); // ▶ 첫 1회 즉시 적용
-#if UNITY_EDITOR
-        EditorApplication.update -= EditorTick;
-        EditorApplication.update += EditorTick;
-#endif
+        if (!cam) cam = GetComponent<Camera>();
     }
 
-    void OnDisable()
+    // 역할: 활성화 시 1회 적용
+    private void OnEnable()
     {
-#if UNITY_EDITOR
-        EditorApplication.update -= EditorTick;
-        if (lockFullRectInEditor && !Application.isPlaying && cam)
-            cam.rect = new Rect(0, 0, 1, 1);
-#endif
+        if (!cam) cam = GetComponent<Camera>();
+        ApplyRect(force: true);
     }
 
-#if UNITY_EDITOR
-    /// <summary>
-    /// [에디터] GameView 크기 변화 감지용(시뮬레이터 포함)
-    /// </summary>
-    private void EditorTick()
-    {
-        ApplyRect(); // 내부에서 변화가 있을 때만 실제 변경
-    }
-#endif
-
-    void Update()
-    {
-        // ▶ 런타임에서도 해상도/회전이 바뀌면 1회만 적용
-        if (Application.isPlaying)
-            ApplyRect();
-    }
-
-    /// <summary>
-    /// 화면 크기/기준비 변화가 있을 때만 Rect를 갱신
-    /// </summary>
-    private void ApplyRect(bool force = false)
-    {
-        if (!cam || isApplying) return;
-#if UNITY_EDITOR
-        if (!Application.isPlaying && lockFullRectInEditor)
-        {
-            cam.rect = new Rect(0, 0, 1, 1);
-            return;
-        }
-#endif
-        int w = Mathf.Max(Screen.width, 1);
-        int h = Mathf.Max(Screen.height, 1);
-
-        // ▶ 변화 감지(해상도/기준비)
-        if (!force && w == lastW && h == lastH && Mathf.Approximately(referenceAspect, lastRefAspect))
-            return;
-
-        lastW = w; lastH = h; lastRefAspect = referenceAspect;
-
-        float screenAspect = (float)w / h;
-        Rect r;
-        if (screenAspect > referenceAspect)
-        {
-            // 화면이 더 넓다 → 좌/우 필러박스
-            float targetW = referenceAspect / screenAspect; // 0~1
-            float x = (1f - targetW) * 0.5f;
-            r = new Rect(x, 0f, targetW, 1f);
-        }
-        else
-        {
-            // 화면이 더 높다 → 상/하 레터박스
-            float targetH = screenAspect / referenceAspect; // 0~1
-            float y = (1f - targetH) * 0.5f;
-            r = new Rect(0f, y, 1f, targetH);
-        }
-
-        // ▶ 소수점 반올림으로 미세 진동 제거
-        r.x = (float)System.Math.Round(r.x, roundDigits);
-        r.y = (float)System.Math.Round(r.y, roundDigits);
-        r.width = (float)System.Math.Round(r.width, roundDigits);
-        r.height = (float)System.Math.Round(r.height, roundDigits);
-
-        // ▶ 동일값 재적용 금지(깜빡임 방지)
-        if (!force && NearlyEqual(r, lastRect)) return;
-
-        isApplying = true;  // 재진입 방지
-        cam.rect = r;
-        lastRect = r;
-        isApplying = false;
-    }
-
-    /// <summary>
-    /// Rect 근사치 비교(플로팅 에러 흡수)
-    /// </summary>
-    private static bool NearlyEqual(Rect a, Rect b, float eps = 0.0001f)
-    {
-        return Mathf.Abs(a.x - b.x) < eps &&
-               Mathf.Abs(a.y - b.y) < eps &&
-               Mathf.Abs(a.width - b.width) < eps &&
-               Mathf.Abs(a.height - b.height) < eps;
-    }
-
-    /// <summary>
-    /// 인스펙터 값이 바뀌면 즉시 재적용
-    /// </summary>
+    // 역할: 에디터에서 값이 바뀌었을 때 / 인스펙터 변경 시 호출
+    //       편집 중에는 풀 화면 고정(선택사항)으로 ViewportRect 흔들림 방지
     private void OnValidate()
     {
         if (!cam) cam = GetComponent<Camera>();
-        ApplyRect(true);
+
+#if UNITY_EDITOR
+        if (!Application.isPlaying && lockFullRectInEditor && cam != null)
+        {
+            cam.rect = new Rect(0, 0, 1, 1);
+            lastAppliedRect = cam.rect;
+            lastScreenSize = new Vector2Int(Screen.width, Screen.height);
+            return;
+        }
+#endif
+        ApplyRect(force: true);
+    }
+
+    // 역할: 프레임별 해상도/화면비 변화 감지 후 필요 시만 적용
+    private void Update()
+    {
+        if (!cam) return;
+
+#if UNITY_EDITOR
+        if (!Application.isPlaying && lockFullRectInEditor)
+        {
+            // 편집 중에는 풀 화면 유지
+            if (cam.rect != new Rect(0, 0, 1, 1))
+            {
+                cam.rect = new Rect(0, 0, 1, 1);
+                lastAppliedRect = cam.rect;
+            }
+            lastScreenSize = new Vector2Int(Screen.width, Screen.height);
+            return;
+        }
+#endif
+        // 런타임 또는 (에디터/재생중 + lock 해제)에서만 반응
+        Vector2Int current = new Vector2Int(Screen.width, Screen.height);
+        if (current != lastScreenSize)
+        {
+            ApplyRect(force: false);
+            lastScreenSize = current;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Core
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    // 역할: 현재 Screen 비율과 referenceAspect를 비교해 타깃 ViewportRect 계산 후 적용
+    public void ApplyRect(bool force)
+    {
+        if (!cam) return;
+        if (Screen.width <= 0 || Screen.height <= 0) return;
+
+        float windowAspect = (float)Screen.width / Screen.height;
+        float targetW = 1f;
+        float targetH = 1f;
+        float targetX = 0f;
+        float targetY = 0f;
+
+        // 화면이 기준보다 '가로로 넓음' → 좌우 필러박스
+        if (windowAspect > referenceAspect)
+        {
+            // 기준 높이 유지, 폭을 줄임
+            float expectedWidth = referenceAspect / windowAspect; // (H=1 기준)
+            targetW = expectedWidth;
+            targetH = 1f;
+            targetX = (1f - targetW) * 0.5f;
+            targetY = 0f;
+        }
+        else // 화면이 기준보다 '세로로 길음' → 상하 레터박스
+        {
+            // 기준 폭 유지, 높이를 줄임
+            float expectedHeight = windowAspect / referenceAspect; // (W=1 기준)
+            targetW = 1f;
+            targetH = expectedHeight;
+            targetX = 0f;
+            targetY = (1f - targetH) * 0.5f;
+        }
+
+        Rect target = new Rect(
+            Round(targetX, roundDigits),
+            Round(targetY, roundDigits),
+            Round(targetW, roundDigits),
+            Round(targetH, roundDigits)
+        );
+
+        if (force || !ApproximatelyRect(lastAppliedRect, target, roundDigits))
+        {
+            cam.rect = target;
+            lastAppliedRect = target;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Helpers
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    // 역할: 반올림
+    private static float Round(float v, int digits)
+    {
+        if (digits <= 0) return Mathf.Round(v);
+        float m = Mathf.Pow(10f, digits);
+        return Mathf.Round(v * m) / m;
+    }
+
+    // 역할: Rect 동일성 비교(반올림 자릿수 기준)
+    private static bool ApproximatelyRect(Rect a, Rect b, int digits)
+    {
+        return Mathf.Approximately(Round(a.x, digits), Round(b.x, digits)) &&
+               Mathf.Approximately(Round(a.y, digits), Round(b.y, digits)) &&
+               Mathf.Approximately(Round(a.width, digits), Round(b.width, digits)) &&
+               Mathf.Approximately(Round(a.height, digits), Round(b.height, digits));
     }
 }
