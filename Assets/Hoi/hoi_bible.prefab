@@ -165,6 +165,8 @@ MonoBehaviour:
   baseIdleClip: {fileID: -203655887218126122, guid: 86b33abe2ef13c54c9df44e3e547471f, type: 3}
   baseRunClip: {fileID: -203655887218126122, guid: 8e0cb3d71d6b36846be29beb7c1f2fd8, type: 3}
   baseHitClip: {fileID: -203655887218126122, guid: 8c3f7aa24efdd3f4a881000da2fa9f0f, type: 3}
+  restoreSpeedOnExit: 1
+  desiredHitLengthSec: 1.2
 --- !u!95 &4479168124671196587
 Animator:
   serializedVersion: 5

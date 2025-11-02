@@ -202,6 +202,9 @@ MonoBehaviour:
   impactScale: {x: 1.1, y: 0.9, z: 1.1}
   colorProperty: _BaseColor
   hitFlashColor: {r: 1, g: 1, b: 1, a: 1}
+  yawOnly: 1
+  modelForwardYawOffset: 0
+  excludeFlashSubmeshIndices: 
 --- !u!1 &5053540989309253563
 GameObject:
   m_ObjectHideFlags: 0
@@ -370,6 +373,9 @@ MonoBehaviour:
   impactScale: {x: 1.1, y: 0.9, z: 1.1}
   colorProperty: _BaseColor
   hitFlashColor: {r: 1, g: 1, b: 1, a: 1}
+  yawOnly: 1
+  modelForwardYawOffset: 0
+  excludeFlashSubmeshIndices: 
 --- !u!1 &6567916305988671156
 GameObject:
   m_ObjectHideFlags: 0
@@ -538,3 +544,6 @@ MonoBehaviour:
   impactScale: {x: 1.1, y: 0.9, z: 1.1}
   colorProperty: _BaseColor
   hitFlashColor: {r: 1, g: 1, b: 1, a: 1}
+  yawOnly: 1
+  modelForwardYawOffset: 0
+  excludeFlashSubmeshIndices: 

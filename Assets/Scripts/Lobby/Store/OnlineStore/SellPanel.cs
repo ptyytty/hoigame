@@ -18,23 +18,52 @@ public class SellPanel : MonoBehaviour
     [SerializeField] private Button btnConfirm;
     [SerializeField] private Button btnCancel;
 
-    [Header("My Sales")]
+    [Header("My Sales (List)")]
     [SerializeField] private Transform myListContent;   // 스크롤뷰 Content
-    [SerializeField] private GameObject sellItemPrefab; // Name/Price/Qty/Status/BtnClose 포함
+    [SerializeField] private GameObject sellItemPrefab; // 프리팹 내부에 Text들 + Button 포함
+
+    [Header("My Sales (Detail Panel)")]
+    [SerializeField] private GameObject panelMyListingDetail; // 새로 뜨는 상세 패널
+    [SerializeField] private TMP_Text txtDetailName;          // 상세: 아이템명
+    [SerializeField] private TMP_Text txtDetailPrice;         // 상세: 가격
+    [SerializeField] private TMP_Text txtDetailQty;           // 상세: 수량
+    [SerializeField] private Button btnCancelSale;            // 상세: 판매 취소 버튼
+    [SerializeField] private Button btnDetailClose;           // 상세: 닫기 버튼
 
     private int ownedCount = 0;    // 보유 수량
     private int sellCount = 1;     // 판매 예정 수량
     private string itemName = "";
     private Product selectedProduct;
 
+    // 상세 패널에서 사용: 현재 선택된 내 판매글
+    private Listing _selectedListing;
+
+    /// <summary>
+    /// [역할] 내 판매글 데이터 구조 (상세 패널에 바인딩/취소 처리용)
+    /// </summary>
+    private struct Listing
+    {
+        public string DocumentId;
+        public string Type;   // "Consume" | "Equipment"
+        public int ItemId;
+        public int Qty;
+        public bool IsActive;
+        public string DisplayName;
+    }
+
     void Start()
     {
-        // 역할: 버튼 이벤트 바인딩 및 초기 비활성화
+        // [역할] 버튼 이벤트 바인딩 및 기본 비활성화
         btnPlus.onClick.AddListener(OnPlus);
         btnMinus.onClick.AddListener(OnMinus);
         btnConfirm.onClick.AddListener(OnConfirm);
         btnCancel.onClick.AddListener(Hide);
+
+        if (btnCancelSale) btnCancelSale.onClick.AddListener(OnClickCancelSale);
+        if (btnDetailClose) btnDetailClose.onClick.AddListener(() => ShowListingDetail(null));
+
         gameObject.SetActive(false);
+        if (panelMyListingDetail) panelMyListingDetail.SetActive(false);
     }
 
     /// <summary>
@@ -54,7 +83,7 @@ public class SellPanel : MonoBehaviour
         txtSellCount.text = $"{sellCount}";
         inputPrice.text = "10"; // 기본 10원
 
-        _ = RefreshMySalesAsync();
+        _ = RefreshMySalesAsync(); // 내 판매글 리스트 갱신
         gameObject.SetActive(true);
     }
 
@@ -83,8 +112,7 @@ public class SellPanel : MonoBehaviour
     }
 
     /// <summary>
-    /// [역할] 판매 확정 버튼: 보안 규칙에 맞춘 필드로 Firestore에 문서 생성
-    /// 규칙 필수 필드: sellerUid, itemId, type, priceGold(int), qty(int>0), isActive(bool), createdAt, (updatedAt 옵션)
+    /// [역할] 판매 확정: Firestore에 등록(보안 규칙 준수), 로컬 인벤토리 차감, UI 갱신
     /// </summary>
     private async void OnConfirm()
     {
@@ -120,28 +148,25 @@ public class SellPanel : MonoBehaviour
         // 4) 판매자 정보
         var auth = FirebaseAuth.DefaultInstance;
         var uid = auth?.CurrentUser?.UserId;
-        var nick = auth?.CurrentUser?.DisplayName ?? "Unknown";
         if (string.IsNullOrEmpty(uid))
         {
             Debug.LogError("[SellPanel] 로그인 필요");
             return;
         }
 
-        // 5) 업로드 데이터 (✅ 보안 규칙과 정확히 일치하는 키/타입)
+        // 5) 업로드 데이터 (규칙과 정확히 일치)
         var db = FirebaseFirestore.DefaultInstance;
         var doc = db.Collection("marketListings").Document(); // auto id
 
         var data = new Dictionary<string, object> {
-            { "sellerUid", uid },                                   // string
-            { "type", type },                                        // "Consume" | "Equipment"
-            { "itemId", itemId },                                    // int (로컬 카탈로그 복원용)
-            { "priceGold", priceRounded },                           // int
-            { "qty", qty },                                          // int (>0)
-            { "isActive", true },                                    // bool
-            { "createdAt", FieldValue.ServerTimestamp },             // timestamp(서버)
-            { "updatedAt", FieldValue.ServerTimestamp },             // timestamp(서버)
-            // 참고: 규칙에는 없지만 표시용으로만 쓰는 필드는 제외하거나 규칙에 추가해야 함.
-            // { "sellerNickname", nick } // 표시용을 쓰려면 규칙 keys 목록에 추가 필요
+            { "sellerUid", uid },                      // string
+            { "type", type },                          // "Consume" | "Equipment"
+            { "itemId", itemId },                      // int (로컬 카탈로그 복원용)
+            { "priceGold", priceRounded },             // int
+            { "qty", qty },                            // int (>0)
+            { "isActive", true },                      // bool
+            { "createdAt", FieldValue.ServerTimestamp },
+            { "updatedAt", FieldValue.ServerTimestamp },
         };
 
         try
@@ -149,14 +174,14 @@ public class SellPanel : MonoBehaviour
             await doc.SetAsync(data);
             Debug.Log($"[SellPanel] 업로드 완료: {doc.Id} / {itemId} / {priceRounded} x {qty}");
 
-            // ✅ 업로드 후 로컬 인벤토리 차감
+            // 로컬 인벤토리 차감
             ReduceLocalItemStock(type, itemId, qty);
 
-            // ✅ 인벤토리 UI 갱신
+            // 인벤토리 UI 갱신
             var display = FindObjectOfType<ItemDisplay>();
             if (display != null) display.RefreshItemList();
 
-            // ✅ 내 판매 목록 갱신
+            // 내 판매 목록 갱신
             await RefreshMySalesAsync();
         }
         catch (System.Exception e)
@@ -166,7 +191,6 @@ public class SellPanel : MonoBehaviour
 
         Hide();
     }
-
 
     /// <summary>
     /// [역할] Firestore 업로드 성공 후 로컬 인벤토리에서 수량 차감 및 제거
@@ -183,13 +207,48 @@ public class SellPanel : MonoBehaviour
         }
         else if (type == "Equipment")
         {
-            // [역할] 장비는 개별 제거 (한 번에 하나만 올린다고 가정)
-            inv.RemoveEquipItem(itemId);
+            // [역할] 장비는 개수만큼 제거
+            int count = Mathf.Max(1, qty);
+            for (int i = 0; i < count; i++)
+                inv.RemoveEquipItem(itemId);
+        }
+    }
+
+    /// <summary>
+    /// [역할] 판매 취소 시 로컬 인벤토리에 수량 복원
+    /// </summary>
+    private void RestoreLocalItemStock(string type, int itemId, int qty)
+    {
+        var inv = InventoryRuntime.Instance;
+        if (inv == null) return;
+
+        if (type == "Consume")
+        {
+            // [역할] 소비 아이템 수량 복구 (정의 객체 필요)
+            var def = ItemCatalog.GetConsume(itemId);
+            if (def != null && qty > 0)
+            {
+                inv.AddConsumeItem(def, qty);
+                inv.NotifyChanged();
+            }
+        }
+        else if (type == "Equipment")
+        {
+            // [역할] 장비 복구 (정의 객체 필요)
+            var def = ItemCatalog.GetEquip(itemId);
+            if (def != null)
+            {
+                int count = Mathf.Max(1, qty);
+                for (int i = 0; i < count; i++)
+                    inv.AddEquipItem(def);
+                inv.NotifyChanged();
+            }
         }
     }
 
     /// <summary>
     /// [역할] '내 판매 목록' 갱신: 내가 올린 글만 최신순(createdAt desc)으로 가져와 리스트에 출력
+    /// - 각 행은 Button으로 동작하여 상세 패널을 열도록 구성
     /// </summary>
     public async Task RefreshMySalesAsync()
     {
@@ -204,7 +263,7 @@ public class SellPanel : MonoBehaviour
         var db = FirebaseFirestore.DefaultInstance;
         var q = db.Collection("marketListings")
                   .WhereEqualTo("sellerUid", uid)
-                  .OrderByDescending("createdAt"); // 최신순
+                  .OrderByDescending("createdAt"); // 최신순(호환성 안전)
 
         var snap = await q.GetSnapshotAsync();
 
@@ -213,45 +272,121 @@ public class SellPanel : MonoBehaviour
             string type = doc.GetValue<string>("type");
             int itemId = doc.GetValue<int>("itemId");
             int price = doc.GetValue<int>("priceGold");
-            int qty = doc.GetValue<int>("qty");                 // ✅ 변경: quantity → qty
-            bool isActive = doc.GetValue<bool>("isActive");     // ✅ 변경: status(string) → isActive(bool)
+            int qty = doc.GetValue<int>("qty");
+            bool isActive = doc.GetValue<bool>("isActive");
 
-            // 다 팔린 글/비활성 글은 목록에서 제외
+            // 다 팔렸거나 비활성화된 글은 리스트에서 제외
             if (qty <= 0 || !isActive) continue;
 
-            // 로컬 DB에서 이름/아이콘 복원
+            // 로컬 카탈로그로 이름 복원
             string displayName =
                 (type == "Consume")
                 ? (ItemCatalog.GetConsume(itemId)?.name_item ?? $"Consume#{itemId}")
                 : (ItemCatalog.GetEquip(itemId)?.name_item ?? $"Equip#{itemId}");
 
+            // UI 행 생성
             var row = Instantiate(sellItemPrefab, myListContent);
 
-            // 프리팹 내부 바인딩 (오브젝트 이름은 프로젝트에 맞춰 수정)
-            var nameText = row.transform.Find("Txt_ItemName")?.GetComponent<TMP_Text>();
+            // 프리팹 바인딩 (오브젝트 경로/이름은 프로젝트에 맞춰 조정)
+            var nameText  = row.transform.Find("Txt_ItemName")?.GetComponent<TMP_Text>();
             var priceText = row.transform.Find("Txt_Price")?.GetComponent<TMP_Text>();
-            var qtyText = row.transform.Find("Txt_Count")?.GetComponent<TMP_Text>();
-            // var statusText = row.transform.Find("StatusText")?.GetComponent<TMP_Text>();
-            // var btnClose = row.transform.Find("BtnClose")?.GetComponent<Button>();
+            var qtyText   = row.transform.Find("Txt_Count")?.GetComponent<TMP_Text>();
+            var rowBtn    = row.GetComponent<Button>(); // 행 자체가 버튼이라고 가정
 
-            if (nameText) nameText.text = displayName;
+            if (nameText)  nameText.text  = displayName;
             if (priceText) priceText.text = $"{price:N0}";
-            if (qtyText) qtyText.text = $"수량: {qty}";
-            // if (statusText) statusText.text = isActive ? "active" : "closed";
+            if (qtyText)   qtyText.text   = $"수량: {qty}";
 
-            // if (btnClose)
-            // {
-            //     // [역할] 판매 종료(닫기) 버튼 — isActive일 때만 가능
-            //     btnClose.interactable = isActive;
-            //     btnClose.onClick.RemoveAllListeners();
-            //     btnClose.onClick.AddListener(() => _ = CloseMyListingAsync(doc.Id));
-            // }
+            // 상세용 Listing 객체 준비
+            var listing = new Listing
+            {
+                DocumentId  = doc.Id,
+                Type        = type,
+                ItemId      = itemId,
+                Qty         = qty,
+                IsActive    = isActive,
+                DisplayName = displayName
+            };
+
+            // [역할] 행 버튼을 누르면 상세 패널 열기
+            if (rowBtn)
+            {
+                rowBtn.onClick.RemoveAllListeners();
+                rowBtn.onClick.AddListener(() => ShowListingDetail(listing));
+            }
         }
     }
 
     /// <summary>
-    /// [역할] 내 판매글을 비활성화(isActive=false)로 변경. 성공 시 목록 갱신.
-    /// 규칙: update는 priceGold/qty/isActive/updatedAt만 변경 가능.
+    /// [역할] 상세 패널 열기/닫기 및 선택된 판매글 바인딩
+    /// listing == null이면 패널을 닫는다.
+    /// </summary>
+    private void ShowListingDetail(Listing? listing)
+    {
+        if (panelMyListingDetail == null) return;
+
+        if (listing == null)
+        {
+            _selectedListing = default;
+            panelMyListingDetail.SetActive(false);
+            return;
+        }
+
+        _selectedListing = listing.Value;
+
+        if (txtDetailName)  txtDetailName.text  = _selectedListing.DisplayName;
+        if (txtDetailQty)   txtDetailQty.text   = $"수량: {_selectedListing.Qty}";
+
+        if (btnCancelSale)  btnCancelSale.interactable = _selectedListing.IsActive && _selectedListing.Qty > 0;
+
+        panelMyListingDetail.SetActive(true);
+    }
+
+    /// <summary>
+    /// [역할] 상세 패널의 "판매 취소" 버튼 눌렀을 때 처리:
+    /// - Firestore: isActive=false, qty=0, updatedAt 갱신 (규칙 허용 필드만 수정)
+    /// - 로컬 인벤토리: 해당 수량 복원
+    /// - UI: 목록/인벤토리 갱신 후 상세 패널 닫기
+    /// </summary>
+    private async void OnClickCancelSale()
+    {
+        if (string.IsNullOrEmpty(_selectedListing.DocumentId) || _selectedListing.Qty <= 0) return;
+
+        // 1) Firestore에서 비활성화 + 수량 0 처리
+        var db = FirebaseFirestore.DefaultInstance;
+
+        try
+        {
+            var updates = new Dictionary<string, object> {
+                { "isActive", false },                         // 규칙 허용
+                { "qty", 0 },                                  // 규칙 허용(가격/수량/활성만)
+                { "updatedAt", FieldValue.ServerTimestamp }    // 규칙 허용
+            };
+
+            await db.Collection("marketListings")
+                    .Document(_selectedListing.DocumentId)
+                    .UpdateAsync(updates);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[SellPanel] 판매 취소 실패: {e}");
+            return;
+        }
+
+        // 2) 로컬 인벤토리 복원
+        RestoreLocalItemStock(_selectedListing.Type, _selectedListing.ItemId, _selectedListing.Qty);
+
+        // 3) 인벤토리/내 판매 목록 UI 갱신
+        var display = FindObjectOfType<ItemDisplay>();
+        if (display != null) display.RefreshItemList();
+        await RefreshMySalesAsync();
+
+        // 4) 상세 패널 닫기
+        ShowListingDetail(null);
+    }
+
+    /// <summary>
+    /// [역할] (옵션) 내 판매글을 수동으로 닫는 메서드 — 현재 흐름에선 상세 패널에서 OnClickCancelSale로 대체
     /// </summary>
     private async Task CloseMyListingAsync(string listingId)
     {
@@ -261,8 +396,8 @@ public class SellPanel : MonoBehaviour
             await db.Collection("marketListings")
                     .Document(listingId)
                     .UpdateAsync(new Dictionary<string, object> {
-                        { "isActive", false },                         // ✅ 규칙 허용 필드
-                        { "updatedAt", FieldValue.ServerTimestamp }    // ✅ 규칙 허용 필드
+                        { "isActive", false },
+                        { "updatedAt", FieldValue.ServerTimestamp }
                     });
 
             await RefreshMySalesAsync();
@@ -274,7 +409,7 @@ public class SellPanel : MonoBehaviour
     }
 
     /// <summary>
-    /// [역할] 패널 숨김
+    /// [역할] 판매 패널 숨김
     /// </summary>
     public void Hide()
     {
