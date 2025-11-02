@@ -1,8 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro; // ← TMP_Text도 지원 (버튼 라벨/가격 표기용)
+using Firebase.Auth;
+using Firebase.Firestore;
+
+
 
 // 상점 UI 제어
 public class StoreManager : MonoBehaviour
@@ -14,7 +19,7 @@ public class StoreManager : MonoBehaviour
         public Image image;
         public Sprite selectedSprite;
         public Sprite defaultSprite;
-        public Text labelText;
+        public Text labelText; // 기본 Text 사용 (기존 구조 유지)
         public Color selectedTextColor = new Color(238f / 255f, 190f / 255f, 20f / 255f, 1f);
         public Color defaultTextcolor = new Color(1f, 1f, 1f, 1f);
     }
@@ -49,13 +54,19 @@ public class StoreManager : MonoBehaviour
     private StoreKind currentStore = StoreKind.Local;
 
     [Header("Button")]
-    [SerializeField] GameObject btnApply;
-    [SerializeField] GameObject btnSell;
+    [SerializeField] GameObject btnApply;  // 구매 버튼 (재사용)
+    [SerializeField] GameObject btnSell;   // 판매 버튼
 
     [Header("Scripts")]
     [SerializeField] private ItemDisplay onlineItemDisplay;
     [SerializeField] private SellPanel sellPanel;
     [SerializeField] private SortedDropdown sortedDropdown; // 정렬 드롭다운 참조
+
+    // ─────────────────────────────────────────────────────────────
+    // 온라인 구매 모드에서 선택 슬롯의 “표시 가격” 캐시
+    // (Product.Price가 카탈로그 가격일 수 있어 슬롯 UI의 Txt_Price를 신뢰)
+    int lastSelectedPrice = 0;
+    // ─────────────────────────────────────────────────────────────
 
     void OnEnable()
     {
@@ -74,7 +85,7 @@ public class StoreManager : MonoBehaviour
     {
         Product.OnAnyProductClicked += HandleProductClicked;
 
-        // 아이템 타입 토글 (0:전체,1:소비,2:장비)
+        // 아이템 종류 토글 (0:전체,1:소비,2:장비)
         for (int i = 0; i < itemTypeToggleImagePairs.Count; i++)
         {
             int index = i;
@@ -125,26 +136,38 @@ public class StoreManager : MonoBehaviour
                 {
                     OnToggleChanged(changeBuyOrSellToggleImagePairs[index].toggle, changeBuyOrSellToggleImagePairs, ref lastSelectedOnlineStoreMode);
 
-                    // ✅ 구매/판매 토글 연동
                     bool isSell = (index == 1);
-                    onlineItemDisplay.isSellMode = isSell;
-                    onlineItemDisplay.RefreshItemList();
+                    if (onlineItemDisplay != null)
+                    {
+                        onlineItemDisplay.isSellMode = isSell;
+                        onlineItemDisplay.RefreshItemList();
+                    }
 
                     if (currentStore == StoreKind.Online) SetOnlineIdleUI();
 
-                    // ✅ 판매 탭 진입 UI 프리셋 및 내 판매 목록 강제 선택
+                    // 판매 탭 진입 시: 우측 내 판매 목록 탭이 기본
                     if (isSell)
                     {
                         SelectTab(selectItemToggleImagePairs, 1, ref lastSelectedItemInfo, ShowSelectedItemPanel);
                         UpdateToggle(selectItemToggleImagePairs);
 
-                        if (panelRight)        panelRight.SetActive(true);
-                        if (panelMySalesList)  panelMySalesList.SetActive(true);
-                        if (panelSearch)       panelSearch.SetActive(true);
-                        if (panelInfoToggle)   panelInfoToggle.SetActive(true);
-                        if (panelInfo)         panelInfo.SetActive(false);
+                        if (panelRight) panelRight.SetActive(true);
+                        if (panelMySalesList) panelMySalesList.SetActive(true);
+                        if (panelSearch) panelSearch.SetActive(true);
+                        if (panelInfoToggle) panelInfoToggle.SetActive(true);
+                        if (panelInfo) panelInfo.SetActive(false);
 
-                        _ = sellPanel.RefreshMySalesAsync();
+                        if (sellPanel != null) _ = sellPanel.RefreshMySalesAsync();
+                    }
+                    else
+                    {
+                        // 구매 탭 진입 시: 정보 탭이 기본, 구매 버튼 초기화
+                        SelectTab(selectItemToggleImagePairs, 0, ref lastSelectedItemInfo, ShowSelectedItemPanel);
+                        UpdateToggle(selectItemToggleImagePairs);
+                        lastSelectedPrice = 0;
+                        SetApplyButtonVisible(false);
+                        SetApplyButtonLabel(0);
+                        UpdateApplyButtonState();
                     }
                 }
             });
@@ -207,10 +230,9 @@ public class StoreManager : MonoBehaviour
         ShowSelectedItemPanel(0);
 
         // 버튼
-        btnApply.GetComponent<Button>().onClick.AddListener(OnClickApply);
+        btnApply.GetComponent<Button>().onClick.AddListener(async () => await OnClickApply()); // 🔸 async로 래핑
         btnSell.GetComponent<Button>().onClick.AddListener(OnClickSell);
 
-        // 인벤 변동 시 구매 버튼 재평가
         var inv = InventoryRuntime.Instance;
         if (inv != null)
             InventoryRuntime.Instance.OnCurrencyChanged += UpdateApplyButtonState;
@@ -246,10 +268,11 @@ public class StoreManager : MonoBehaviour
         // 기존 선택 초기화
         if (Product.CurrentSelected != null) Product.CurrentSelected.ResetToDefaultImage();
         ItemInfoPanel.instance?.Hide();
+        lastSelectedPrice = 0;
 
         // 오른쪽 패널 preset
         if (islocal) SetLocalIdleUI();
-        else         SetOnlineIdleUI();
+        else SetOnlineIdleUI();
 
         UpdateApplyButtonState();
     }
@@ -262,10 +285,10 @@ public class StoreManager : MonoBehaviour
         bool showInfo = (index == 0);
         bool showMyList = (index == 1);
 
-        if (panelInfo)        panelInfo.SetActive(showInfo);
+        if (panelInfo) panelInfo.SetActive(showInfo);
         if (panelMySalesList) panelMySalesList.SetActive(showMyList);
 
-        if (showMyList && panelMySalesList != null)
+        if (showMyList && panelMySalesList != null && sellPanel != null)
             _ = sellPanel.RefreshMySalesAsync();
     }
 
@@ -289,10 +312,15 @@ public class StoreManager : MonoBehaviour
     // 토글 버튼 이미지/텍스트 상태 업데이트
     void UpdateToggle(List<ToggleImagepair> toggleGroup)
     {
+        if (toggleGroup == null) return;
+
         foreach (var pair in toggleGroup)
         {
+            if (pair == null || pair.toggle == null) continue;
+
             bool isOn = pair.toggle.isOn;
-            pair.image.sprite = isOn ? pair.selectedSprite : pair.defaultSprite;
+            if (pair.image != null)
+                pair.image.sprite = isOn ? pair.selectedSprite : pair.defaultSprite;
 
             if (pair.labelText != null)
             {
@@ -304,9 +332,11 @@ public class StoreManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Apply 버튼 클릭 시 선택된 상품을 구매 확정
+    /// [역할] Apply(구매) 버튼 클릭 처리
+    ///  - 온라인 구매 모드: 트랜잭션으로 수량 감소 → 결제/지급 → 새로고침
+    ///  - 로컬 상점: 기존 로직
     /// </summary>
-    private void OnClickApply()
+    private async System.Threading.Tasks.Task OnClickApply()
     {
         var selected = Product.CurrentSelected;
         if (selected == null)
@@ -323,9 +353,17 @@ public class StoreManager : MonoBehaviour
             return;
         }
 
-        int price = selected.Price;
+        bool isOnlineBuyMode = (currentStore == StoreKind.Online && onlineItemDisplay != null && !onlineItemDisplay.isSellMode);
+        int uiPrice = ReadDisplayedPriceFromSlot(selected != null ? selected.gameObject : null);
+        int price = isOnlineBuyMode && uiPrice > 0 ? uiPrice : selected.Price;
 
-        // 최종 가드
+        if (isOnlineBuyMode)
+        {
+            await BuyOnlineAsync(selected, price); // 🔹 온라인 구매 처리
+            return;
+        }
+
+        // ───────── 로컬 상점 구매 (기존 로직) ─────────
         if (!inv.TrySpendGold(price))
         {
             Debug.Log("[Store] 골드 부족으로 구매 불가.");
@@ -333,16 +371,14 @@ public class StoreManager : MonoBehaviour
             return;
         }
 
-        // 아이템 지급
         if (selected.IsConsume && selected.BoundConsume != null)
         {
             inv.AddConsumeItem(selected.BoundConsume, 1);
-            Debug.Log($"[Store] {selected.BoundConsume.name_item}을(를) 1개 구매했습니다.");
 
             ItemInfoPanel.instance.ShowItemInfo(
                 selected.BoundConsume.name_item,
                 selected.BoundConsume.description,
-                selected.Price,
+                price,
                 selected.BoundConsume.icon,
                 selected.BoundConsume.effects
             );
@@ -350,7 +386,6 @@ public class StoreManager : MonoBehaviour
         else if (selected.IsEquip && selected.BoundEquip != null)
         {
             inv.AddEquipItem(selected.BoundEquip);
-            Debug.Log($"[Store] {selected.BoundEquip.name_item} 장비를 구매했습니다.");
 
             var btn = selected.GetComponent<Button>();
             if (btn != null) btn.interactable = false;
@@ -358,6 +393,7 @@ public class StoreManager : MonoBehaviour
             selected.ResetToDefaultImage();
             ItemInfoPanel.instance.Hide();
 
+            // 선택 해제
             typeof(Product)
                 .GetField("currentSelectedProduct", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
                 ?.SetValue(null, null);
@@ -374,7 +410,162 @@ public class StoreManager : MonoBehaviour
         UpdateApplyButtonState();
     }
 
-    // 온라인 상점 아이템 판매 패널 열기
+    /// <summary>
+    /// [역할] 온라인 구매 트랜잭션
+    ///  1) listingId 문서를 읽어 isActive/수량/가격 검증
+    ///  2) 수량 1 감소(0이면 isActive=false)
+    ///  3) 성공 시 내 골드 차감 + 인벤토리에 지급
+    ///  4) UI/리스트 새로고침
+    /// </summary>
+    private async System.Threading.Tasks.Task BuyOnlineAsync(Product selected, int price)
+    {
+
+        var inv = InventoryRuntime.Instance;
+        if (inv == null) return;
+
+        if (inv.Gold < price)
+        {
+            Debug.Log("[Store][Online] 골드 부족");
+            UpdateApplyButtonState();
+            return;
+        }
+
+        string listingId = selected.GetListingId();
+        if (string.IsNullOrEmpty(listingId))
+        {
+            Debug.LogWarning("[Store][Online] listingId가 바인딩되지 않았습니다.");
+            return;
+        }
+
+        var db = FirebaseFirestore.DefaultInstance;
+        var docRef = db.Collection("marketListings").Document(listingId);
+        var myUid = FirebaseAuth.DefaultInstance.CurrentUser?.UserId;
+
+        string sellerUid = null;
+        int priceServer = price;
+
+        try
+        {
+            // (A) 서버 트랜잭션
+            int newQtyServer = -1; // 트랜잭션 완료 후 남은 수량을 받아서 버튼/뱃지 처리에 사용
+
+            await db.RunTransactionAsync(async tr =>
+            {
+                var snap = await tr.GetSnapshotAsync(docRef);
+                if (!snap.Exists) throw new System.Exception("해당 상품이 존재하지 않습니다.");
+
+                bool isActive = snap.TryGetValue<bool>("isActive", out var _isActive) ? _isActive : true;
+                if (!isActive) throw new System.Exception("이미 비활성화된 상품입니다.");
+
+                sellerUid   = snap.TryGetValue<string>("sellerUid", out var _seller) ? _seller : null;
+                priceServer = snap.TryGetValue<int>("priceGold", out var _p) ? _p : price;
+
+                // qty/quantity 대응
+                int qty = 0;
+                bool useQuantity = false;
+                if (snap.ContainsField("quantity") && snap.TryGetValue<int>("quantity", out var q1)) { qty = q1; useQuantity = true; }
+                else if (snap.ContainsField("qty") && snap.TryGetValue<int>("qty", out var q2)) { qty = q2; useQuantity = false; }
+                else qty = 1;
+
+                if (qty <= 0) throw new System.Exception("품절된 상품입니다.");
+
+                int newQty = Mathf.Max(0, qty - 1);
+                var updates = new Dictionary<string, object>
+                {
+                    ["updatedAt"] = FieldValue.ServerTimestamp
+                };
+                if (useQuantity) updates["quantity"] = newQty;
+                else updates["qty"] = newQty;
+
+                if (newQty == 0) updates["isActive"] = false;
+
+                tr.Update(docRef, updates);
+                newQtyServer = newQty; // 트랜잭션 스코프 밖에서 사용
+            });
+
+            // (B) 로컬 결제/지급
+            if (!inv.TrySpendGold(price))
+            {
+                Debug.LogWarning("[Store][Online] 트랜잭션 성공 후 결제 실패(잔액 변동?)");
+                UpdateApplyButtonState();
+                return;
+            }
+
+            if (selected.IsConsume && selected.BoundConsume != null)
+            {
+                inv.AddConsumeItem(selected.BoundConsume, 1);
+                ItemInfoPanel.instance.ShowItemInfo(
+                    selected.BoundConsume.name_item,
+                    selected.BoundConsume.description,
+                    price,
+                    selected.BoundConsume.icon,
+                    selected.BoundConsume.effects
+                );
+            }
+            else if (selected.IsEquip && selected.BoundEquip != null)
+            {
+                inv.AddEquipItem(selected.BoundEquip);
+                // 장비라도 온라인은 여러 개 있을 수 있으니, 여기서는 버튼 즉시 비활성화 X
+            }
+
+            if (PlayerProgressService.Instance != null)
+                _ = PlayerProgressService.Instance.SaveAsync();
+
+            // (C) ✅ 슬롯만 즉시 감소 반영 (연속 구매 가능)
+            // 서버가 줄인 수량으로 로컬 슬롯 수량도 동기화
+            // - selected.DecreaseOnlineQty(1)로 UI 배지 갱신
+            int remaining = selected.DecreaseOnlineQty(1);
+
+            // 서버 값 불일치 보정
+            if (newQtyServer >= 0 && remaining != newQtyServer)
+            {
+                selected.SetOnlineQty(newQtyServer);
+                remaining = newQtyServer;
+            }
+
+            // 남은 수량에 따라 처리
+            if (remaining > 0)
+            {
+                // 선택 유지 + 버튼 유지 (연속 구매 가능)
+                if (btnApply) btnApply.SetActive(true);
+                SetApplyButtonLabel(price);
+                UpdateApplyButtonState();
+            }
+            else
+            {
+                // 🔻 0개면 슬롯 자체를 제거해서 리스트에서 사라지게 함
+                var slotBtn = selected.GetComponent<Button>();
+                if (slotBtn) slotBtn.interactable = false;
+
+                // 선택 해제 후 Apply 숨김
+                typeof(Product)
+                  .GetField("currentSelectedProduct",
+                      System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+                  ?.SetValue(null, null);
+
+                SetApplyButtonVisible(false);
+
+                // 🔻 리스트에서 제거
+                Destroy(selected.gameObject);
+            }
+
+            // 인벤/골드 HUD 반영
+            inv.NotifyChanged();
+            UpdateApplyButtonState();
+
+            Debug.Log($"[Store][Online] 구매 완료: 남은 수량 {remaining}");
+
+            // (D) 판매자에게 '판매 수익' 우편 생성
+            await CreateSaleIncomeMailAsync(sellerUid, listingId, priceServer);
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogWarning($"[Store][Online] 구매 실패: {ex.Message}");
+            UpdateApplyButtonState();
+        }
+    }
+
+    /// <summary> [역할] Sell(판매) 버튼 클릭 처리 — 기존 로직 유지 </summary>
     private void OnClickSell()
     {
         var selected = Product.CurrentSelected;
@@ -402,6 +593,10 @@ public class StoreManager : MonoBehaviour
         sellPanel.Show(selected, count);
     }
 
+    /// <summary>
+    /// [역할] Apply 버튼의 interactable을 현재 선택/골드로 갱신
+    ///  - 온라인 구매 모드일 때는 lastSelectedPrice 우선 사용
+    /// </summary>
     public void UpdateApplyButtonState()
     {
         var inv = InventoryRuntime.Instance;
@@ -415,11 +610,17 @@ public class StoreManager : MonoBehaviour
             return;
         }
 
-        int price = selected.Price;
+        bool isOnlineBuyMode = (currentStore == StoreKind.Online && onlineItemDisplay != null && !onlineItemDisplay.isSellMode);
+        int price = isOnlineBuyMode && lastSelectedPrice > 0 ? lastSelectedPrice : selected.Price;
+
         btnApply.GetComponent<Button>().interactable = (inv.Gold >= price);
     }
 
-    // 상품 클릭 이벤트
+    /// <summary>
+    /// [역할] 상품 클릭 시 UI 전환
+    ///  - 로컬: 기존 구매 플로우
+    ///  - 온라인: 구매/판매 모드에 따라 프리셋 분기
+    /// </summary>
     private void HandleProductClicked(Product p)
     {
         if (currentStore == StoreKind.Local)
@@ -435,23 +636,58 @@ public class StoreManager : MonoBehaviour
         }
         else
         {
-            SetOnlineSelectedUI();
+            // 온라인: 구매/판매 모드 분기
+            bool isSellMode = (onlineItemDisplay != null && onlineItemDisplay.isSellMode);
+            if (isSellMode) SetOnlineSelectedUI_Sell();
+            else SetOnlineSelectedUI_Buy(p);
         }
     }
 
-    // ============ 패널 프리셋 =================
+    #region Mail helpers
 
-    private void InitExclusiveToggles(List<ToggleImagepair> pairs, ref Toggle currentTab)
+    /// <summary>
+    /// [역할] 판매자에게 '아이템 판매 수익' 우편을 1건 생성한다.
+    ///  - mailboxes/{sellerUid}/inbox/{autoId}
+    ///  - type: "SaleIncome", title: "아이템 판매 수익", amount: price
+    ///  - isClaimed=false, createdAt=serverTime
+    /// </summary>
+    private async Task CreateSaleIncomeMailAsync(string sellerUid, string listingId, int amount)
     {
-        for (int i = 0; i < pairs.Count; i++)
+        try
         {
-            var t = pairs[i].toggle;
-            bool on = (i == 0);
-            t.isOn = on;
-            if (on) currentTab = t;
+            if (string.IsNullOrEmpty(sellerUid) || amount <= 0) return;
+
+            var db = FirebaseFirestore.DefaultInstance;
+            var inbox = db.Collection("mailboxes")
+                          .Document(sellerUid)
+                          .Collection("inbox")
+                          .Document(); // auto id
+
+            var data = new Dictionary<string, object>
+        {
+            { "type", "SaleIncome" },                         // 우편 타입 (친구요청 등과 구분용)
+            { "title", "아이템 판매 수익" },                       // 제목
+            { "amount", amount },                             // 수익 골드
+            { "listingId", listingId },                       // 원인 제공 listing
+            { "isClaimed", false },                           // 수령 여부
+            { "createdAt", FieldValue.ServerTimestamp }       // 정렬/표시용
+        };
+
+            await inbox.SetAsync(data);
+            Debug.Log($"[Mail] 판매 수익 우편 발송: {sellerUid} / +{amount}");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"[Mail] 우편 생성 실패: {e.Message}");
         }
     }
 
+    #endregion
+
+
+    // ============ 패널 프리셋/유틸 =================
+
+    /// <summary> [역할] 로컬 상점: 첫 진입 상태 </summary>
     private void SetLocalIdleUI()
     {
         panelRight.SetActive(false); // 클릭 전엔 안 보이게
@@ -460,7 +696,7 @@ public class StoreManager : MonoBehaviour
         UpdateToggle(changeBuyOrSellToggleImagePairs);
     }
 
-    // 로컬 상점: 상품 클릭 후
+    /// <summary> [역할] 로컬 상점: 상품 클릭 후 상태 </summary>
     private void SetLocalSelectedUI()
     {
         panelRight.SetActive(true);
@@ -469,21 +705,21 @@ public class StoreManager : MonoBehaviour
         btnSell.SetActive(false);
         panelSearch.SetActive(false);
         panelMySalesList.SetActive(false);
-        if (panelInfoToggle)  panelInfoToggle.SetActive(false);
+        if (panelInfoToggle) panelInfoToggle.SetActive(false);
         if (panelMySalesList) panelMySalesList.SetActive(false);
     }
 
-    // 온라인 상점: 탭 진입 시
+    /// <summary> [역할] 온라인 상점: 탭 진입 기본 상태 (요청: 우측패널 On + 내 판매목록 기본) </summary>
     private void SetOnlineIdleUI()
     {
-        if (panelRight)       panelRight.SetActive(true);
-        if (panelSearch)      panelSearch.SetActive(true);
-        if (panelInfoToggle)  panelInfoToggle.SetActive(true);
+        if (panelRight) panelRight.SetActive(true);
+        if (panelSearch) panelSearch.SetActive(true);
+        if (panelInfoToggle) panelInfoToggle.SetActive(true);
         if (panelMySalesList) panelMySalesList.SetActive(true);
-        if (panelInfo)        panelInfo.SetActive(false);
+        if (panelInfo) panelInfo.SetActive(false);
 
         if (btnApply) btnApply.SetActive(false);
-        if (btnSell)  btnSell.SetActive(false);
+        if (btnSell) btnSell.SetActive(false);
 
         // 기본으로 "내 판매 목록" 탭 선택
         if (selectItemToggleImagePairs != null && selectItemToggleImagePairs.Count > 1)
@@ -499,10 +735,46 @@ public class StoreManager : MonoBehaviour
         // 최신 내 판매 목록 갱신
         if (sellPanel != null)
             _ = sellPanel.RefreshMySalesAsync();
+
+        // 가격 캐시 초기화
+        lastSelectedPrice = 0;
     }
 
-    // 온라인 상점: 상품 클릭 후
-    private void SetOnlineSelectedUI()
+    /// <summary>
+    /// [역할] 온라인 상점: '구매' 모드에서 상품 클릭 후 상태
+    ///  - Info 패널 갱신
+    ///  - btnApply 표시 + 가격 라벨링
+    ///  - 골드 보유량에 따라 interactable 제어
+    /// </summary>
+    private void SetOnlineSelectedUI_Buy(Product p)
+    {
+        if (panelRight) panelRight.SetActive(true);
+        if (panelSearch) panelSearch.SetActive(true);
+        if (panelInfo) panelInfo.SetActive(true);
+        if (panelInfoToggle) panelInfoToggle.SetActive(true);
+        if (panelMySalesList) panelMySalesList.SetActive(false);
+
+        if (btnSell) btnSell.SetActive(false);
+        if (btnApply) btnApply.SetActive(true);
+
+        // 슬롯의 표시 가격을 읽어 '온라인 가격'으로 사용
+        lastSelectedPrice = ReadDisplayedPriceFromSlot(p != null ? p.gameObject : null);
+
+        int priceToUse = (lastSelectedPrice > 0) ? lastSelectedPrice : p.Price;
+
+        if (p.IsConsume)
+            ItemInfoPanel.instance.ShowItemInfo(p.BoundConsume.name_item, p.BoundConsume.description, priceToUse, p.BoundConsume.icon, p.BoundConsume.effects);
+        else if (p.IsEquip)
+            ItemInfoPanel.instance.ShowItemInfo(p.BoundEquip.name_item, p.BoundEquip.description, priceToUse, p.BoundEquip.icon, p.BoundEquip.effects);
+
+        SetApplyButtonLabel(priceToUse);
+        UpdateApplyButtonState();
+    }
+
+    /// <summary>
+    /// [역할] 온라인 상점: '판매' 모드에서 상품 클릭 후 상태 (기존 로직 유지)
+    /// </summary>
+    private void SetOnlineSelectedUI_Sell()
     {
         panelRight.SetActive(true);
         panelSearch.SetActive(true);
@@ -510,11 +782,73 @@ public class StoreManager : MonoBehaviour
         btnApply.SetActive(false);
         btnSell.SetActive(true);
         panelMySalesList.SetActive(false);
-        if (panelInfoToggle)  panelInfoToggle.SetActive(true);
+        if (panelInfoToggle) panelInfoToggle.SetActive(true);
         if (panelMySalesList) panelMySalesList.SetActive(false);
 
         InitExclusiveToggles(selectItemToggleImagePairs, ref lastSelectedItemInfo);
         UpdateToggle(selectItemToggleImagePairs);
+    }
+
+    /// <summary>
+    /// [역할] Apply 버튼의 라벨을 “구매 (n,nnnG)”로 갱신
+    ///  - Text와 TMP_Text 둘 다 지원
+    /// </summary>
+    private void SetApplyButtonLabel(int price)
+    {
+        if (btnApply == null) return;
+
+        var txt = btnApply.GetComponentInChildren<Text>(true);
+        if (txt != null)
+        {
+            txt.text = $"{price}";
+            return;
+        }
+
+        var tmp = btnApply.GetComponentInChildren<TMP_Text>(true);
+        if (tmp != null)
+        {
+            tmp.text = $"{price}";
+        }
+    }
+
+    /// <summary> [역할] Apply 버튼 표시/숨김 </summary>
+    private void SetApplyButtonVisible(bool visible)
+    {
+        if (btnApply) btnApply.SetActive(visible);
+    }
+
+    /// <summary>
+    /// [역할] 슬롯 하위의 Txt_Price에서 정수 가격을 파싱
+    ///  - Text/TMP_Text 모두 지원, 천단위/문자 포함 대비
+    /// </summary>
+    private int ReadDisplayedPriceFromSlot(GameObject slot)
+    {
+        if (slot == null) return 0;
+
+        string raw = null;
+
+        var t1 = slot.transform.Find("Txt_Price")?.GetComponent<Text>();
+        if (t1 != null) raw = t1.text;
+
+        if (string.IsNullOrEmpty(raw))
+        {
+            var t2 = slot.transform.Find("Txt_Price")?.GetComponent<TMP_Text>();
+            if (t2 != null) raw = t2.text;
+        }
+
+        if (string.IsNullOrEmpty(raw)) return 0;
+
+        // 숫자만 추출
+        System.Text.StringBuilder sb = new System.Text.StringBuilder(raw.Length);
+        foreach (char c in raw)
+        {
+            if (char.IsDigit(c)) sb.Append(c);
+        }
+
+        if (int.TryParse(sb.ToString(), out int price))
+            return price;
+
+        return 0;
     }
 
     /// <summary>
@@ -535,6 +869,17 @@ public class StoreManager : MonoBehaviour
             OnToggleChanged(t, group, ref lastSelected);
             UpdateToggle(group);
             after?.Invoke(index);
+        }
+    }
+
+    private void InitExclusiveToggles(List<ToggleImagepair> pairs, ref Toggle currentTab)
+    {
+        for (int i = 0; i < pairs.Count; i++)
+        {
+            var t = pairs[i].toggle;
+            bool on = (i == 0);
+            t.isOn = on;
+            if (on) currentTab = t;
         }
     }
 }

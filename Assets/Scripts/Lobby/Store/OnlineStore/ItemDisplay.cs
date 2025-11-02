@@ -121,12 +121,10 @@ public class ItemDisplay : MonoBehaviour
         var db  = FirebaseFirestore.DefaultInstance;
         var uid = FirebaseAuth.DefaultInstance.CurrentUser?.UserId;
 
-        // 1) 기본 쿼리: 항상 isActive + (가능하면) type 까지 포함한 baseQ 유지
         Query baseQ = db.Collection("marketListings").WhereEqualTo("isActive", true);
-        if (typeFilter == ItemTypeFilter.Consume)   baseQ = baseQ.WhereEqualTo("type", "Consume");
+        if (typeFilter == ItemTypeFilter.Consume)        baseQ = baseQ.WhereEqualTo("type", "Consume");
         else if (typeFilter == ItemTypeFilter.Equipment) baseQ = baseQ.WhereEqualTo("type", "Equipment");
 
-        // 2) 정렬 시도: 실패 시 baseQ로 재조회(= 타입 필터는 유지됨)
         QuerySnapshot snap = null;
         try
         {
@@ -138,39 +136,35 @@ public class ItemDisplay : MonoBehaviour
 
             snap = await q.GetSnapshotAsync();
         }
-        catch (System.Exception e)
+        catch
         {
-            Debug.LogWarning($"[ItemDisplay] 서버 정렬 실패(색인 등). 타입 필터 유지한 채 로컬 정렬로 폴백: {e.Message}");
-            snap = await baseQ.GetSnapshotAsync(); // ❗ 타입 필터 유지
+            snap = await baseQ.GetSnapshotAsync();
         }
 
-        // 3) 스냅샷 → 로컬 DTO (여기서도 타입 필터 2차 보정)
         var rows = new List<Row>();
         foreach (var doc in snap.Documents)
         {
-            // 내가 올린 글 제외
             string sellerUid = SafeStr(doc, "sellerUid");
             if (!string.IsNullOrEmpty(uid) && sellerUid == uid) continue;
 
             string type = SafeStr(doc, "type");
             int itemId  = SafeInt(doc, "itemId");
             int price   = SafeInt(doc, "priceGold");
+            int qty = SafeInt(doc, "quantity", SafeInt(doc, "qty", 1));
+            if (qty <= 0) continue;             // 0개는 리스트에 포함하지 않음
             System.DateTime created = SafeTime(doc, "createdAt");
 
-            // 🔒 로컬 타입 필터 보정(서버 필터 실패 대비)
             if (typeFilter == ItemTypeFilter.Consume   && type != "Consume")   continue;
             if (typeFilter == ItemTypeFilter.Equipment && type != "Equipment") continue;
 
-            rows.Add(new Row(type, itemId, price, created));
+            rows.Add(new Row(doc.Id, type, itemId, price, qty, created));
         }
 
-        // 4) 로컬 정렬 폴백(또는 문서 일부에 정렬 필드 결여 시)
         if (sortKey == SortedDropdown.SortOption.Price)
             rows = isAscending ? rows.OrderBy(x => x.price).ToList() : rows.OrderByDescending(x => x.price).ToList();
         else
             rows = isAscending ? rows.OrderBy(x => x.created).ToList() : rows.OrderByDescending(x => x.created).ToList();
 
-        // 5) UI 생성
         foreach (var r in rows)
         {
             if (r.type == "Consume")
@@ -183,7 +177,11 @@ public class ItemDisplay : MonoBehaviour
                 if (p == null) continue;
 
                 p.SetConsumeItemData(def);
+                p.BindListingId(r.docId);
+                p.SetOnlinePrice(r.price);
+                p.SetOnlineQty(r.qty);       // ✅ 수량 바인딩
                 SetPrice(go.transform, r.price);
+                SetOnlineCount(go.transform, r.qty); // ✅ 수량 라벨 표시
             }
             else if (r.type == "Equipment")
             {
@@ -196,7 +194,11 @@ public class ItemDisplay : MonoBehaviour
 
                 p.SetSlotImageByJob(def.jobCategory);
                 p.SetEquipItemData(def);
+                p.BindListingId(r.docId);
+                p.SetOnlinePrice(r.price);
+                p.SetOnlineQty(r.qty);       // ✅ 수량 바인딩
                 SetPrice(go.transform, r.price);
+                SetOnlineCount(go.transform, r.qty); // ✅ 수량 라벨 표시
             }
         }
     }
@@ -204,16 +206,20 @@ public class ItemDisplay : MonoBehaviour
     // ── 로컬 DTO
     private struct Row
     {
+        public string docId;
         public string type;
         public int itemId;
         public int price;
+        public int qty;
         public System.DateTime created;
 
-        public Row(string type, int itemId, int price, System.DateTime created)
+        public Row(string docId, string type, int itemId, int price, int qty, System.DateTime created)
         {
+            this.docId = docId;
             this.type = type;
             this.itemId = itemId;
             this.price = price;
+            this.qty = qty;
             this.created = created;
         }
     }
@@ -246,6 +252,17 @@ public class ItemDisplay : MonoBehaviour
     {
         var txt = t.Find("Txt_Price")?.GetComponent<TMP_Text>();
         if (txt) txt.text = $"{price}";
+    }
+
+    /// <summary> [역할] 구매 모드의 수량 라벨 표시 (Txt_Count) </summary>
+    private void SetOnlineCount(Transform t, int qty)
+    {
+        var txt = t.Find("Txt_Count")?.GetComponent<TMP_Text>();
+        if (txt)
+        {
+            txt.gameObject.SetActive(true);
+            txt.text = $"수량: {Mathf.Max(0, qty)}";
+        }
     }
 
     /// <summary> [역할] 판매 모드에서 보유 수량 표시 </summary>

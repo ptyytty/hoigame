@@ -216,6 +216,9 @@ public class SellPanel : MonoBehaviour
             int qty = doc.GetValue<int>("qty");                 // ✅ 변경: quantity → qty
             bool isActive = doc.GetValue<bool>("isActive");     // ✅ 변경: status(string) → isActive(bool)
 
+            // 다 팔린 글/비활성 글은 목록에서 제외
+            if (qty <= 0 || !isActive) continue;
+
             // 로컬 DB에서 이름/아이콘 복원
             string displayName =
                 (type == "Consume")

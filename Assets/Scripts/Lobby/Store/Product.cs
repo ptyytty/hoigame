@@ -7,8 +7,10 @@ using UnityEngine;
 using UnityEngine.UI;
 
 ///<summary>
-/// 상품 오브젝트
-/// </summary>
+/// 상품 오브젝트 (온라인/로컬 공용)
+/// - [구매 모드] listingId, 온라인 가격/수량을 바인딩하고, 클릭 시 정보패널과 StoreManager를 갱신
+/// - [판매 모드] 기존 로컬 보유 아이템 출력
+///</summary>
 public class Product : MonoBehaviour
 {
     [Header("Product Info")]
@@ -41,8 +43,10 @@ public class Product : MonoBehaviour
     private JobCategory currentCategory;
     private Sprite defaultSprite;
 
-    private string boundListingId;   // 온라인 구매용 listingId
-    private int onlinePrice;       // 온라인 표시 가격
+    // ── 온라인 구매용 바인딩 값들
+    private string boundListingId;     // listing 문서 ID
+    private int onlinePrice;           // 서버 가격(표시/검증)
+    private int onlineQty;             // 서버 수량(남은 수량)
 
     public static event System.Action<Product> OnAnyProductClicked;
 
@@ -53,7 +57,7 @@ public class Product : MonoBehaviour
         slotImage = GetComponent<Image>();
     }
 
-    // 버튼 직업 분류 및 기본 이미지 저장
+    /// <summary> [역할] 슬롯 윤곽(직군별 이미지) 설정 </summary>
     public void SetSlotImageByJob(JobCategory category)
     {
         if (spriteDict.TryGetValue(category, out Sprite sprite))
@@ -64,6 +68,7 @@ public class Product : MonoBehaviour
         }
     }
 
+    /// <summary> [역할] 소비형 데이터 바인딩 + 클릭 시 정보패널 갱신 </summary>
     public void SetConsumeItemData(ConsumeItem item)
     {
         productName.text = item.name_item;
@@ -88,13 +93,12 @@ public class Product : MonoBehaviour
             currentSelectedProduct = this;
             slotImage.sprite = selectGeneralImage;
 
-            //신규 시그니처: 공통 포맷으로 전달
             ItemInfoPanel.instance.ShowItemInfo(
-            item.name_item,
-            item.description,
-            item.price,
-            item.icon,
-            item.effects
+                item.name_item,
+                item.description,
+                item.price,
+                item.icon,
+                item.effects
             );
             OnAnyProductClicked?.Invoke(this);
 
@@ -102,6 +106,7 @@ public class Product : MonoBehaviour
         });
     }
 
+    /// <summary> [역할] 장비형 데이터 바인딩 + 클릭 시 정보패널 갱신 </summary>
     public void SetEquipItemData(EquipItem item)
     {
         productName.text = item.name_item;
@@ -139,27 +144,53 @@ public class Product : MonoBehaviour
 
     }
 
+    /// <summary> [역할] 선택 해제 시 원래 슬롯 이미지 복원 </summary>
     public void ResetToDefaultImage()
     {
         slotImage.sprite = defaultSprite != null ? defaultSprite : defaultGeneralImage;
     }
 
-    // ============== 온라인 구매 아이템 버튼 ===============
-    /// <summary> [역할] 온라인 listingId를 보관 (구매 호출 시 사용) </summary>
-    public void BindListingId(string listingId) => boundListingId = listingId;
+    // ============== 온라인 구매 바인딩/표시 ===============
 
-    /// <summary> [역할] 온라인 가격 라벨을 갱신 </summary>
-    public void SetOnlinePrice(int price)
+    /// <summary> [역할] 온라인 listingId 보관 </summary>
+    public void BindListingId(string listingId) => boundListingId = listingId;
+    /// <summary> [역할] 온라인 가격 보관 </summary>
+    public void SetOnlinePrice(int price) => onlinePrice = price;
+    /// <summary> [역할] 온라인 수량 보관 + 배지 갱신 </summary>
+    public void SetOnlineQty(int qty)
     {
-        onlinePrice = price;
-        // 가격을 출력하는 TMP_Text가 있다면 여기서 갱신, 예:
-        // if (priceText) priceText.text = $"{price:N0}";
+        onlineQty = Mathf.Max(0, qty);
+        RefreshQtyBadge();
     }
 
-    /// <summary> [역할] 현재 셀이 바인딩한 listingId를 조회 </summary>
+    /// <summary> [역할] 현재 셀의 listingId 조회 </summary>
     public string GetListingId() => boundListingId;
-
-    /// <summary> [역할] 현재 셀의 온라인 가격 조회(표시/검증용) </summary>
+    /// <summary> [역할] 현재 셀의 온라인 표시가격 조회 </summary>
     public int GetOnlinePrice() => onlinePrice;
+    /// <summary> [역할] 현재 셀의 온라인 남은 수량 조회 </summary>
+    public int GetOnlineQty() => onlineQty;
 
+    /// <summary>
+    /// [역할] 구매 성공 시 로컬 슬롯 수량 감소(즉시 UI 반영)
+    ///  - 반환값: 감소 후 남은 수량
+    /// </summary>
+    public int DecreaseOnlineQty(int amount)
+    {
+        onlineQty = Mathf.Max(0, onlineQty - Mathf.Max(1, amount));
+        RefreshQtyBadge();
+        return onlineQty;
+    }
+
+    /// <summary>
+    /// [역할] 슬롯 하위 "Txt_Count"를 찾아 xN 형태로 수량 뱃지 표기
+    /// </summary>
+    private void RefreshQtyBadge()
+    {
+        var tCount = transform.Find("Txt_Count")?.GetComponent<TMP_Text>();
+        if (tCount != null)
+        {
+            tCount.gameObject.SetActive(true);
+            tCount.text = $"수량: {onlineQty}";
+        }
+    }
 }
