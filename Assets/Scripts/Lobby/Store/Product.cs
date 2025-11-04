@@ -193,4 +193,24 @@ public class Product : MonoBehaviour
             tCount.text = $"수량: {onlineQty}";
         }
     }
+
+    /// <summary>
+    /// [역할] 이 상품을 현재 선택으로 강제 지정하고 슬롯 비주얼을 '선택 상태'로 바꾼다.
+    ///  - 판매 모드에서 탭 전환 직후 선택이 풀리는 상황을 방지
+    /// </summary>
+    public void ForceSelectAsCurrent()
+    {
+        // 이전 선택 해제
+        if (currentSelectedProduct != null && currentSelectedProduct != this)
+            currentSelectedProduct.ResetToDefaultImage();
+
+        currentSelectedProduct = this;
+
+        // 타입에 따라 선택 프레임 적용
+        if (IsEquip && selectedSpriteDict != null && selectedSpriteDict.TryGetValue(currentCategory, out Sprite sel))
+            slotImage.sprite = sel;
+        else
+            slotImage.sprite = selectGeneralImage;
+    }
+
 }

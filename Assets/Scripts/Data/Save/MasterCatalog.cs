@@ -72,18 +72,19 @@ public class MasterCatalog : ScriptableObject
     {
         return new Job
         {
-            id_job      = hero.id_job,
-            name_job    = hero.name_job,
-            level       = hero.level,  // 저장 로드시 덮어씀
-            exp         = hero.exp,    // 저장 로드시 덮어씀
-            maxHp       = hero.maxHp > 0 ? hero.maxHp : hero.hp,    // 방어적 저장
-            hp          = hero.hp,      // 현재 체력
-            def         = hero.def,
-            res         = hero.res,
-            spd         = hero.spd,
-            hit         = hero.hit,
-            loc         = hero.loc,
-            category    = hero.category,
+            id_job = hero.id_job,
+            portrait = hero.portrait,
+            name_job = hero.name_job,
+            level = hero.level,  // 저장 로드시 덮어씀
+            exp = hero.exp,    // 저장 로드시 덮어씀
+            maxHp = hero.maxHp > 0 ? hero.maxHp : hero.hp,    // 방어적 저장
+            hp = hero.hp,      // 현재 체력
+            def = hero.def,
+            res = hero.res,
+            spd = hero.spd,
+            hit = hero.hit,
+            loc = hero.loc,
+            category = hero.category,
             jobCategory = hero.jobCategory,
             equippedItem = null     // 런타임에서 별도 장비 처리
         };

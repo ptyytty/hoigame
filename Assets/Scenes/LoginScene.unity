@@ -318,8 +318,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   referenceAspect: 1.7777778
-  lockFullRectInEditor: 1
   roundDigits: 4
+  lockFullRectInEditor: 1
 --- !u!1 &378712268
 GameObject:
   m_ObjectHideFlags: 0
@@ -509,8 +509,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1, y: -1}
+  m_AnchoredPosition: {x: -52.168, y: 0}
+  m_SizeDelta: {x: 105.337, y: -1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &389620784
 MonoBehaviour:
@@ -1810,7 +1810,7 @@ RectTransform:
   - {fileID: 2034087020}
   m_Father: {fileID: 610711181}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMin: {x: 0.04665439, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
@@ -1827,6 +1827,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0311739f8731ade4285a64aa76faf5d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  target: {fileID: 0}
+  applyInEditor: 1
+  editorThresholdPx: 2
+  runtimeThresholdPx: 1
 --- !u!1 &1879518016
 GameObject:
   m_ObjectHideFlags: 0

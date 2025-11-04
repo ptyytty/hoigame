@@ -21,9 +21,8 @@ public class LobbyManager : MonoBehaviour
     [SerializeField] private GameObject panelNickname;
 
     [Header("Main Lobby")]
-    [SerializeField] private GameObject btnFriend;
     [SerializeField] private GameObject btnMailbox;
-    [SerializeField] private TextMeshProUGUI nicknameText; 
+    [SerializeField] private TextMeshProUGUI nicknameText;
 
     [Header("Close Mailbox")]
     [SerializeField] private Button btnCloseMailbox;
@@ -41,6 +40,16 @@ public class LobbyManager : MonoBehaviour
     [SerializeField] private ListUpManager listUpManager;
     [SerializeField] private Employment employment;
 
+    // ========================= [NEW] 로비 3D 표시 제어 =========================
+    [Header("Lobby 3D View (선택 연결)")]
+    [Tooltip("메인 로비에서만 켜질 3D 오브젝트들의 부모(실오브젝트 방식 사용 시 연결)")]
+    [SerializeField] private GameObject lobby3DRoot;          // 실오브젝트 방식
+
+    [Tooltip("메인 로비 3D만 비추는 카메라(있다면). 없으면 비워둬도 됨")]
+    [SerializeField] private Camera lobby3DCamera;             // 실오브젝트/프리뷰 공통
+
+    // =======================================================================
+
     private FirebaseAuth auth;
     private FirebaseFirestore db;
 
@@ -49,14 +58,29 @@ public class LobbyManager : MonoBehaviour
         auth = FirebaseAuth.DefaultInstance;
         db = FirebaseFirestore.DefaultInstance;
 
-        btnMailbox.GetComponent<Button>().onClick.AddListener(() => panelMailbox.SetActive(true));
-        btnCloseMailbox.onClick.AddListener(() => panelMailbox.SetActive(false));
+        undoBtn.GetComponent<Button>().onClick.AddListener(() => OnClickUndo());
+
+        // 📮 우편함 열기/닫기 시에도 3D 감춤/표시
+        btnMailbox.GetComponent<Button>().onClick.AddListener(() =>
+        {
+            panelMailbox.SetActive(true);
+            SetLobby3DVisible(false);   // [NEW] 메인 로비 전용이므로 패널 열면 감춤
+        });
+        btnCloseMailbox.onClick.AddListener(() =>
+        {
+            panelMailbox.SetActive(false);
+            // 우편함을 닫았을 때 진짜 메인 로비 화면인지 확인 후 표시
+            TryShowLobby3DIfOnMain();   // [NEW]
+        });
+
+        // 메인 로비 진입 초기 상태: 3D 보이기
+        SetLobby3DVisible(true);        // [NEW]
 
         StartCoroutine(LoadNickname());
     }
 
     /// <summary>
-    /// Firestore에서 내 프로필 닉네임을 불러와서 로비에 표시하는 메서드
+    /// [역할] Firestore에서 내 프로필 닉네임을 불러와서 로비에 표시
     /// </summary>
     IEnumerator LoadNickname()
     {
@@ -93,18 +117,20 @@ public class LobbyManager : MonoBehaviour
             Debug.Log("⚠ 닉네임 필드가 존재하지 않음");
         }
     }
-    
+
     public void OnClickDungeonList()
     {
         undoBtn.SetActive(true);
         panelDungeonPreparation.SetActive(true);
-        
+
         panelMailbox.SetActive(false);
         panelMenu.SetActive(false);
         panelGoods.SetActive(false);
-        btnFriend.SetActive(false);
+
         btnMailbox.SetActive(false);
         panelNickname.SetActive(false);
+
+        SetLobby3DVisible(false); // [NEW] 메인 로비가 아니므로 숨김
     }
 
     public void OnClickManagement()
@@ -115,10 +141,12 @@ public class LobbyManager : MonoBehaviour
 
         panelMailbox.SetActive(false);
         panelMenu.SetActive(false);
-        btnFriend.SetActive(false);
+
         btnMailbox.SetActive(false);
         listUpManager.ApplyPanelState(false);
         panelNickname.SetActive(false);
+
+        SetLobby3DVisible(false); // [NEW]
     }
 
     public void OnclickShowStore()
@@ -128,9 +156,11 @@ public class LobbyManager : MonoBehaviour
 
         panelMailbox.SetActive(false);
         panelMenu.SetActive(false);
-        btnFriend.SetActive(false);
+
         btnMailbox.SetActive(false);
         panelNickname.SetActive(false);
+
+        SetLobby3DVisible(false); // [NEW]
     }
 
     public void OnClickFriend()
@@ -140,19 +170,19 @@ public class LobbyManager : MonoBehaviour
 
         panelMailbox.SetActive(false);
         panelMenu.SetActive(false);
-        btnFriend.SetActive(false);
+
         btnMailbox.SetActive(false);
         panelNickname.SetActive(false);
+
+        SetLobby3DVisible(false); // [NEW]
     }
 
     public void OnClickUndo()
     {
-
         if (panelStore.activeSelf)
         {
             panelMenu.SetActive(true);
             panelGoods.SetActive(true);
-            btnFriend.SetActive(true);
             btnMailbox.SetActive(true);
             panelNickname.SetActive(true);
 
@@ -169,12 +199,13 @@ public class LobbyManager : MonoBehaviour
             {
                 ItemInfoPanel.instance.Hide();
             }
+
+            TryShowLobby3DIfOnMain(); // [NEW]
         }
         else if (panelManagement.activeSelf)
         {
             panelMenu.SetActive(true);
             panelGoods.SetActive(true);
-            btnFriend.SetActive(true);
             btnMailbox.SetActive(true);
             panelNickname.SetActive(true);
 
@@ -185,17 +216,20 @@ public class LobbyManager : MonoBehaviour
             listUpManager.ResetButtonImage();
             employment.ResetButtonImage();
             listUpManager.ResetHeroListState();
+
+            TryShowLobby3DIfOnMain(); // [NEW]
         }
         else if (panelFriend.activeSelf)
         {
             panelMenu.SetActive(true);
             panelGoods.SetActive(true);
-            btnFriend.SetActive(true);
             btnMailbox.SetActive(true);
             panelNickname.SetActive(true);
 
             panelFriend.SetActive(false);
             undoBtn.SetActive(false);
+
+            TryShowLobby3DIfOnMain(); // [NEW]
         }
         else if (panelDungeonPreparation.activeSelf)
         {
@@ -207,13 +241,14 @@ public class LobbyManager : MonoBehaviour
             // 로비 Active
             panelMenu.SetActive(true);
             panelGoods.SetActive(true);
-            btnFriend.SetActive(true);
             btnMailbox.SetActive(true);
             panelNickname.SetActive(true);
 
             panelDungeonPreparation.SetActive(false);
             panelItemList.SetActive(false);
             undoBtn.SetActive(false);
+
+            TryShowLobby3DIfOnMain(); // [NEW]
         }
     }
 
@@ -230,5 +265,38 @@ public class LobbyManager : MonoBehaviour
             panelItemList.SetActive(false);
         }
         Debug.Log("클릭");
+    }
+
+    // ========================= [NEW] 공통 유틸 =========================
+
+    /// <summary>
+    /// [역할] 메인 로비 전용 3D를 보이게/숨기게 한다.
+    /// - 실오브젝트 방식: lobby3DRoot 활성/비활성
+    /// - 프리뷰 방식: lobby3DView(RawImage 등) 활성/비활성
+    /// - 전용 카메라가 있을 경우 enable 토글
+    /// </summary>
+    private void SetLobby3DVisible(bool visible)
+    {
+        if (lobby3DRoot) lobby3DRoot.SetActive(visible);
+    }
+
+    /// <summary>
+    /// [역할] 현재 화면이 '메인 로비' 상태라면 3D를 다시 표시한다.
+    /// 메인 로비 조건: 메뉴/재화/우편버튼/닉네임 패널이 보이고, 다른 풀스크린 패널이 모두 닫힘.
+    /// </summary>
+    private void TryShowLobby3DIfOnMain()
+    {
+        bool isMain =
+            panelMenu.activeSelf &&
+            panelGoods.activeSelf &&
+            btnMailbox.activeSelf &&
+            panelNickname.activeSelf &&
+            !panelStore.activeSelf &&
+            !panelManagement.activeSelf &&
+            !panelFriend.activeSelf &&
+            !panelDungeonPreparation.activeSelf &&
+            !panelMailbox.activeSelf;
+
+        SetLobby3DVisible(isMain);
     }
 }

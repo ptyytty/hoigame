@@ -215,10 +215,12 @@ public class HeroListUp : ListUIBase<Job>
 
     protected override void SetLabel(Button button, Job hero)
     {
+        Image heroImage = button.transform.Find("HeroImage").GetComponent<Image>();
         TMP_Text nameText = button.transform.Find("Text_Name").GetComponent<TMP_Text>();
         TMP_Text jobText = button.transform.Find("Text_Job").GetComponent<TMP_Text>();
         TMP_Text levelText = button.transform.Find("Text_Level").GetComponent<TMP_Text>();
 
+        heroImage.sprite = hero.portrait;
         nameText.text = hero.displayName;
         jobText.text = hero.name_job.ToString();
         levelText.text = $"Lv.{hero.level}";

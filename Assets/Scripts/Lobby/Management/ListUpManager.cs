@@ -196,10 +196,12 @@ public class ListUpManager : ListUIBase<Job>
 
     protected override void SetLabel(Button button, Job hero)
     {
+        var heroImage = SafeFind(button.transform, "HeroImage", "ListUpManager")?.GetComponent<Image>();
         var nameT = SafeFind(button.transform, "Text_Name", "ListUpManager")?.GetComponent<TMPro.TMP_Text>();
         var jobT = SafeFind(button.transform, "Text_Job", "ListUpManager")?.GetComponent<TMPro.TMP_Text>();
         var levelT = SafeFind(button.transform, "Text_Level", "ListUpManager")?.GetComponent<TMPro.TMP_Text>();
 
+        if (heroImage) heroImage.sprite = hero?.portrait;
         if (nameT) nameT.text = hero?.displayName ?? hero.name_job;
         if (jobT) jobT.text = hero != null ? hero.name_job.ToString() : "-";
         if (levelT) levelT.text = hero != null ? $"Lv.{hero.level}" : "-";

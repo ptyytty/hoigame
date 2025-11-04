@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro; // ← TMP_Text도 지원 (버튼 라벨/가격 표기용)
+using TMPro;
+using UnityEngine.EventSystems;
 using Firebase.Auth;
 using Firebase.Firestore;
 
@@ -148,6 +149,8 @@ public class StoreManager : MonoBehaviour
                     // 판매 탭 진입 시: 우측 내 판매 목록 탭이 기본
                     if (isSell)
                     {
+                        ClearSelectionAndInfo();
+
                         SelectTab(selectItemToggleImagePairs, 1, ref lastSelectedItemInfo, ShowSelectedItemPanel);
                         UpdateToggle(selectItemToggleImagePairs);
 
@@ -157,17 +160,16 @@ public class StoreManager : MonoBehaviour
                         if (panelInfoToggle) panelInfoToggle.SetActive(true);
                         if (panelInfo) panelInfo.SetActive(false);
 
-                        if (sellPanel != null) _ = sellPanel.RefreshMySalesAsync();
+                        if (sellPanel != null) sellPanel.RequestRefreshMySales();
+
                     }
                     else
                     {
+                        ClearSelectionAndInfo();
+
                         // 구매 탭 진입 시: 정보 탭이 기본, 구매 버튼 초기화
                         SelectTab(selectItemToggleImagePairs, 0, ref lastSelectedItemInfo, ShowSelectedItemPanel);
                         UpdateToggle(selectItemToggleImagePairs);
-                        lastSelectedPrice = 0;
-                        SetApplyButtonVisible(false);
-                        SetApplyButtonLabel(0);
-                        UpdateApplyButtonState();
                     }
                 }
             });
@@ -193,7 +195,19 @@ public class StoreManager : MonoBehaviour
             selectItemToggleImagePairs[i].toggle.onValueChanged.AddListener((isOn) =>
             {
                 OnToggleChanged(selectItemToggleImagePairs[index].toggle, selectItemToggleImagePairs, ref lastSelectedItemInfo);
+
+                if (index == 0) // 아이템 정보 탭
+                {
+                    // 정보 탭인데 '선택된 상품 없음'이면 내용물은 감춤
+                    if (Product.CurrentSelected == null) HidePanelInfoChildren();
+                }
+                else // 내 판매 목록 탭
+                {
+                    ClearSelectionAndInfo();
+                }
+
                 ShowSelectedItemPanel(index);
+
             });
         }
 
@@ -228,6 +242,7 @@ public class StoreManager : MonoBehaviour
         UpdateToggle(selectItemToggleImagePairs);
 
         ShowSelectedItemPanel(0);
+        HidePanelInfoChildren();
 
         // 버튼
         btnApply.GetComponent<Button>().onClick.AddListener(async () => await OnClickApply()); // 🔸 async로 래핑
@@ -267,8 +282,7 @@ public class StoreManager : MonoBehaviour
 
         // 기존 선택 초기화
         if (Product.CurrentSelected != null) Product.CurrentSelected.ResetToDefaultImage();
-        ItemInfoPanel.instance?.Hide();
-        lastSelectedPrice = 0;
+        HidePanelInfoChildren();
 
         // 오른쪽 패널 preset
         if (islocal) SetLocalIdleUI();
@@ -289,7 +303,8 @@ public class StoreManager : MonoBehaviour
         if (panelMySalesList) panelMySalesList.SetActive(showMyList);
 
         if (showMyList && panelMySalesList != null && sellPanel != null)
-            _ = sellPanel.RefreshMySalesAsync();
+            sellPanel.RequestRefreshMySales();
+
     }
 
     // 토글 전환
@@ -425,138 +440,102 @@ public class StoreManager : MonoBehaviour
 
         if (inv.Gold < price)
         {
-            Debug.Log("[Store][Online] 골드 부족");
             UpdateApplyButtonState();
             return;
         }
 
         string listingId = selected.GetListingId();
-        if (string.IsNullOrEmpty(listingId))
-        {
-            Debug.LogWarning("[Store][Online] listingId가 바인딩되지 않았습니다.");
-            return;
-        }
+        if (string.IsNullOrEmpty(listingId)) return;
 
         var db = FirebaseFirestore.DefaultInstance;
         var docRef = db.Collection("marketListings").Document(listingId);
-        var myUid = FirebaseAuth.DefaultInstance.CurrentUser?.UserId;
 
-        string sellerUid = null;
-        int priceServer = price;
+        int newQtyServer = -1;           // 트랜잭션 결과 qty
+        bool deletedOnServer = false;    // 트랜잭션에서 삭제했는지 여부
 
         try
         {
-            // (A) 서버 트랜잭션
-            int newQtyServer = -1; // 트랜잭션 완료 후 남은 수량을 받아서 버튼/뱃지 처리에 사용
-
             await db.RunTransactionAsync(async tr =>
             {
                 var snap = await tr.GetSnapshotAsync(docRef);
-                if (!snap.Exists) throw new System.Exception("해당 상품이 존재하지 않습니다.");
+                if (!snap.Exists) throw new System.Exception("삭제되었거나 존재하지 않음");
 
+                // 유효성
                 bool isActive = snap.TryGetValue<bool>("isActive", out var _isActive) ? _isActive : true;
-                if (!isActive) throw new System.Exception("이미 비활성화된 상품입니다.");
+                if (!isActive) throw new System.Exception("비활성 상품");
 
-                sellerUid   = snap.TryGetValue<string>("sellerUid", out var _seller) ? _seller : null;
-                priceServer = snap.TryGetValue<int>("priceGold", out var _p) ? _p : price;
-
-                // qty/quantity 대응
+                // qty/quantity 지원
                 int qty = 0;
                 bool useQuantity = false;
                 if (snap.ContainsField("quantity") && snap.TryGetValue<int>("quantity", out var q1)) { qty = q1; useQuantity = true; }
                 else if (snap.ContainsField("qty") && snap.TryGetValue<int>("qty", out var q2)) { qty = q2; useQuantity = false; }
                 else qty = 1;
 
-                if (qty <= 0) throw new System.Exception("품절된 상품입니다.");
+                if (qty <= 0) throw new System.Exception("품절");
 
+                // 차감
                 int newQty = Mathf.Max(0, qty - 1);
-                var updates = new Dictionary<string, object>
+                newQtyServer = newQty;
+
+                if (newQty == 0)
                 {
-                    ["updatedAt"] = FieldValue.ServerTimestamp
-                };
-                if (useQuantity) updates["quantity"] = newQty;
-                else updates["qty"] = newQty;
+                    // ✅ 수량 0이면 문서 자체를 삭제
+                    tr.Delete(docRef);
+                    deletedOnServer = true;
+                }
+                else
+                {
+                    // ✅ 남아있으면 수량만 업데이트
+                    var updates = new Dictionary<string, object>
+                    {
+                        ["updatedAt"] = FieldValue.ServerTimestamp
+                    };
+                    if (useQuantity) updates["quantity"] = newQty;
+                    else updates["qty"] = newQty;
 
-                if (newQty == 0) updates["isActive"] = false;
-
-                tr.Update(docRef, updates);
-                newQtyServer = newQty; // 트랜잭션 스코프 밖에서 사용
+                    tr.Update(docRef, updates);
+                }
             });
 
-            // (B) 로컬 결제/지급
+            // (이하 결제/지급 + UI 갱신은 그대로)
             if (!inv.TrySpendGold(price))
             {
-                Debug.LogWarning("[Store][Online] 트랜잭션 성공 후 결제 실패(잔액 변동?)");
                 UpdateApplyButtonState();
                 return;
             }
 
             if (selected.IsConsume && selected.BoundConsume != null)
-            {
                 inv.AddConsumeItem(selected.BoundConsume, 1);
-                ItemInfoPanel.instance.ShowItemInfo(
-                    selected.BoundConsume.name_item,
-                    selected.BoundConsume.description,
-                    price,
-                    selected.BoundConsume.icon,
-                    selected.BoundConsume.effects
-                );
-            }
             else if (selected.IsEquip && selected.BoundEquip != null)
-            {
                 inv.AddEquipItem(selected.BoundEquip);
-                // 장비라도 온라인은 여러 개 있을 수 있으니, 여기서는 버튼 즉시 비활성화 X
-            }
 
             if (PlayerProgressService.Instance != null)
                 _ = PlayerProgressService.Instance.SaveAsync();
 
-            // (C) ✅ 슬롯만 즉시 감소 반영 (연속 구매 가능)
-            // 서버가 줄인 수량으로 로컬 슬롯 수량도 동기화
-            // - selected.DecreaseOnlineQty(1)로 UI 배지 갱신
+            // 슬롯 즉시 반영
             int remaining = selected.DecreaseOnlineQty(1);
 
-            // 서버 값 불일치 보정
-            if (newQtyServer >= 0 && remaining != newQtyServer)
+            // 서버가 삭제했다면 리스트에서도 제거
+            if (deletedOnServer || newQtyServer == 0)
             {
-                selected.SetOnlineQty(newQtyServer);
-                remaining = newQtyServer;
-            }
+                typeof(Product)
+                    .GetField("currentSelectedProduct", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+                    ?.SetValue(null, null);
 
-            // 남은 수량에 따라 처리
-            if (remaining > 0)
-            {
-                // 선택 유지 + 버튼 유지 (연속 구매 가능)
-                if (btnApply) btnApply.SetActive(true);
-                SetApplyButtonLabel(price);
-                UpdateApplyButtonState();
+                SetApplyButtonVisible(false);
+                var slotBtn = selected.GetComponent<UnityEngine.UI.Button>();
+                if (slotBtn) slotBtn.interactable = false;
+                Destroy(selected.gameObject); // UI에서 제거
             }
             else
             {
-                // 🔻 0개면 슬롯 자체를 제거해서 리스트에서 사라지게 함
-                var slotBtn = selected.GetComponent<Button>();
-                if (slotBtn) slotBtn.interactable = false;
-
-                // 선택 해제 후 Apply 숨김
-                typeof(Product)
-                  .GetField("currentSelectedProduct",
-                      System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
-                  ?.SetValue(null, null);
-
-                SetApplyButtonVisible(false);
-
-                // 🔻 리스트에서 제거
-                Destroy(selected.gameObject);
+                // 남아있으면 계속 구매 가능
+                SetApplyButtonLabel(price);
+                UpdateApplyButtonState();
             }
 
-            // 인벤/골드 HUD 반영
             inv.NotifyChanged();
             UpdateApplyButtonState();
-
-            Debug.Log($"[Store][Online] 구매 완료: 남은 수량 {remaining}");
-
-            // (D) 판매자에게 '판매 수익' 우편 생성
-            await CreateSaleIncomeMailAsync(sellerUid, listingId, priceServer);
         }
         catch (System.Exception ex)
         {
@@ -627,6 +606,8 @@ public class StoreManager : MonoBehaviour
         {
             SetLocalSelectedUI();
 
+            ShowPanelInfoChildren();
+
             if (p.IsConsume)
                 ItemInfoPanel.instance.ShowItemInfo(p.BoundConsume.name_item, p.BoundConsume.description, p.Price, p.BoundConsume.icon, p.BoundConsume.effects);
             else if (p.IsEquip)
@@ -636,12 +617,49 @@ public class StoreManager : MonoBehaviour
         }
         else
         {
-            // 온라인: 구매/판매 모드 분기
             bool isSellMode = (onlineItemDisplay != null && onlineItemDisplay.isSellMode);
-            if (isSellMode) SetOnlineSelectedUI_Sell();
-            else SetOnlineSelectedUI_Buy(p);
+            if (isSellMode)
+            {
+                // 1) 정보 탭으로 전환 (선택 해제 로직을 피하기 위해 먼저 탭 전환)
+                SelectTab(selectItemToggleImagePairs, 0, ref lastSelectedItemInfo, ShowSelectedItemPanel);
+                UpdateToggle(selectItemToggleImagePairs);
+
+                // 2) ★ 선택 보강: 첫 클릭에도 확실히 선택/하이라이트 적용
+                p.ForceSelectAsCurrent();                 // ← 추가 핵심
+
+                // 3) 우측 패널 프리셋
+                SetOnlineSelectedUI_Sell();
+                ShowPanelInfoChildren();
+
+                // 4) 판매 버튼 보이기/활성
+                if (btnSell)
+                {
+                    btnSell.SetActive(true);
+                    var sellBtn = btnSell.GetComponent<UnityEngine.UI.Button>();
+                    if (sellBtn) sellBtn.interactable = true;
+                }
+
+                StartCoroutine(FocusSellButtonNextFrame());
+            }
+            else
+            {
+                SetOnlineSelectedUI_Buy(p);
+            }
         }
     }
+
+    /// <summary>
+    /// [역할] 탭 전환 직후 첫 클릭이 '선택'으로 소모되지 않도록,
+    /// 다음 프레임에 EventSystem 포커스를 판매 버튼으로 강제 이동
+    /// </summary>
+    private IEnumerator FocusSellButtonNextFrame()
+    {
+        yield return null;                 // 한 프레임 대기 (레이아웃/그래픽 갱신 보장)
+        Canvas.ForceUpdateCanvases();      // 레이아웃 강제 반영 (모바일 빌드 안정성)
+        if (btnSell && EventSystem.current != null)
+            EventSystem.current.SetSelectedGameObject(btnSell);
+    }
+
 
     #region Mail helpers
 
@@ -734,7 +752,8 @@ public class StoreManager : MonoBehaviour
 
         // 최신 내 판매 목록 갱신
         if (sellPanel != null)
-            _ = sellPanel.RefreshMySalesAsync();
+            sellPanel.RequestRefreshMySales();
+
 
         // 가격 캐시 초기화
         lastSelectedPrice = 0;
@@ -756,6 +775,8 @@ public class StoreManager : MonoBehaviour
 
         if (btnSell) btnSell.SetActive(false);
         if (btnApply) btnApply.SetActive(true);
+
+        ShowPanelInfoChildren();
 
         // 슬롯의 표시 가격을 읽어 '온라인 가격'으로 사용
         lastSelectedPrice = ReadDisplayedPriceFromSlot(p != null ? p.gameObject : null);
@@ -785,8 +806,9 @@ public class StoreManager : MonoBehaviour
         if (panelInfoToggle) panelInfoToggle.SetActive(true);
         if (panelMySalesList) panelMySalesList.SetActive(false);
 
-        InitExclusiveToggles(selectItemToggleImagePairs, ref lastSelectedItemInfo);
-        UpdateToggle(selectItemToggleImagePairs);
+        // ★ 버튼 즉시 클릭 보장
+        var sellBtn = btnSell ? btnSell.GetComponent<UnityEngine.UI.Button>() : null;
+        if (sellBtn) sellBtn.interactable = true;   // [역할] 판매 버튼 즉시 활성화
     }
 
     /// <summary>
@@ -882,4 +904,51 @@ public class StoreManager : MonoBehaviour
             if (on) currentTab = t;
         }
     }
+
+    /// <summary>
+    /// [역할] Panel_Info의 자식(Img_ItemFrame, Txt_* 등)을 전부 숨긴다.
+    ///  - 패널 프레임(panelInfo)은 켜둔 채로 내용물만 감춤
+    /// </summary>
+    private void HidePanelInfoChildren()
+    {
+        if (!panelInfo) return;
+        for (int i = 0; i < panelInfo.transform.childCount; i++)
+            panelInfo.transform.GetChild(i).gameObject.SetActive(false);
+    }
+
+    /// <summary>
+    /// [역할] Panel_Info의 자식들을 전부 다시 보이게 한다.
+    ///  - 상품 클릭 등으로 정보가 채워질 때 호출
+    /// </summary>
+    private void ShowPanelInfoChildren()
+    {
+        if (!panelInfo) return;
+        for (int i = 0; i < panelInfo.transform.childCount; i++)
+            panelInfo.transform.GetChild(i).gameObject.SetActive(true);
+    }
+
+    /// <summary>
+    /// [역할] 선택/가격/버튼/정보패널을 깨끗하게 초기화
+    ///  - 토글 전환(상점/구매↔판매/내 판매목록 등) 시 호출
+    /// </summary>
+    private void ClearSelectionAndInfo()
+    {
+        // 현재 선택된 슬롯 시각 효과 원복
+        if (Product.CurrentSelected != null)
+            Product.CurrentSelected.ResetToDefaultImage();
+
+        // 정적 선택 참조 해제
+        typeof(Product)
+            .GetField("currentSelectedProduct", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+            ?.SetValue(null, null);
+
+        // 가격 캐시/버튼 초기화
+        lastSelectedPrice = 0;
+        SetApplyButtonVisible(false);
+        UpdateApplyButtonState();
+
+        // 정보 내용물 숨김 (패널 자체는 상황에 따라 켜둘 수 있음)
+        HidePanelInfoChildren();
+    }
+
 }
