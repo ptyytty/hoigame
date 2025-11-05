@@ -287,6 +287,7 @@ public class UIManager : MonoBehaviour
 
         _currentHeroRef = hero;
 
+        heroImage.sprite = hero.portrait;
         heroName.text = $"{hero.name_job}";
         heroHp.text = $"{hero.hp}/{hero.maxHp}";
         heroLevel.text = $"Lv.{hero.level}";

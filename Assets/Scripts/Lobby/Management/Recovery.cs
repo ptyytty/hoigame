@@ -382,7 +382,11 @@ public class Recovery : MonoBehaviour
 
         // 채워진 경우 데이터 바인딩
         var hero = _heroes[i];
-        if (v.portrait) v.portrait.sprite = hero?.portrait ?? defaultPortrait;
+        if (v.portrait)
+        {
+            v.portrait.sprite = ResolvePortrait(hero);      // 다양한 필드명 대응(portrait/face/icon…)
+            v.portrait.enabled = (v.portrait.sprite != null); // ★ 스프라이트가 있으면 반드시 다시 켜주기
+        }
         if (v.displayName) v.displayName.text = hero?.displayName ?? "";
         if (v.jobName) v.jobName.text = hero?.name_job ?? "";
 

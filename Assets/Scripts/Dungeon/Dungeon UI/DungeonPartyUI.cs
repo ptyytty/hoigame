@@ -105,20 +105,27 @@ public class DungeonPartyUI : MonoBehaviour
             var s = slots[i];
             var hero = (i < _heroes.Length) ? _heroes[i] : null;
 
+            if (s?.portrait == null)
+                continue;
+
             if (hero == null)
             {
-                if (s?.portrait) s.portrait.enabled = false;
+                // 빈 슬롯
+                s.portrait.sprite = null;
+                s.portrait.enabled = false;
                 continue;
             }
 
-            if (s.portrait)
+            // 영웅 초상 스프라이트 세팅
+            var sprite = ResolvePortrait(hero); // 아래 헬퍼 참고
+            s.portrait.sprite = sprite;
+            s.portrait.enabled = (sprite != null);
+
+            // 필요 시 한 번만 캐시(현재는 사용 안 함)
+            if (!s._hasCachedOriginal)
             {
-                s.portrait.enabled = true;
-                if (!s._hasCachedOriginal)
-                {
-                    s._originalSprite = s.portrait.sprite;
-                    s._hasCachedOriginal = true;
-                }
+                s._originalSprite = s.portrait.sprite;
+                s._hasCachedOriginal = true;
             }
         }
     }
@@ -186,32 +193,28 @@ public class DungeonPartyUI : MonoBehaviour
     {
         if (_currentIndex == index) return;
 
+        // 이전 슬롯: 비주얼 리셋(이미지는 건드리지 않음)
         if (_currentIndex >= 0 && _currentIndex < slots.Count)
         {
             var prev = slots[_currentIndex];
             if (prev != null)
             {
-                if (prev._hasCachedOriginal && prev.portrait)
-                    prev.portrait.sprite = prev._originalSprite;
+                // portrait.sprite를 원본으로 되돌리는 로직은 제거
                 prev._selected = false;
             }
         }
 
         _currentIndex = index;
 
+        // 현재 슬롯: 선택 플래그만 갱신, portrait는 유지
         if (_currentIndex >= 0 && _currentIndex < slots.Count)
         {
             var cur = slots[_currentIndex];
             if (cur != null && cur.portrait)
             {
-                if (!cur._hasCachedOriginal)
-                {
-                    cur._originalSprite = cur.portrait.sprite;
-                    cur._hasCachedOriginal = true;
-                }
-                if (cur.selectedSprite != null)
-                    cur.portrait.sprite = cur.selectedSprite;
-
+                // 선택 상태 표시가 필요하면 버튼 배경/외곽선에서 처리 권장
+                // cur.button.image.sprite = cur.selectedSprite; 등으로 분리 가능(원하면 추가 안내해줄게요)
+                cur.portrait.enabled = (cur.portrait.sprite != null); // 클릭해도 계속 보이도록 안전 복구
                 cur._selected = true;
             }
         }
@@ -224,9 +227,7 @@ public class DungeonPartyUI : MonoBehaviour
             var s = slots[i];
             if (s == null || s.portrait == null) continue;
 
-            if (s._hasCachedOriginal)
-                s.portrait.sprite = s._originalSprite;
-
+            // s._hasCachedOriginal가 있어도 portrait.sprite는 건드리지 않음
             s._selected = false;
         }
     }
@@ -239,6 +240,25 @@ public class DungeonPartyUI : MonoBehaviour
         ClearHeroInfoPanel();
         ClearEquipRow();
     }
+
+    /// <summary>
+    /// [역할] 영웅 구조가 달라도 portrait/face/icon 순으로 안전하게 스프라이트를 찾아 반환
+    /// </summary>
+    private Sprite ResolvePortrait(Job hero)
+    {
+        if (hero == null) return null;
+
+        // 가장 흔한 필드
+        if (hero.portrait != null) return hero.portrait;
+
+        // 프로젝트마다 다른 네이밍 대비
+        // 존재하지 않는다면 주석 처리해도 무방
+        // if (hero.face != null) return hero.face;
+        // if (hero.icon != null) return hero.icon;
+
+        return null;
+    }
+
 
     private void SelectFirstValid()
     {
@@ -284,7 +304,7 @@ public class DungeonPartyUI : MonoBehaviour
         if (infoSpd) infoSpd.text = $"민첩: {hero?.spd ?? 0}";
         if (infoHit) infoHit.text = $"명중: {hero?.hit ?? 0}";
     }
-    
+
 
     private void ClearHeroInfoPanel()
     {
