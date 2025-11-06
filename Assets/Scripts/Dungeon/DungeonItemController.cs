@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
+using System.Reflection;
 
 /// <summary>
 /// 역할: 던전 화면에서 "소비 아이템 사용" 워크플로 제어(힐 아이템 우선)
@@ -69,16 +70,14 @@ public class DungeonItemController : MonoBehaviour
         _selectedSlotIndex = slotIndex;
         _selectedItem = TryGetConsumeItemAt(slotIndex);
 
-        RefreshItemPanel(_selectedItem);
-        RefreshUseButton();
+        RefreshPanelForContext();
     }
 
     // 역할: 영웅 슬롯 클릭 시 대상 영웅을 기억하고 버튼 상태 갱신
     private void OnHeroSelected(int index, Job hero)
     {
         _selectedHero = hero;
-        RefreshItemPanel(_selectedItem);
-        RefreshUseButton();
+        RefreshPanelForContext();
     }
 
     // 영웅 선택 초기화
@@ -211,6 +210,79 @@ public class DungeonItemController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// [역할] 현재 선택된 영웅의 '장착 아이템'을 Panel_ItemInfo에 표시(EquipInfoBox 규칙)
+    /// - 아이콘/이름/효과 텍스트 활성화
+    /// - Btn_Use는 비활성(장비는 사용하는 개념이 아님)
+    /// </summary>
+    private void ShowEquippedItemOfHero(Job hero)
+    {
+        if (hero == null)
+        {
+            ClearItemPanel();
+            return;
+        }
+
+        // 1) 장착 아이템 가져오기 (DTO 기준)
+        var equipped = hero.equippedItem;
+        if (equipped == null)
+        {
+            ClearItemPanel();
+            return;
+        }
+
+        // 2) 아이콘/이름
+        if (itemIcon)
+        {
+            itemIcon.sprite = equipped.icon;
+            itemIcon.enabled = (equipped.icon != null);
+            itemIcon.gameObject.SetActive(equipped.icon != null);
+        }
+        if (itemName)
+        {
+            itemName.text = string.IsNullOrEmpty(equipped.name_item) ? "장비" : equipped.name_item;
+            itemName.enabled = true;
+            itemName.gameObject.SetActive(true);
+        }
+
+        // 3) 효과: EquipInfoBox와 동일 형식으로 구성
+        if (itemDetail)
+        {
+            itemDetail.text = BuildEquipEffectsText(equipped);
+            itemDetail.enabled = !string.IsNullOrEmpty(itemDetail.text);
+            itemDetail.gameObject.SetActive(itemDetail.enabled);
+        }
+
+        // 4) Btn_Use는 장비에선 항상 숨김
+        if (useButton) useButton.gameObject.SetActive(false);
+    }
+
+    /// <summary>
+    /// [역할] 현재 선택 상황에 맞춰 Panel_ItemInfo를 갱신
+    /// - 소비 아이템이 선택돼 있으면: 소비 아이템 정보 + (영웅 선택 시) Btn_Use 표시
+    /// - 소비 아이템이 없고 영웅만 선택돼 있으면: 해당 영웅 장비 정보(EquipInfoBox 형식) 표시 + Btn_Use 숨김
+    /// - 아무것도 없으면: 패널 숨김/초기화
+    /// </summary>
+    private void RefreshPanelForContext()
+    {
+        if (_selectedItem != null)         // 소비 아이템 우선
+        {
+            RefreshItemPanel(_selectedItem);
+            RefreshUseButton();
+            return;
+        }
+
+        if (_selectedHero != null)         // 영웅만 선택된 경우 → 장비 표시
+        {
+            ShowEquippedItemOfHero(_selectedHero);
+            if (useButton) useButton.gameObject.SetActive(false);
+            return;
+        }
+
+        // 아무것도 없으면 비움
+        ClearItemPanel();
+    }
+
     // 아이템 정보 패널 초기화
     public void ClearItemPanel()
     {
@@ -247,7 +319,7 @@ public class DungeonItemController : MonoBehaviour
     {
         _selectedSlotIndex = -1;
         _selectedItem = null;
-        RefreshItemPanel(null);  // 즉시 숨김/클리어
+        RefreshPanelForContext(); ;  // 즉시 숨김/클리어
         RefreshUseButton();      // 버튼 가시성 갱신
     }
 
@@ -299,4 +371,110 @@ public class DungeonItemController : MonoBehaviour
         }
         return total;
     }
+
+
+    // =============== 아이템 정보 유틸 =============
+    /// <summary>
+    /// [역할] 장비의 효과 목록을 읽어 EquipInfoBox와 동일한 형식의 문자열로 변환
+    /// - 지속효과(persistent)만 노출
+    /// - AbilityMod: "방어 +3" 형식
+    /// - Special: "기절 면역" 등 한글 라벨
+    /// </summary>
+    private string BuildEquipEffectsText(object equipped)
+    {
+        if (equipped == null) return "";
+
+        var effectsField = equipped.GetType().GetField("effects", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        var effectsProp = equipped.GetType().GetProperty("effects", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        var effectsObj = effectsField != null ? effectsField.GetValue(equipped) :
+                           effectsProp != null ? effectsProp.GetValue(equipped, null) : null;
+
+        if (effectsObj is System.Collections.IEnumerable == false || effectsObj == null)
+            return "";
+
+        var sb = new System.Text.StringBuilder();
+
+        foreach (var eff in (System.Collections.IEnumerable)effectsObj)
+        {
+            bool persistent = GetBool(eff, "persistent");
+            if (!persistent) continue;
+
+            string opName = GetEnumName(eff, "op");
+            if (opName == "AbilityMod")
+            {
+                string statLabel = MapStatToLabel(GetEnumName(eff, "stat"));
+                int value = GetInt(eff, "value");
+                string sign = value >= 0 ? "+" : "";
+                sb.AppendLine($"{statLabel} {sign}{value}");
+            }
+            else if (opName == "Special")
+            {
+                string key = GetString(eff, "specialKey");
+                sb.AppendLine(MapSpecialKey(key));
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    // ---- 리플렉션 유틸 & 라벨 맵핑 ----
+    private static bool GetBool(object o, string name)
+    { /* (UIManager/DungeonPartyUI와 동일 구현) */
+        var f = o.GetType().GetField(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (f != null && f.FieldType == typeof(bool)) return (bool)f.GetValue(o);
+        var p = o.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (p != null && p.PropertyType == typeof(bool)) return (bool)p.GetValue(o, null);
+        return false;
+    }
+    private static int GetInt(object o, string name)
+    {
+        var f = o.GetType().GetField(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (f != null && f.FieldType == typeof(int)) return (int)f.GetValue(o);
+        var p = o.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (p != null && p.PropertyType == typeof(int)) return (int)p.GetValue(o, null);
+        return 0;
+    }
+    private static string GetString(object o, string name)
+    {
+        var f = o.GetType().GetField(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (f != null && f.FieldType == typeof(string)) return (string)f.GetValue(o);
+        var p = o.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (p != null && p.PropertyType == typeof(string)) return (string)p.GetValue(o, null);
+        return null;
+    }
+    private static string GetEnumName(object o, string name)
+    {
+        var f = o.GetType().GetField(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (f != null && f.FieldType.IsEnum) return f.GetValue(o).ToString();
+        var p = o.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (p != null && p.PropertyType.IsEnum) return p.GetValue(o, null).ToString();
+        return null;
+    }
+
+    private static string MapSpecialKey(string key)
+    {
+        switch (key)
+        {
+            case "Immune_Stun": return "기절 면역";
+            case "Immune_Bleed": return "출혈 면역";
+            case "Immune_Burn": return "화상 면역";
+            case "Immune_Faint": return "기절 면역";
+            default: return string.IsNullOrEmpty(key) ? "특수 효과" : key;
+        }
+    }
+
+    private static string MapStatToLabel(string enumName)
+    {
+        switch (enumName)
+        {
+            case "Defense": return "방어";
+            case "Resistance": return "저항";
+            case "Speed": return "민첩";
+            case "Hit": return "명중";
+            case "Damage": return "공격";
+            case "Heal": return "회복량";
+            default: return enumName ?? "효과";
+        }
+    }
+
 }

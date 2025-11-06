@@ -234,6 +234,7 @@ public class HeroListUp : ListUIBase<Job>
         ShowHeroInfo(hero);
 
         ApplyFrontBackSpriteExceptCurrent();
+        SelectionEvents.RaiseHeroSelected(hero);
     }
 
     // 이하 PartySelector 호출용 Public 메소드

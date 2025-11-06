@@ -24,6 +24,7 @@ public class Job
     public int equippedItemId;
     [NonSerialized] public string displayName;      // 변경 가능한 이름
     [NonSerialized] public EquipItem equippedItem;
+    [NonSerialized] public bool runtimeEquipApplied;
     [NonSerialized] public string instanceId;
 
     // 스킬 사용 관련 속성

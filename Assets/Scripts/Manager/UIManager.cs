@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DG.Tweening;
 using TMPro;
-using Unity.VisualScripting;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -67,6 +67,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject itemRow;     // 아이템 줄 전체(없으면 꺼짐)
     [SerializeField] private Image itemIcon;
     [SerializeField] private TMP_Text itemName;
+    [SerializeField] private TMP_Text itemEffect;
     [SerializeField] private Transform buffRoot;    // 버프 칩 부모(초록)
     [SerializeField] private Transform debuffRoot;  // 디버프 칩 부모(빨강)
     [SerializeField] private GameObject effectTagPrefab; // 텍스트 하나 달린 간단 칩 프리팹
@@ -151,6 +152,7 @@ public class UIManager : MonoBehaviour
             battleManager.OnTargetingStateChanged += HandleTargetingState;
             battleManager.OnSkillCommitted += HandleSkillCommitted; // 이미 썼다면 유지
         }
+
     }
 
     // 애니메이션 등 진행 중 아웃라인 비활성화
@@ -161,6 +163,7 @@ public class UIManager : MonoBehaviour
             battleManager.OnTargetingStateChanged -= HandleTargetingState;
             battleManager.OnSkillCommitted -= HandleSkillCommitted;
         }
+
     }
 
     //======= 외부 공개 API =======
@@ -454,17 +457,81 @@ public class UIManager : MonoBehaviour
     {
         // 기본은 감춤
         if (itemRow) itemRow.SetActive(false);
+        if (hero == null) return;
 
-        // ===== 나중에 여기를 '한 줄'만 바꾸면 자동 표시됨 =====
-        // 예시: Combatant에서 꺼내기
-        // var c = Combatant.FindByHero(hero);
-        // if (c && c.TryGetEquippedItem(out var equip) && equip != null) {
-        //     itemRow.SetActive(true);
-        //     if (itemName) itemName.text = equip.displayName;
-        //     if (itemIcon) itemIcon.sprite = equip.icon;
-        // }
+        object equipped = null;
 
-        // 또는 hero.equippedItem 같이 DTO에 있다면 그 경로로 바꿔서 사용
+        // --- 1) Combatant 경유 시도: TryGetEquippedItem(out T) 가정 ---
+        var c = Combatant.FindByHero(hero);
+        if (c != null)
+        {
+            var m = c.GetType().GetMethod("TryGetEquippedItem", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (m != null)
+            {
+                // out 파라미터 준비
+                var parms = m.GetParameters();
+                if (parms.Length == 1 && parms[0].IsOut)
+                {
+                    object[] args = new object[] { null };
+                    bool ok = false;
+                    try { ok = (bool)m.Invoke(c, args); } catch { ok = false; }
+                    if (ok && args[0] != null) equipped = args[0];
+                }
+            }
+        }
+
+        // --- 2) DTO에 직접 달린 경우: hero.equippedItem 시도 ---
+        if (equipped == null)
+        {
+            var f = hero.GetType().GetField("equippedItem", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (f != null) equipped = f.GetValue(hero);
+            else
+            {
+                var p = hero.GetType().GetProperty("equippedItem", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (p != null) equipped = p.GetValue(hero, null);
+            }
+        }
+
+        if (equipped == null)
+        {
+            // 장비 없음 → 줄 숨김
+            if (itemEffect) itemEffect.text = "";
+            return;
+        }
+
+        // --- 아이콘/이름 뽑아내기 (필드/프로퍼티 명 다양성 대응) ---
+        Sprite icon = null;
+        string display = null;
+
+        // icon
+        var iconField = equipped.GetType().GetField("icon", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (iconField?.GetValue(equipped) is Sprite sp1) icon = sp1;
+        var iconProp = equipped.GetType().GetProperty("icon", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (icon == null && iconProp?.GetValue(equipped, null) is Sprite sp2) icon = sp2;
+
+        // 이름 후보: displayName, name_item, itemName, Name 등
+        string[] nameCandidates = { "displayName", "name_item", "itemName", "Name", "name" };
+        foreach (var nm in nameCandidates)
+        {
+            var nf = equipped.GetType().GetField(nm, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (nf != null && nf.GetValue(equipped) is string s && !string.IsNullOrEmpty(s))
+            {
+                display = s;
+                break;
+            }
+            var np = equipped.GetType().GetProperty(nm, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (np != null && np.GetValue(equipped, null) is string s2 && !string.IsNullOrEmpty(s2))
+            {
+                display = s2;
+                break;
+            }
+        }
+
+        // 출력
+        if (itemRow) itemRow.SetActive(true);
+        if (itemIcon) itemIcon.sprite = icon;           // [역할] 아이템 아이콘 출력
+        if (itemName) itemName.text = display ?? "-"; // [역할] 아이템 이름 출력(미발견 시 대시)
+        if (itemEffect) itemEffect.text = BuildEquipEffectsText(equipped);
     }
 
     // 파티 슬롯 선택 초기화
@@ -538,4 +605,116 @@ public class UIManager : MonoBehaviour
 
         _closingPanels = false;
     }
+
+
+
+    //================== 효과 텍스트 유틸 =====================
+    /// <summary>
+    /// [역할] 장비 오브젝트에서 효과 목록을 읽어, EquipInfoBox와 동일한 형식의 텍스트로 구성
+    /// - 프로젝트마다 장비/효과 타입이 다를 수 있어 리플렉션으로 안전 접근
+    /// </summary>
+    private string BuildEquipEffectsText(object equipped)
+    {
+        if (equipped == null) return "";
+
+        // effects(List<...>) 찾기
+        var effectsField = equipped.GetType().GetField("effects", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        var effectsProp = equipped.GetType().GetProperty("effects", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        var effectsObj = effectsField != null ? effectsField.GetValue(equipped) :
+                           effectsProp != null ? effectsProp.GetValue(equipped, null) : null;
+
+        if (effectsObj is System.Collections.IEnumerable list == false || effectsObj == null)
+            return "";
+
+        var sb = new System.Text.StringBuilder();
+
+        foreach (var eff in (System.Collections.IEnumerable)effectsObj)
+        {
+            // persistent
+            bool persistent = GetBool(eff, "persistent");
+            if (!persistent) continue;
+
+            // op: EffectOp.AbilityMod / Special
+            string opName = GetEnumName(eff, "op");
+            if (opName == "AbilityMod")
+            {
+                // stat: BuffType, value: int
+                string statLabel = MapStatToLabel(GetEnumName(eff, "stat"));
+                int value = GetInt(eff, "value");
+                string sign = value >= 0 ? "+" : "";
+                sb.AppendLine($"{statLabel} {sign}{value}");
+            }
+            else if (opName == "Special")
+            {
+                string key = GetString(eff, "specialKey");
+                sb.AppendLine(MapSpecialKey(key));
+            }
+            // 그 외 op는 무시 (EquipInfoBox와 동일한 정책)
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary> [역할] 리플렉션 유틸: bool/ int/ string/ enumName 안전 추출 </summary>
+    private static bool GetBool(object o, string name)
+    {
+        var f = o.GetType().GetField(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (f != null && f.FieldType == typeof(bool)) return (bool)f.GetValue(o);
+        var p = o.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (p != null && p.PropertyType == typeof(bool)) return (bool)p.GetValue(o, null);
+        return false;
+    }
+    private static int GetInt(object o, string name)
+    {
+        var f = o.GetType().GetField(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (f != null && f.FieldType == typeof(int)) return (int)f.GetValue(o);
+        var p = o.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (p != null && p.PropertyType == typeof(int)) return (int)p.GetValue(o, null);
+        return 0;
+    }
+    private static string GetString(object o, string name)
+    {
+        var f = o.GetType().GetField(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (f != null && f.FieldType == typeof(string)) return (string)f.GetValue(o);
+        var p = o.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (p != null && p.PropertyType == typeof(string)) return (string)p.GetValue(o, null);
+        return null;
+    }
+    private static string GetEnumName(object o, string name)
+    {
+        var f = o.GetType().GetField(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (f != null && f.FieldType.IsEnum) return f.GetValue(o).ToString();
+        var p = o.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (p != null && p.PropertyType.IsEnum) return p.GetValue(o, null).ToString();
+        return null;
+    }
+
+    /// <summary> [역할] EquipInfoBox와 동일: 특수키 표기 매핑 </summary>
+    private static string MapSpecialKey(string key)
+    {
+        switch (key)
+        {
+            case "Immune_Stun": return "기절 면역";
+            case "Immune_Bleed": return "출혈 면역";
+            case "Immune_Burn": return "화상 면역";
+            case "Immune_Faint": return "기절 면역";
+            default: return string.IsNullOrEmpty(key) ? "특수 효과" : key;
+        }
+    }
+
+    /// <summary> [역할] EquipInfoBox와 동일: BuffType → 한글 라벨 </summary>
+    private static string MapStatToLabel(string enumName)
+    {
+        switch (enumName)
+        {
+            case "Defense": return "방어";
+            case "Resistance": return "저항";
+            case "Speed": return "민첩";
+            case "Hit": return "명중";
+            case "Damage": return "공격";
+            case "Heal": return "회복량";
+            default: return enumName ?? "효과";
+        }
+    }
+
 }

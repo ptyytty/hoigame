@@ -100,6 +100,7 @@ public class PartySelector : MonoBehaviour
                                                               //itemList?.ResetItemListState?.Invoke();       // 구현돼있다면 호출 (없으면 생략)
 
                 ResetPartySlotInteractable();                 // 슬롯 상호작용 규칙 재적용
+                SelectionEvents.RaiseHeroSelected(null);
             }
         }
     }
@@ -216,6 +217,7 @@ public class PartySelector : MonoBehaviour
         else if (currentSlot == null)
         {
             heroListUp.ShowHeroInfo(assignedHeroes[index]);
+            SelectionEvents.RaiseHeroSelected(assignedHeroes[index]);
         }
         // 슬롯 우선 선택
         else if (currentSlot != null)
@@ -224,6 +226,7 @@ public class PartySelector : MonoBehaviour
             int prevIndex = slotButtons.IndexOf(currentSlot);
             prevImage.sprite = GetSlotDefaultSprite(prevIndex);
             heroListUp.ShowHeroInfo(assignedHeroes[index]);
+            SelectionEvents.RaiseHeroSelected(assignedHeroes[index]);
         }
         // 동일 슬롯 선택
         else if (currentSlot == capturedButton)
@@ -240,6 +243,7 @@ public class PartySelector : MonoBehaviour
             equipItem = null;
             //itemList.SetInteractable(true);
             ResetSelection(selectedSlotIndex.Value);
+            SelectionEvents.RaiseHeroEquipChanged(assignedHeroes[index]);
             return;
         }
         else if (currentSlot == null)
@@ -263,6 +267,7 @@ public class PartySelector : MonoBehaviour
         {
             Job hero = assignedHeroes[index];
             itemList.SetEquipItemButtonInteractableByJob(hero.jobCategory); // ✅ 장비 필터링
+            SelectionEvents.RaiseHeroSelected(assignedHeroes[index]);
         }
 
         slotImages[index].sprite = selectedImage;
@@ -313,17 +318,12 @@ public class PartySelector : MonoBehaviour
         }
 
         // 기존 장비 해제 → 표기 스탯 원복 + ID 초기화
-        if (hero.equippedItem != null)
-        {
-            EquipmentPreviewPatcher.RemoveFromJob(hero, hero.equippedItem); // ✅ 변경: 새 패처 사용
-            hero.equippedItem = null;
-            hero.equippedItemId = 0;
-        }
+        hero.equippedItem = null;
+        hero.equippedItemId = 0;
 
         // 새 장비 적용 → 표기 스탯 증분 + ID 기록
         hero.equippedItem = item;
         hero.equippedItemId = item.id_item;
-        EquipmentPreviewPatcher.ApplyToJob(hero, item);                  // ✅ 변경: 새 패처 사용
 
         Debug.Log($"✅ {hero.name_job} 장착: {item.name_item}");
     }
@@ -361,6 +361,7 @@ public class PartySelector : MonoBehaviour
         //itemList?.ResetItemListState?.Invoke(); // 없으면 생략
 
         ResetPartySlotInteractable();
+        SelectionEvents.RaiseHeroSelected(null);
     }
 
     // 파티 비활성화 이미지
