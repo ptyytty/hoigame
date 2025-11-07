@@ -90,13 +90,21 @@ public class DungeonItemController : MonoBehaviour
     // 역할: '사용' 버튼 클릭 → 힐 아이템만 적용 후 1개 소모
     private void OnClickUse()
     {
-        if (_selectedItem == null || _selectedHero == null || _selectedSlotIndex < 0) return;
+        if (_selectedItem == null || _selectedSlotIndex < 0) return;
 
-        // 1) 힐 양 계산(여러 Heal spec이 있으면 모두 합산)
-        int healTotal = ComputeTotalHeal(_selectedItem, _selectedHero);
-        if (healTotal <= 0)
+        // 1) 적 대상 아이템이면 → 타게팅으로 전환
+        if (IsEnemyTargetItem(_selectedItem))
         {
-            Debug.Log("[DungeonItemUse] 선택한 아이템은 회복 효과가 없습니다.");
+            BeginEnemyItemTargeting(_selectedItem);
+            return;
+        }
+
+        // 2) 아군 대상(회복/해제 등)은 기존 로직
+        if (_selectedHero == null) return;
+        int healTotal = ComputeTotalHeal(_selectedItem, _selectedHero);
+        if (healTotal <= 0 && !HasCleanse(_selectedItem))
+        {
+            Debug.Log("[DungeonItemUse] 아군 대상 효과(힐/클렌즈)가 없습니다.");
             return;
         }
 
@@ -141,6 +149,8 @@ public class DungeonItemController : MonoBehaviour
         // (선택) HP 텍스트가 다른 패널에도 쓰인다면 여기서 한 번 더 가볍게 텍스트만 갱신
         // partyUI.ForceRefreshHpTextOnly(_selectedHero);  // 필요 시 구현
     }
+
+
 
     // --- 내부 유틸 ---
 
@@ -336,8 +346,19 @@ public class DungeonItemController : MonoBehaviour
     private void RefreshUseButton()
     {
         if (!useButton) return;
-        bool ok = (_selectedItem != null && _selectedHero != null && HasHeal(_selectedItem));
-        useButton.gameObject.SetActive(ok);
+        bool on = false;
+
+        if (_selectedItem != null)
+        {
+            if (IsAllyTargetItem(_selectedItem))
+                on = (_selectedHero != null); // 기존 로직 유지(영웅 선택 필요)
+
+            // ★ 적 대상 아이템은 영웅 선택 없이 버튼 표시 → 누르면 타게팅 진입
+            if (IsEnemyTargetItem(_selectedItem))
+                on = true;
+        }
+
+        useButton.gameObject.SetActive(on);
     }
 
     /// <summary>역할: 아이템에 힐 효과가 있는가</summary>
@@ -371,6 +392,76 @@ public class DungeonItemController : MonoBehaviour
         }
         return total;
     }
+
+    /// <summary>
+    /// 역할: 선택된 소비 아이템이 적 대상 아이템인지 판별
+    /// - Damage / ApplyDebuff가 하나라도 있으면 적 대상 취급
+    /// </summary>
+    private bool IsEnemyTargetItem(ConsumeItem item)
+    {
+        if (item == null || item.effects == null) return false;
+        foreach (var e in item.effects)
+            if (e.op == EffectOp.Damage || e.op == EffectOp.ApplyDebuff) return true;
+        return false;
+    }
+
+    /// <summary>
+    /// 역할: 선택된 소비 아이템이 아군 대상 아이템인지 판별
+    /// - Heal / Cleanse 중심
+    /// </summary>
+    private bool IsAllyTargetItem(ConsumeItem item)
+    {
+        if (item == null || item.effects == null) return false;
+        foreach (var e in item.effects)
+            if (e.op == EffectOp.Heal || e.op == EffectOp.Cleanse || e.op == EffectOp.AbilityMod) return true;
+        return false;
+    }
+
+    /// <summary>
+/// 역할: 아이템에 클렌즈 효과가 있는지
+/// </summary>
+private bool HasCleanse(ConsumeItem item)
+{
+    if (item?.effects == null) return false;
+    foreach (var e in item.effects)
+        if (e.op == EffectOp.Cleanse) return true;
+    return false;
+}
+
+    /// <summary>
+    /// 역할: 적 대상 아이템을 '스킬처럼' 타게팅 플로우에 태움
+    /// 1) 아이템 → 임시 스킬 어댑트
+    /// 2) BattleManager에 클릭 통지해 타게팅 시작(카메라/아웃라인 자동)
+    /// 3) 커밋 이벤트에서 실제 소모/정리
+    /// </summary>
+    private void BeginEnemyItemTargeting(ConsumeItem item)
+    {
+        if (BattleManager.Instance == null)
+        {
+            Debug.LogWarning("[DungeonItemUse] BattleManager가 없음(전투 상태 아님)");
+            return;
+        }
+
+        // 1) 임시 스킬로 변환 (효과는 ItemEffectSpec → SkillEffect 어댑트)
+        var tempSkill = ItemSkillFactory.BuildSkillFromItem(item);
+
+        // 2) 커밋 시점에 1개 소모 + 패널 정리(1회성 구독)
+        void OnCommitted()
+        {
+            BattleManager.Instance.OnSkillCommitted -= OnCommitted;
+
+            bool removed = dungeonInventory != null && dungeonInventory.RemoveItemAt(_selectedSlotIndex);
+            if (!removed) Debug.LogWarning("[DungeonItemUse] 인벤토리 소모 실패(적 대상 아이템)");
+
+            ClearAllSelectionsAndPanel(); // 뷰 정리
+        }
+        BattleManager.Instance.OnSkillCommitted += OnCommitted;
+
+        // 3) UI에서 스킬을 클릭한 것처럼 전달 → 타게팅 진입
+        BattleManager.Instance.OnSkillClickedFromUI(tempSkill);
+    }
+
+
 
 
     // =============== 아이템 정보 유틸 =============

@@ -1,10 +1,6 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Reflection.Emit;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using System.Linq;
 
@@ -22,10 +18,6 @@ public class HeroListUp : ListUIBase<Job>
 
     [Header("Created Assets")]
     [SerializeField] private TestHero testHero;
-
-    [Header("Hero Button Sprites")]
-    [SerializeField] private Sprite frontHeroImage;
-    [SerializeField] private Sprite backHeroImage;
 
     // delegate 정의 (형식 선언)
     public delegate void HeroSelectedHandler(Job selectedHero);
@@ -48,47 +40,23 @@ public class HeroListUp : ListUIBase<Job>
         Recovery.OnLocksChanged -= RefreshHeroList;
     }
 
-    // 정렬 순서 전열(1) → 후열(2) → 기타(0)
-    int GetLocPriority(Job j)
+    void ApplyUniformSpriteAll()
     {
-        var loc = (Loc)j.loc;
-        if (loc == Loc.Front) return 1;
-        if (loc == Loc.Back) return 2;
-        return 0; // Loc.None / Any / 그 외
-    }
-
-    Sprite GetDefaultFor(Job hero)
-    {
-        var loc = (Loc)hero.loc;
-        if (loc == Loc.Front && frontHeroImage) return frontHeroImage;
-        if (loc == Loc.Back && backHeroImage) return backHeroImage;
-        return globalDefaultSprite; // 기타/미지정
-    }
-
-    // 모든 버튼을 '자기 기본(전/후열)'로 강제 세팅
-    void ApplyFrontBackSpriteAll()
-    {
-        // buttons와 dataList는 ListUIBase에서 만든 리스트 (인덱스 일치 보장)
         int n = Mathf.Min(buttons.Count, dataList.Count);
         for (int i = 0; i < n; i++)
         {
             var img = buttons[i].GetComponent<Image>();
-            img.sprite = GetDefaultFor(dataList[i]);
+            img.sprite = globalDefaultSprite;
         }
     }
 
-    // 현재 선택만 Selected, 나머지는 '자기 기본(전/후열)'로 되돌리기
-    void ApplyFrontBackSpriteExceptCurrent()
+    void ApplyUniformSpriteExceptCurrent()
     {
         int n = Mathf.Min(buttons.Count, dataList.Count);
         for (int i = 0; i < n; i++)
         {
             var img = buttons[i].GetComponent<Image>();
-            // currentSelect는 ListUIBase의 protected 필드
-            if (buttons[i] == currentSelect)
-                img.sprite = globalSelectedSprite;          // 선택은 Selected 유지
-            else
-                img.sprite = GetDefaultFor(dataList[i]);          // 나머지는 각자 기본으로
+            img.sprite = (buttons[i] == currentSelect) ? globalSelectedSprite : globalDefaultSprite;
         }
     }
 
@@ -106,7 +74,7 @@ public class HeroListUp : ListUIBase<Job>
         currentSelect = null;
 
         // 생성 직후 전/후열 스프라이트로 덮어쓰기
-        ApplyFrontBackSpriteAll();
+        ApplyUniformSpriteAll();
 
         // 현재 파티 상태로 '리스트 버튼 잠금' 재적용(파티에 들어간 인스턴스는 비활성)
         if (partySelector != null)
@@ -201,7 +169,7 @@ public class HeroListUp : ListUIBase<Job>
 
         if (partySelector != null) SetButtonsForParty(partySelector.GetInPartyInstanceSet());
 
-        ApplyFrontBackSpriteAll();
+        ApplyUniformSpriteAll();
         ApplyRecoveryLocksToButtons();
     }
 
@@ -209,7 +177,7 @@ public class HeroListUp : ListUIBase<Job>
     {
         ClearList();
         LoadList();
-        ApplyFrontBackSpriteAll();
+        ApplyUniformSpriteAll();
         ApplyRecoveryLocksToButtons();
     }
 
@@ -233,7 +201,7 @@ public class HeroListUp : ListUIBase<Job>
 
         ShowHeroInfo(hero);
 
-        ApplyFrontBackSpriteExceptCurrent();
+        ApplyUniformSpriteExceptCurrent();
         SelectionEvents.RaiseHeroSelected(hero);
     }
 
@@ -241,7 +209,7 @@ public class HeroListUp : ListUIBase<Job>
     public void ResetButton()
     {
         ResetSelectedButton();
-        ApplyFrontBackSpriteAll();
+        ApplyUniformSpriteAll();
     }
 
     public void SetInteractable(bool state)

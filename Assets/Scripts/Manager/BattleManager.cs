@@ -778,6 +778,8 @@ public class BattleManager : MonoBehaviour
         float windup = Mathf.Clamp(total * 0.35f, 0.25f, 0.6f);
         yield return new WaitForSeconds(windup);
 
+        SfxManager.Instance?.PlayAttackSfx();
+
         // 4) 명중 결과 수집 핸들러 등록
         var hitMap = new System.Collections.Generic.Dictionary<Combatant, bool>();
         Action<Combatant, bool> handler = (tgt, isHit) => { if (tgt) hitMap[tgt] = isHit; };

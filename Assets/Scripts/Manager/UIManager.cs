@@ -256,6 +256,7 @@ public class UIManager : MonoBehaviour
                     }
 
                 }
+                if (slot.skillImage) slot.skillImage.sprite = skill.skillImage;
                 if (slot.skillName) slot.skillName.text = skill.skillName;
                 if (slot.skillDamage) slot.skillDamage.text = $"{label}: {value}";
                 if (slot.skillTarget) slot.skillTarget.text = $"대상: {ReturnText.ReturnTarget((int)skill.target)}";

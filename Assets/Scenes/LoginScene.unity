@@ -509,7 +509,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -52.168, y: 0}
+  m_AnchoredPosition: {x: -52.16797, y: 0}
   m_SizeDelta: {x: 105.337, y: -1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &389620784
@@ -997,7 +997,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 35}
+  m_AnchoredPosition: {x: 0, y: 52}
   m_SizeDelta: {x: 400, y: 70}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &696608645
@@ -1088,7 +1088,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: a396f77d61003a143808f1f3fdbe19af, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 8456a4dbf4c0a8f4ca57274789b7c10e, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1123,7 +1123,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1034747783
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1894,6 +1894,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab5bdb4085322de409aefb5fabb443e0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  loginUIRoot: {fileID: 696608643}
   infoText: {fileID: 2034087021}
   webClientId: 162380263807-iub5h5fkbkco9cn216avoa9ur0qf8esn.apps.googleusercontent.com
 --- !u!4 &1879518020
@@ -2098,7 +2099,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2034087020
 RectTransform:
   m_ObjectHideFlags: 0

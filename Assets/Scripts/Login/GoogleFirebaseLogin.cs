@@ -12,6 +12,7 @@ using Firebase.Extensions;
 public class GoogleFirebaseLogin : MonoBehaviour
 {
     [Header("UI")]
+    public GameObject loginUIRoot; 
     public Text infoText; // [역할] 진행/에러 로그를 화면에 출력
 
     [Header("Google OAuth Web Client ID (.apps.googleusercontent.com)")]
@@ -225,9 +226,23 @@ public class GoogleFirebaseLogin : MonoBehaviour
             else
             {
                 AddToInformation("[Firebase] Sign In Successful.");
+                HideLoginUI();
                 OnFirebaseSignInSuccess?.Invoke(auth.CurrentUser);
             }
         });
+    }
+
+    private void HideLoginUI()
+    {
+        var go = loginUIRoot ? loginUIRoot : this.gameObject;
+        if (go && go.activeSelf) go.SetActive(false);
+    }
+
+    // [역할] (선택) 로그아웃/재시도 시 로그인 UI를 다시 보이게 할 때 사용 가능
+    private void ShowLoginUI()
+    {
+        var go = loginUIRoot ? loginUIRoot : this.gameObject;
+        if (go && !go.activeSelf) go.SetActive(true);
     }
 
     // ===================== Silent Sign-In =====================
@@ -265,7 +280,7 @@ public class GoogleFirebaseLogin : MonoBehaviour
         }
     }
 
-    // ===================== 기타(선택) =====================
+    // ===================== 기타 =====================
 
     // [역할] (구버전 경로) ContinueWith 기반 로그인 — 유지하되 사용 비권장
     private void OnSignIn()
@@ -313,6 +328,8 @@ public class GoogleFirebaseLogin : MonoBehaviour
             AddToInformation("Welcome: " + task.Result.DisplayName + "!");
             AddToInformation("Email = " + task.Result.Email);
             AddToInformation("Google ID Token = " + task.Result.IdToken);
+
+            HideLoginUI();
             SignInWithGoogleOnFirebase(task.Result.IdToken);
         }
     }
@@ -325,6 +342,7 @@ public class GoogleFirebaseLogin : MonoBehaviour
         AddToInformation("Calling SignOut");
         GoogleSignIn.DefaultInstance.SignOut();
         auth?.SignOut();
+        ShowLoginUI();
     }
 
     // [역할] 구글 연결 해제
@@ -334,15 +352,4 @@ public class GoogleFirebaseLogin : MonoBehaviour
         GoogleSignIn.DefaultInstance.Disconnect();
     }
 
-    // [역할] (선택) Google Play Games 경로 — 현재 프로젝트에선 미사용 권장
-    public void OnGamesSignIn()
-    {
-        AddToInformation("ENTER OnGamesSignIn (not recommended for this project)");
-        GoogleSignIn.Configuration = configuration;
-        GoogleSignIn.Configuration.UseGameSignIn = true;
-        GoogleSignIn.Configuration.RequestIdToken = false;
-
-        AddToInformation("Calling Games SignIn");
-        GoogleSignIn.DefaultInstance.SignIn().ContinueWith(OnAuthenticationFinished);
-    }
 }

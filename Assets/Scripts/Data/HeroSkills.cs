@@ -23,7 +23,7 @@ public class HeroSkills
         },
         new Skill{
             skillId = 2,
-            skillName = "아군 보호",
+            skillName = "보호",
             target = Target.Self,
             loc = Loc.Front,
             targetLoc = Loc.None,
@@ -53,7 +53,7 @@ public class HeroSkills
     {
         new Skill{
             skillId = 1,
-            skillName = "용약일자세",
+            skillName = "일섬",
             target = Target.Enemy,
             loc = Loc.Front,
             targetLoc = Loc.Front,
@@ -67,7 +67,7 @@ public class HeroSkills
         },
         new Skill{
             skillId = 2,
-            skillName = "시우상전세",
+            skillName = "혈풍참",
             target = Target.Enemy,
             loc = Loc.Front,
             targetLoc = Loc.Front,
@@ -82,7 +82,7 @@ public class HeroSkills
         },
         new Skill{
             skillId = 3,
-            skillName = "은림세",
+            skillName = "전투 자세",
             target = Target.Self,
             loc = Loc.Front,
             area = Area.Single,

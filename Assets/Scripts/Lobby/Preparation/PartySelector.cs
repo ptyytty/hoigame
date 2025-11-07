@@ -24,8 +24,7 @@ public class PartySelector : MonoBehaviour
     [SerializeField] private List<GameObject> partySlots;
 
     [Header("Slot Sprites")]
-    [SerializeField] private Sprite frontHeroImage;
-    [SerializeField] private Sprite backHeroImage;
+    [SerializeField] private Sprite baseSlotImage;
     [SerializeField] private Sprite selectedImage;
 
     [Header("Position")]
@@ -126,9 +125,7 @@ public class PartySelector : MonoBehaviour
     // UI 이미지 설정
     Sprite GetSlotDefaultSprite(int index)
     {
-        bool isFront = index <= 1;
-        if (isFront && frontHeroImage) return frontHeroImage;
-        if (!isFront && backHeroImage) return backHeroImage;
+        if (baseSlotImage) return baseSlotImage;
         return selectedImage;
     }
 
@@ -193,6 +190,9 @@ public class PartySelector : MonoBehaviour
             btn.onClick.RemoveAllListeners();
             btn.onClick.AddListener(() => OnSlotClicked(index));
         }
+
+        for (int i = 0; i < assignedHeroes.Length; i++)
+            SetHeroImageAt(i, assignedHeroes[i]);
     }
 
     void OnSlotClicked(int index)
@@ -290,6 +290,8 @@ public class PartySelector : MonoBehaviour
     {
         var replaced = assignedHeroes[index];
         assignedHeroes[index] = hero;
+
+        SetHeroImageAt(index, hero);
         heroImages[index].SetActive(true);
         slotImages[index].sprite = GetSlotDefaultSprite(index);
 
@@ -302,6 +304,27 @@ public class PartySelector : MonoBehaviour
         RefreshHeroButtonsWithParty();
         ResetPartySlotInteractable();
         CheckAssignedHeroState();
+    }
+
+    void SetHeroImageAt(int index, Job hero)
+    {
+        if (index < 0 || index >= heroImages.Count) return;
+        var go = heroImages[index];
+        if (go == null) return;
+
+        var img = go.GetComponent<Image>();
+        if (img == null) return;
+
+        if (hero != null && hero.portrait != null)
+        {
+            img.sprite = hero.portrait;  // ← 영웅 초상화 반영
+            go.SetActive(true);
+        }
+        else
+        {
+            img.sprite = null;           // ← 안전 초기화
+            go.SetActive(false);
+        }
     }
 
     // 아이템 착용 과정
@@ -411,6 +434,8 @@ public class PartySelector : MonoBehaviour
         {
             assignedHeroes[i] = null;
             Debug.Log($"{assignedHeroes[i]} 제거");
+
+            SetHeroImageAt(i, null);
             heroImages[i].SetActive(false);
         }
 

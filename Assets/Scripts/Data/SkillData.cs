@@ -1,11 +1,13 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 [System.Serializable]
 public class Skill
 {
     public int skillId;
     public string skillName;
+    public Sprite skillImage => Resources.Load<Sprite>($"Icons/Skill Image/{heroId}/{skillId}");
     public Target target;       //스킬 대상 0: 적     1: 아군     2: 자신
     public Loc loc;             //사용 위치 0: 상관없음   1: 전열     2: 후열
     public Loc targetLoc;       //대상 위치
