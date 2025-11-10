@@ -37,7 +37,7 @@ public class StoreManager : MonoBehaviour
     [SerializeField] private GameObject onlineBackground;
 
     [SerializeField] GameObject panelRight;
-    [SerializeField] GameObject panelInfo;
+    [SerializeField] GameObject panelInfo;     // 우측 정보 프레임(내부에 ItemInfoPanel이 로컬/온라인 하위 패널을 관리)
     [SerializeField] GameObject panelSearch;
 
     [SerializeField] GameObject panelInfoToggle;   // 온라인 상점 아이템 클릭 시 토글 패널
@@ -90,7 +90,6 @@ public class StoreManager : MonoBehaviour
         for (int i = 0; i < itemTypeToggleImagePairs.Count; i++)
         {
             int index = i;
-
             itemTypeToggleImagePairs[i].toggle.onValueChanged.AddListener((isOn) =>
             {
                 if (isOn)
@@ -115,7 +114,6 @@ public class StoreManager : MonoBehaviour
         for (int i = 0; i < storeTypeToggleImagePairs.Count; i++)
         {
             int index = i;
-
             storeTypeToggleImagePairs[i].toggle.onValueChanged.AddListener((isOn) =>
             {
                 if (isOn)
@@ -130,7 +128,6 @@ public class StoreManager : MonoBehaviour
         for (int i = 0; i < changeBuyOrSellToggleImagePairs.Count; i++)
         {
             int index = i;
-
             changeBuyOrSellToggleImagePairs[i].toggle.onValueChanged.AddListener((isOn) =>
             {
                 if (isOn)
@@ -161,7 +158,6 @@ public class StoreManager : MonoBehaviour
                         if (panelInfo) panelInfo.SetActive(false);
 
                         if (sellPanel != null) sellPanel.RequestRefreshMySales();
-
                     }
                     else
                     {
@@ -207,7 +203,6 @@ public class StoreManager : MonoBehaviour
                 }
 
                 ShowSelectedItemPanel(index);
-
             });
         }
 
@@ -304,7 +299,6 @@ public class StoreManager : MonoBehaviour
 
         if (showMyList && panelMySalesList != null && sellPanel != null)
             sellPanel.RequestRefreshMySales();
-
     }
 
     // 토글 전환
@@ -351,7 +345,7 @@ public class StoreManager : MonoBehaviour
     ///  - 온라인 구매 모드: 트랜잭션으로 수량 감소 → 결제/지급 → 새로고침
     ///  - 로컬 상점: 기존 로직
     /// </summary>
-    private async System.Threading.Tasks.Task OnClickApply()
+    private async Task OnClickApply()
     {
         var selected = Product.CurrentSelected;
         if (selected == null)
@@ -390,7 +384,8 @@ public class StoreManager : MonoBehaviour
         {
             inv.AddConsumeItem(selected.BoundConsume, 1);
 
-            ItemInfoPanel.instance.ShowItemInfo(
+            // ✅ 로컬 패널로 출력
+            ItemInfoPanel.instance.ShowLocalItemInfo(
                 selected.BoundConsume.name_item,
                 selected.BoundConsume.description,
                 price,
@@ -406,7 +401,9 @@ public class StoreManager : MonoBehaviour
             if (btn != null) btn.interactable = false;
 
             selected.ResetToDefaultImage();
-            ItemInfoPanel.instance.Hide();
+
+            // ✅ 정보 패널 모두 숨김
+            ItemInfoPanel.instance.HideAll();
 
             // 선택 해제
             typeof(Product)
@@ -432,9 +429,8 @@ public class StoreManager : MonoBehaviour
     ///  3) 성공 시 내 골드 차감 + 인벤토리에 지급
     ///  4) UI/리스트 새로고침
     /// </summary>
-    private async System.Threading.Tasks.Task BuyOnlineAsync(Product selected, int price)
+    private async Task BuyOnlineAsync(Product selected, int price)
     {
-
         var inv = InventoryRuntime.Instance;
         if (inv == null) return;
 
@@ -497,7 +493,7 @@ public class StoreManager : MonoBehaviour
                 }
             });
 
-            // (이하 결제/지급 + UI 갱신은 그대로)
+            // 결제/지급
             if (!inv.TrySpendGold(price))
             {
                 UpdateApplyButtonState();
@@ -597,21 +593,20 @@ public class StoreManager : MonoBehaviour
 
     /// <summary>
     /// [역할] 상품 클릭 시 UI 전환
-    ///  - 로컬: 기존 구매 플로우
-    ///  - 온라인: 구매/판매 모드에 따라 프리셋 분기
+    ///  - 로컬: 로컬 패널로 정보 출력
+    ///  - 온라인: 구매/판매 모드에 따라 프리셋 분기 + 온라인 패널로 정보 출력
     /// </summary>
     private void HandleProductClicked(Product p)
     {
         if (currentStore == StoreKind.Local)
         {
             SetLocalSelectedUI();
-
             ShowPanelInfoChildren();
 
             if (p.IsConsume)
-                ItemInfoPanel.instance.ShowItemInfo(p.BoundConsume.name_item, p.BoundConsume.description, p.Price, p.BoundConsume.icon, p.BoundConsume.effects);
+                ItemInfoPanel.instance.ShowLocalItemInfo(p.BoundConsume.name_item, p.BoundConsume.description, p.Price, p.BoundConsume.icon, p.BoundConsume.effects);
             else if (p.IsEquip)
-                ItemInfoPanel.instance.ShowItemInfo(p.BoundEquip.name_item, p.BoundEquip.description, p.Price, p.BoundEquip.icon, p.BoundEquip.effects);
+                ItemInfoPanel.instance.ShowLocalItemInfo(p.BoundEquip.name_item, p.BoundEquip.description, p.Price, p.BoundEquip.icon, p.BoundEquip.effects);
 
             UpdateApplyButtonState();
         }
@@ -625,13 +620,19 @@ public class StoreManager : MonoBehaviour
                 UpdateToggle(selectItemToggleImagePairs);
 
                 // 2) ★ 선택 보강: 첫 클릭에도 확실히 선택/하이라이트 적용
-                p.ForceSelectAsCurrent();                 // ← 추가 핵심
+                p.ForceSelectAsCurrent();
 
                 // 3) 우측 패널 프리셋
                 SetOnlineSelectedUI_Sell();
                 ShowPanelInfoChildren();
 
-                // 4) 판매 버튼 보이기/활성
+                // 4) 온라인 패널 채우기
+                if (p.IsConsume)
+                    ItemInfoPanel.instance.ShowOnlineItemInfo(p.BoundConsume.name_item, p.BoundConsume.description, p.Price, p.BoundConsume.icon, p.BoundConsume.effects, p.GetOnlineQty());
+                else if (p.IsEquip)
+                    ItemInfoPanel.instance.ShowOnlineItemInfo(p.BoundEquip.name_item, p.BoundEquip.description, p.Price, p.BoundEquip.icon, p.BoundEquip.effects, p.GetOnlineQty());
+
+                // 5) 판매 버튼 보이기/활성
                 if (btnSell)
                 {
                     btnSell.SetActive(true);
@@ -660,49 +661,6 @@ public class StoreManager : MonoBehaviour
             EventSystem.current.SetSelectedGameObject(btnSell);
     }
 
-
-    #region Mail helpers
-
-    /// <summary>
-    /// [역할] 판매자에게 '아이템 판매 수익' 우편을 1건 생성한다.
-    ///  - mailboxes/{sellerUid}/inbox/{autoId}
-    ///  - type: "SaleIncome", title: "아이템 판매 수익", amount: price
-    ///  - isClaimed=false, createdAt=serverTime
-    /// </summary>
-    private async Task CreateSaleIncomeMailAsync(string sellerUid, string listingId, int amount)
-    {
-        try
-        {
-            if (string.IsNullOrEmpty(sellerUid) || amount <= 0) return;
-
-            var db = FirebaseFirestore.DefaultInstance;
-            var inbox = db.Collection("mailboxes")
-                          .Document(sellerUid)
-                          .Collection("inbox")
-                          .Document(); // auto id
-
-            var data = new Dictionary<string, object>
-        {
-            { "type", "SaleIncome" },                         // 우편 타입 (친구요청 등과 구분용)
-            { "title", "아이템 판매 수익" },                       // 제목
-            { "amount", amount },                             // 수익 골드
-            { "listingId", listingId },                       // 원인 제공 listing
-            { "isClaimed", false },                           // 수령 여부
-            { "createdAt", FieldValue.ServerTimestamp }       // 정렬/표시용
-        };
-
-            await inbox.SetAsync(data);
-            Debug.Log($"[Mail] 판매 수익 우편 발송: {sellerUid} / +{amount}");
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogWarning($"[Mail] 우편 생성 실패: {e.Message}");
-        }
-    }
-
-    #endregion
-
-
     // ============ 패널 프리셋/유틸 =================
 
     /// <summary> [역할] 로컬 상점: 첫 진입 상태 </summary>
@@ -727,7 +685,7 @@ public class StoreManager : MonoBehaviour
         if (panelMySalesList) panelMySalesList.SetActive(false);
     }
 
-    /// <summary> [역할] 온라인 상점: 탭 진입 기본 상태 (요청: 우측패널 On + 내 판매목록 기본) </summary>
+    /// <summary> [역할] 온라인 상점: 탭 진입 기본 상태 (우측패널 On + 내 판매목록 기본) </summary>
     private void SetOnlineIdleUI()
     {
         if (panelRight) panelRight.SetActive(true);
@@ -754,14 +712,13 @@ public class StoreManager : MonoBehaviour
         if (sellPanel != null)
             sellPanel.RequestRefreshMySales();
 
-
         // 가격 캐시 초기화
         lastSelectedPrice = 0;
     }
 
     /// <summary>
     /// [역할] 온라인 상점: '구매' 모드에서 상품 클릭 후 상태
-    ///  - Info 패널 갱신
+    ///  - Info 패널 갱신(온라인 패널)
     ///  - btnApply 표시 + 가격 라벨링
     ///  - 골드 보유량에 따라 interactable 제어
     /// </summary>
@@ -780,13 +737,13 @@ public class StoreManager : MonoBehaviour
 
         // 슬롯의 표시 가격을 읽어 '온라인 가격'으로 사용
         lastSelectedPrice = ReadDisplayedPriceFromSlot(p != null ? p.gameObject : null);
-
         int priceToUse = (lastSelectedPrice > 0) ? lastSelectedPrice : p.Price;
 
+        // ✅ 온라인 패널로 출력
         if (p.IsConsume)
-            ItemInfoPanel.instance.ShowItemInfo(p.BoundConsume.name_item, p.BoundConsume.description, priceToUse, p.BoundConsume.icon, p.BoundConsume.effects);
+            ItemInfoPanel.instance.ShowOnlineItemInfo(p.BoundConsume.name_item, p.BoundConsume.description, priceToUse, p.BoundConsume.icon, p.BoundConsume.effects, p.GetOnlineQty());
         else if (p.IsEquip)
-            ItemInfoPanel.instance.ShowItemInfo(p.BoundEquip.name_item, p.BoundEquip.description, priceToUse, p.BoundEquip.icon, p.BoundEquip.effects);
+            ItemInfoPanel.instance.ShowOnlineItemInfo(p.BoundEquip.name_item, p.BoundEquip.description, priceToUse, p.BoundEquip.icon, p.BoundEquip.effects, p.GetOnlineQty());
 
         SetApplyButtonLabel(priceToUse);
         UpdateApplyButtonState();
@@ -812,7 +769,7 @@ public class StoreManager : MonoBehaviour
     }
 
     /// <summary>
-    /// [역할] Apply 버튼의 라벨을 “구매 (n,nnnG)”로 갱신
+    /// [역할] Apply 버튼의 라벨을 “가격”으로 갱신
     ///  - Text와 TMP_Text 둘 다 지원
     /// </summary>
     private void SetApplyButtonLabel(int price)
@@ -949,6 +906,10 @@ public class StoreManager : MonoBehaviour
 
         // 정보 내용물 숨김 (패널 자체는 상황에 따라 켜둘 수 있음)
         HidePanelInfoChildren();
+
+        // ✅ ItemInfoPanel도 모두 숨김
+        if (ItemInfoPanel.instance != null)
+            ItemInfoPanel.instance.HideAll();
     }
 
 }

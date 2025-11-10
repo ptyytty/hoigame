@@ -87,6 +87,27 @@ public class DungeonInventory : MonoBehaviour
         return true;
     }
 
+    public void ClearToInventory()
+    {
+        var inv = InventoryRuntime.Instance;
+        if (inv != null)
+        {
+            for (int i = 0; i < slots.Count; i++)
+            {
+                var s = slots[i];
+                if (s.IsEmpty) continue;
+                if (s.item != null && s.count > 0)
+                {
+                    // [역할] 준비 칸에 쌓여 있던 수량을 원래 보유 인벤토리로 복귀
+                    inv.AddConsumeItem(s.item, s.count);
+                }
+            }
+        }
+
+        InitializeSlots(); // [역할] 6칸 비우기
+        Notify();          // [역할] UI에 즉시 갱신 통지
+    }
+
     // ================== 6칸 스냅샷 저장 / 복원 ==================
     public List<SlotDTO> CreateSnapshot()
     {

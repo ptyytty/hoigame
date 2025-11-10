@@ -385,6 +385,9 @@ public class PartySelector : MonoBehaviour
 
         ResetPartySlotInteractable();
         SelectionEvents.RaiseHeroSelected(null);
+
+        if (prepInventory != null)
+            prepInventory.ClearToInventory();
     }
 
     // 파티 비활성화 이미지
@@ -438,6 +441,9 @@ public class PartySelector : MonoBehaviour
             SetHeroImageAt(i, null);
             heroImages[i].SetActive(false);
         }
+
+        if (prepInventory != null)
+            prepInventory.ClearToInventory();
 
         // 전부 해제됐으니 리스트 전체 상호작용 다시 켜짐
         heroListUp.SetInteractable(true);

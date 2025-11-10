@@ -194,13 +194,12 @@ public class LobbyManager : MonoBehaviour
                 Product.CurrentSelected.ResetToDefaultImage();
             }
 
-            // ✅ 아이템 정보창 닫기
             if (ItemInfoPanel.instance != null)
             {
-                ItemInfoPanel.instance.Hide();
+                ItemInfoPanel.instance.HideAll(); // 역할: 로컬/온라인 두 패널 모두 비활성화
             }
 
-            TryShowLobby3DIfOnMain(); // [NEW]
+            TryShowLobby3DIfOnMain();
         }
         else if (panelManagement.activeSelf)
         {
