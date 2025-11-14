@@ -188,16 +188,24 @@ public class InventoryRuntime : MonoBehaviour
     }
 
     public void AddConsumeItem(ConsumeItem item, int count)
+{
+    var found = ownedConsume.Find(x => x.itemData.id_item == item.id_item);
+    if (found == null)
     {
-        var found = ownedConsume.Find(x => x.itemData.id_item == item.id_item);
-        if (found == null)
+        if (count > 0)
         {
-            if (count > 0) ownedConsume.Add(new OwnedItem<ConsumeItem>(item, count));
-            return;
+            ownedConsume.Add(new OwnedItem<ConsumeItem>(item, count));
+            NotifyChanged(); // ← 추가
         }
-        found.count += count;
-        if (found.count <= 0) ownedConsume.Remove(found);
+        return;
     }
+
+    found.count += count;
+    if (found.count <= 0)
+        ownedConsume.Remove(found);
+
+    NotifyChanged(); // ← 증감/삭제 후에도 항상 통지
+}
 
     // [역할] 소비 아이템을 수량만큼 감소시키고 0 이하이면 제거
     public void RemoveConsumeItem(int itemId, int amount)

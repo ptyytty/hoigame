@@ -15,7 +15,11 @@ public class InventoryUIManager : MonoBehaviour
 
     void OnEnable()
     {
+        if (source == null)
+            source = FindObjectOfType<DungeonInventory>(true);
+
         if (source != null) source.Changed += RefreshUI;
+
         BuildSlots();   // ★ 하위 슬롯 스캔 & 바인딩
         RefreshUI();
     }
@@ -30,6 +34,11 @@ public class InventoryUIManager : MonoBehaviour
     {
         if (source != null) source.Changed -= RefreshUI;
         source = inv;
+
+        // [역할] 외부에서 SetSource로 갈아낄 때도 null 방어 + 즉시 구독
+        if (source == null)
+            source = FindObjectOfType<DungeonInventory>(true);
+
         if (source != null) source.Changed += RefreshUI;
 
         BuildSlots();   // ★ 소스 바뀌면 다시 바인딩
@@ -40,7 +49,7 @@ public class InventoryUIManager : MonoBehaviour
     private void BuildSlots()
     {
         slotUIs.Clear();
-        if (inventoryPanel == null || source == null) return;
+        if (inventoryPanel == null || source == null) return; // ← source 보장 후엔 정상 진행
 
         int index = 0;
         for (int i = 0; i < inventoryPanel.childCount; i++)

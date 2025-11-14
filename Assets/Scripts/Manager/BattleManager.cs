@@ -73,16 +73,6 @@ public class BattleManager : MonoBehaviour
     private bool _isTargeting = false;
     public bool IsTargeting => _isTargeting;
 
-    // 도트 데미지 임시 테이블
-    public static readonly Dictionary<BuffType, int> DOT_AT_Start = new()
-    {
-        { BuffType.Bleeding, 2 }
-    };
-    public static readonly Dictionary<BuffType, int> DOT_AT_END = new(){
-        { BuffType.Poison,   3 },
-        { BuffType.Burn,     4 },
-    };
-
     void OnEnable()
     {
         EnemySpawner.OnBattleStart += HandleBattleStart;

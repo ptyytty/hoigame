@@ -51,12 +51,22 @@ public class ItemList : ListUIBase<EquipItem>
     protected override void OnEnable()
     {
         base.OnEnable();
-        PlayerProgressService.InventoryApplied += RefreshItemList;
+        PlayerProgressService.InventoryApplied += RefreshItemList; // 저장/적용 신호
+                                                                   // [역할] 던전 준비 인벤토리 변경(칸 추가/제거)도 즉시 반영
+        if (!dungeonInventory)
+            dungeonInventory = FindObjectOfType<DungeonInventory>(true);
+        if (dungeonInventory != null)
+            dungeonInventory.Changed += RefreshItemList;
+
+        // [역할] 구독을 마친 직후 목록 1회 강제 갱신(패널 재입장 즉시 최신)
+        RefreshItemList();
     }
 
     protected void OnDisable()
     {
         PlayerProgressService.InventoryApplied -= RefreshItemList;
+        if (dungeonInventory != null)
+            dungeonInventory.Changed -= RefreshItemList; // [역할] 메모리 누수 방지
     }
 
     void OnToggleChanged(bool _)
@@ -66,16 +76,20 @@ public class ItemList : ListUIBase<EquipItem>
 
     protected override void LoadList()
     {
+        var inv = InventoryRuntime.Instance;
+        if (inv == null) return;
+
         if (toggleConsume.isOn)
+        {
+            // ✅ 소비 아이템은 소비 전용 빌더로 처리 (타입 불일치 방지)
             PrintConsumeItem();
+        }
         else if (toggleEquip.isOn)
         {
-            var inv = InventoryRuntime.Instance;
-            if (inv != null)
-            {
-                foreach (var ownedItem in inv.ownedEquipItem)
-                    CreateButton(ownedItem.itemData);
-            }
+            // ✅ 장비만 베이스 빌더 사용 (TData=EquipItem)
+            foreach (var owned in inv.ownedEquipItem)
+                if (owned != null && owned.itemData != null)
+                    CreateButton(owned.itemData);
         }
     }
 
@@ -99,18 +113,22 @@ public class ItemList : ListUIBase<EquipItem>
     void PrintConsumeItem()
     {
         foreach (Transform child in contentParent)
-        {
             Destroy(child.gameObject);
-        }
 
         var inv = InventoryRuntime.Instance;
         if (inv == null) return;
 
-        var items = inv.GetOwnedConsumeItems();
+        // ✅ 스냅샷 + 고정 정렬(id_item 기준)
+        var snapshot = new List<OwnedItem<ConsumeItem>>();
+        foreach (var owned in inv.GetOwnedConsumeItems())
+            if (owned != null && owned.itemData != null && owned.count > 0)
+                snapshot.Add(owned);
 
-        foreach (var ownedItem in items)
+        snapshot.Sort((a, b) => a.itemData.id_item.CompareTo(b.itemData.id_item));
+
+        // 버튼 생성
+        foreach (var ownedItem in snapshot)
         {
-            if (ownedItem.count <= 0) continue;
             Button itemButton = Instantiate(buttonPrefab, contentParent);
             TMP_Text itemName = itemButton.transform.Find("ItemName").GetComponent<TMP_Text>();
             TMP_Text itemAmount = itemButton.transform.Find("ItemAmount").GetComponent<TMP_Text>();
@@ -122,19 +140,22 @@ public class ItemList : ListUIBase<EquipItem>
             bgImage.sprite = consumeDefaultSprite;
             itemIcon.sprite = ownedItem.itemData.icon;
 
-            // 클로저 문제 방지: 로컬 변수로 복사
             var currentItem = ownedItem.itemData;
 
+            itemButton.onClick.RemoveAllListeners();
             itemButton.onClick.AddListener(() =>
             {
-                if (inv.GetConsumeItemCount(currentItem) > 0)
+                if (!dungeonInventory)
+                    dungeonInventory = FindObjectOfType<DungeonInventory>(true);
+                if (dungeonInventory == null || currentItem == null) return;
+
+                // 1) 던전 준비 인벤토리에 추가
+                bool added = dungeonInventory.AddItem(currentItem);
+                // 2) 성공 시 보유 인벤토리 -1
+                if (added)
                 {
-                    bool success = dungeonInventory.AddItem(currentItem);
-                    if (success)
-                    {
-                        inv.AddConsumeItem(currentItem, -1);
-                        RefreshItemList();
-                    }
+                    inv.AddConsumeItem(currentItem, -1);
+                    RefreshItemList(); // 즉시 재빌드(정렬 유지)
                 }
             });
         }
