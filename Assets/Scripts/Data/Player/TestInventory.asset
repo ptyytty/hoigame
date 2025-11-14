@@ -24,7 +24,7 @@ MonoBehaviour:
       description: "\uC2DD\uB2F9\uC5D0\uC11C \uD30C\uB294 \uAE40\uBC25\uC774\uB2E4.
         \uC2F8\uACE0 \uB9DB\uC788\uB2E4."
       effects: []
-    count: 41
+    count: 2
   - itemData:
       id_item: 2
       name_item: "\uBCA0\uC774\uCEE8"
@@ -36,30 +36,8 @@ MonoBehaviour:
       description: "\uC9ED\uC9E4\uD55C \uBCA0\uC774\uCEE8. \uD558\uB098\uC529 \uAEBC\uB0B4
         \uBA39\uAE30 \uC88B\uB2E4."
       effects: []
-    count: 46
-  startingEquipItems:
-  - itemData:
-      id_item: 101
-      name_item: "\uC2E0\uC18D \uC2E0\uBC1C"
-      price: 2100
-      iconName: Quick Shoes
-      jobCategory: 1
-      itemType: 0
-      effectText: "\uBBFC\uCCA9"
-      description: "\uCC29\uC6A9\uAC10 \uC88B\uC740 \uC2E0\uBC1C."
-      effects: []
-    count: 1
-  - itemData:
-      id_item: 102
-      name_item: "\uAC00\uC8FD \uC7A5\uAC11"
-      price: 2550
-      iconName: Leather Gloves
-      jobCategory: 1
-      itemType: 0
-      effectText: "\uBA85\uC911"
-      description: "\uAC00\uC8FD\uC73C\uB85C \uB9CC\uB4E0 \uC7A5\uAC11\uC774\uB2E4."
-      effects: []
-    count: 1
+    count: 2
+  startingEquipItems: []
   startGold: 5000
   startRedSoul: 10
   startBlueSoul: 10

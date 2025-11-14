@@ -12,6 +12,9 @@ public class ItemList : ListUIBase<EquipItem>
     public delegate void EquipItemHandler(EquipItem item);
     public event EquipItemHandler OnEquipItemSelect;
 
+    [Header("Consume Item")]
+    [SerializeField] protected Sprite consumeDefaultSprite;
+
     [Header("Toggles")]
     [SerializeField] private Toggle toggleConsume;
     [SerializeField] private Toggle toggleEquip;
@@ -111,10 +114,12 @@ public class ItemList : ListUIBase<EquipItem>
             Button itemButton = Instantiate(buttonPrefab, contentParent);
             TMP_Text itemName = itemButton.transform.Find("ItemName").GetComponent<TMP_Text>();
             TMP_Text itemAmount = itemButton.transform.Find("ItemAmount").GetComponent<TMP_Text>();
+            Image bgImage = itemButton.gameObject.GetComponent<Image>();
             Image itemIcon = itemButton.transform.Find("ItemImage").GetComponent<Image>();
 
             itemName.text = ownedItem.itemData.name_item;
             itemAmount.text = "수량: " + ownedItem.count.ToString();
+            bgImage.sprite = consumeDefaultSprite;
             itemIcon.sprite = ownedItem.itemData.icon;
 
             // 클로저 문제 방지: 로컬 변수로 복사

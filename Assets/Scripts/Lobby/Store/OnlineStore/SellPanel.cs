@@ -95,12 +95,12 @@ public class SellPanel : MonoBehaviour
     void Start()
     {
         // [역할] 버튼 이벤트 바인딩 및 기본 비활성화
-        if (btnPlus)    { btnPlus.onClick.AddListener(OnPlus); }
-        if (btnMinus)   { btnMinus.onClick.AddListener(OnMinus); }
+        if (btnPlus) { btnPlus.onClick.AddListener(OnPlus); }
+        if (btnMinus) { btnMinus.onClick.AddListener(OnMinus); }
         if (btnConfirm) { btnConfirm.onClick.AddListener(OnConfirm); }
-        if (btnCancel)  { btnCancel.onClick.AddListener(Hide); }
+        if (btnCancel) { btnCancel.onClick.AddListener(Hide); }
 
-        if (btnCancelSale)  btnCancelSale.onClick.AddListener(OnClickCancelSale);
+        if (btnCancelSale) btnCancelSale.onClick.AddListener(OnClickCancelSale);
         if (btnDetailClose) btnDetailClose.onClick.AddListener(() => ShowListingDetail(null));
 
         gameObject.SetActive(false);
@@ -114,9 +114,9 @@ public class SellPanel : MonoBehaviour
     private void BindStaticButtons()
     {
         if (btnPlus) { btnPlus.onClick.RemoveListener(OnPlus); btnPlus.onClick.AddListener(OnPlus); }
-        if (btnMinus){ btnMinus.onClick.RemoveListener(OnMinus); btnMinus.onClick.AddListener(OnMinus); }
-        if (btnConfirm){ btnConfirm.onClick.RemoveListener(OnConfirm); btnConfirm.onClick.AddListener(OnConfirm); }
-        if (btnCancel){ btnCancel.onClick.RemoveListener(Hide); btnCancel.onClick.AddListener(Hide); }
+        if (btnMinus) { btnMinus.onClick.RemoveListener(OnMinus); btnMinus.onClick.AddListener(OnMinus); }
+        if (btnConfirm) { btnConfirm.onClick.RemoveListener(OnConfirm); btnConfirm.onClick.AddListener(OnConfirm); }
+        if (btnCancel) { btnCancel.onClick.RemoveListener(Hide); btnCancel.onClick.AddListener(Hide); }
 
         if (btnCancelSale)
         {
@@ -147,10 +147,10 @@ public class SellPanel : MonoBehaviour
         itemName = product.IsConsume ? product.BoundConsume.name_item :
                    product.IsEquip ? product.BoundEquip.name_item : "알 수 없음";
 
-        if (txtItemName)   txtItemName.text = itemName;
+        if (txtItemName) txtItemName.text = itemName;
         if (txtOwnedCount) txtOwnedCount.text = $"보유 수량: {ownedCount}";
-        if (txtSellCount)  txtSellCount.text = $"{sellCount}";
-        if (inputPrice)    inputPrice.text = "10"; // 기본 10원
+        if (txtSellCount) txtSellCount.text = $"{sellCount}";
+        if (inputPrice) inputPrice.text = "10"; // 기본 10원
 
         _ = RefreshMySalesAsync(); // 내 판매글 리스트 갱신
 
@@ -388,8 +388,8 @@ public class SellPanel : MonoBehaviour
                 _rowIds.Add(docId);
 
                 string type = doc.TryGetValue<string>("type", out var t) ? t : "Consume";
-                int itemId  = doc.TryGetValue<int>("itemId", out var iid) ? iid : 0;
-                int price   = doc.TryGetValue<int>("priceGold", out var p) ? p : 0;
+                int itemId = doc.TryGetValue<int>("itemId", out var iid) ? iid : 0;
+                int price = doc.TryGetValue<int>("priceGold", out var p) ? p : 0;
 
                 string displayName =
                     (type == "Consume")
@@ -399,22 +399,42 @@ public class SellPanel : MonoBehaviour
                 // (F) UI 행 생성
                 var row = Instantiate(sellItemPrefab, myListContent);
 
-                var nameText  = row.transform.Find("Txt_ItemName")?.GetComponent<TMP_Text>();
+                var nameText = row.transform.Find("Txt_ItemName")?.GetComponent<TMP_Text>();
                 var priceText = row.transform.Find("Txt_Price")?.GetComponent<TMP_Text>();
-                var qtyText   = row.transform.Find("Txt_Count")?.GetComponent<TMP_Text>();
-                var rowBtn    = row.GetComponent<Button>();
+                var qtyText = row.transform.Find("Txt_Count")?.GetComponent<TMP_Text>();
+                var rowBtn = row.GetComponent<Button>();
 
-                if (nameText)  nameText.text  = displayName;
+                var itemImage = row.transform.Find("Img_ItemFrame/Img_Item")?.GetComponent<Image>();
+
+                if (nameText) nameText.text = displayName;
                 if (priceText) priceText.text = $"{price:N0}";
-                if (qtyText)   qtyText.text   = $"수량: {qty}";
+                if (qtyText) qtyText.text = $"수량: {qty}";
+
+                if (itemImage != null)
+                {
+                    // 역할: Firestore에 이미지 경로는 없으므로 로컬 카탈로그에서 스프라이트를 복원.
+                    Sprite icon = (type == "Consume")
+                        ? ItemCatalog.GetConsume(itemId)?.icon
+                        : ItemCatalog.GetEquip(itemId)?.icon;
+
+                    // 부모 프레임/자기 자신이 비활성이라면 먼저 켜주기
+                    var frame = itemImage.transform.parent ? itemImage.transform.parent.gameObject : null;
+                    if (frame != null && !frame.activeSelf) frame.SetActive(true);
+                    if (!itemImage.gameObject.activeSelf) itemImage.gameObject.SetActive(true);
+
+                    // 스프라이트 적용
+                    itemImage.sprite = icon;
+                    itemImage.enabled = (icon != null);
+                    itemImage.preserveAspect = true; // 모바일에서 찌그러짐 방지
+                }
 
                 var listing = new Listing
                 {
-                    DocumentId  = docId,
-                    Type        = type,
-                    ItemId      = itemId,
-                    Qty         = qty,
-                    IsActive    = isActive,
+                    DocumentId = docId,
+                    Type = type,
+                    ItemId = itemId,
+                    Qty = qty,
+                    IsActive = isActive,
                     DisplayName = displayName
                 };
 
@@ -435,6 +455,15 @@ public class SellPanel : MonoBehaviour
             _isRefreshing = (requestVersion != _refreshVersion);
             if (!_isRefreshing) _isRefreshing = false;
         }
+    }
+
+    static Image FindDeepImageByName(Transform root, string name)
+    {
+        // GetComponentsInChildren(true): 비활성 자식도 포함
+        var imgs = root.GetComponentsInChildren<Image>(true);
+        for (int i = 0; i < imgs.Length; i++)
+            if (imgs[i] && imgs[i].name == name) return imgs[i];
+        return null;
     }
 
     /// <summary>
@@ -472,7 +501,7 @@ public class SellPanel : MonoBehaviour
         _selectedListing = listing.Value;
 
         if (txtDetailName) txtDetailName.text = _selectedListing.DisplayName;
-        if (txtDetailQty)  txtDetailQty.text  = $"수량: {_selectedListing.Qty}";
+        if (txtDetailQty) txtDetailQty.text = $"수량: {_selectedListing.Qty}";
 
         SetModal(true);                   // ✅ 상세 패널 블로커 ON
         EnsureDetailPanelClickable();     // CanvasGroup 보정
@@ -481,7 +510,7 @@ public class SellPanel : MonoBehaviour
         // 정렬/레이캐스트 보정
         EnsureSortingForDetailAndBlocker();
 
-        if (btnCancelSale)  btnCancelSale.interactable = _selectedListing.IsActive && _selectedListing.Qty > 0;
+        if (btnCancelSale) btnCancelSale.interactable = _selectedListing.IsActive && _selectedListing.Qty > 0;
         if (btnDetailClose) btnDetailClose.interactable = true;
 
         // 첫 클릭이 포커싱에 소모되지 않게 다음 프레임 버튼 포커스
@@ -542,7 +571,7 @@ public class SellPanel : MonoBehaviour
 
         const int baseOrder = 5000;
         blockerCanvas.sortingOrder = baseOrder;
-        panelCanvas.sortingOrder   = baseOrder + 1;
+        panelCanvas.sortingOrder = baseOrder + 1;
 
         if (!panelMyListingDetail.GetComponent<GraphicRaycaster>())
             panelMyListingDetail.gameObject.AddComponent<GraphicRaycaster>();
