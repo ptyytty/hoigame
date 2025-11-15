@@ -37,6 +37,7 @@ public class DungeonManager : MonoBehaviour
     [Header("Inventory")]
     [SerializeField] private DungeonInventory dungeonInventory;
     [SerializeField] private DungeonInventoryBinder inventoryBinder;
+    public DungeonInventory DungeonInventory => dungeonInventory;
 
     [Header("Dungeon UI")]
     public GameObject moveLeft;

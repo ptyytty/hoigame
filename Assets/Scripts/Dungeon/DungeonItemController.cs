@@ -35,7 +35,8 @@ public class DungeonItemController : MonoBehaviour
     void Awake()
     {
         // 안전 연결
-        if (!dungeonInventory) dungeonInventory = FindObjectOfType<DungeonInventory>(true);
+        if (!dungeonInventory && DungeonManager.instance != null)
+            dungeonInventory = DungeonManager.instance.DungeonInventory;
 
         // 버튼 리스너
         if (useButton)

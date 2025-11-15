@@ -7,97 +7,120 @@ using UnityEngine;
 
 public class InventoryUIManager : MonoBehaviour
 {
-    [SerializeField] private DungeonInventory source;
-    [SerializeField] private Transform inventoryPanel;
-    [SerializeField] private GameObject inventoryActive;
+    [Header("Inventory Source")]
+    [SerializeField] private DungeonInventory source;     // 준비용 DungeonInventory (같은 오브젝트에 붙음)
 
-    private List<InventorySlotUI> slotUIs = new();
+    [Header("UI Refs")]
+    [SerializeField] private Transform inventoryPanel;    // 6칸 슬롯들이 들어있는 부모
+    [SerializeField] private GameObject inventoryActive;  // 인벤토리 패널 루트 (On/Off)
 
-    void OnEnable()
+    private readonly List<InventorySlotUI> slotUIs = new List<InventorySlotUI>();
+
+    /// <summary>
+    /// 역할: 이 오브젝트에 붙어 있는 DungeonInventory를 자동으로 가져옴
+    /// </summary>
+    private void Awake()
     {
         if (source == null)
-            source = FindObjectOfType<DungeonInventory>(true);
+            source = GetComponent<DungeonInventory>();
 
-        if (source != null) source.Changed += RefreshUI;
+        if (source == null)
+            Debug.LogError("[InventoryUIManager] 같은 오브젝트에 DungeonInventory가 없습니다. (준비 씬)");
+    }
 
-        BuildSlots();   // ★ 하위 슬롯 스캔 & 바인딩
+    /// <summary>
+    /// 역할: UI가 활성화될 때 DungeonInventory 변경 이벤트를 구독하고 슬롯 빌드/갱신
+    /// </summary>
+    private void OnEnable()
+    {
+        if (source == null)
+            source = GetComponent<DungeonInventory>();
+
+        if (source == null)
+        {
+            Debug.LogError("[InventoryUIManager] source가 없습니다. DungeonInventory를 같은 오브젝트에 붙이세요.");
+            return;
+        }
+
+        source.Changed += RefreshUI;
+
+        BuildSlots();
         RefreshUI();
     }
 
-    void OnDisable()
+    /// <summary>
+    /// 역할: 비활성화 시 이벤트 구독 해제
+    /// </summary>
+    private void OnDisable()
     {
-        if (source != null) source.Changed -= RefreshUI;
+        if (source != null)
+            source.Changed -= RefreshUI;
     }
 
-    // 씬마다 다른 DungeonInventory 재바인딩
-    public void SetSource(DungeonInventory inv)
-    {
-        if (source != null) source.Changed -= RefreshUI;
-        source = inv;
-
-        // [역할] 외부에서 SetSource로 갈아낄 때도 null 방어 + 즉시 구독
-        if (source == null)
-            source = FindObjectOfType<DungeonInventory>(true);
-
-        if (source != null) source.Changed += RefreshUI;
-
-        BuildSlots();   // ★ 소스 바뀌면 다시 바인딩
-        RefreshUI();
-    }
-
-    // 하위에 있는 6개 item(슬롯)을 모아 InventorySlotUI에 연결
+    /// <summary>
+    /// 역할: inventoryPanel 아래에 있는 모든 InventorySlotUI를 찾아
+    ///       슬롯 인덱스와 DungeonInventory 참조를 설정
+    /// </summary>
     private void BuildSlots()
     {
         slotUIs.Clear();
-        if (inventoryPanel == null || source == null) return; // ← source 보장 후엔 정상 진행
 
-        int index = 0;
-        for (int i = 0; i < inventoryPanel.childCount; i++)
+        if (inventoryPanel == null)
         {
-            if (index >= 6) break; // 슬롯 6개만 사용
-            var child = inventoryPanel.GetChild(i);
+            Debug.LogError("[InventoryUIManager] inventoryPanel이 설정되어 있지 않습니다.");
+            return;
+        }
 
-            var ui = child.GetComponent<InventorySlotUI>();
-            if (ui == null) ui = child.gameObject.AddComponent<InventorySlotUI>();
+        // 비활성 슬롯까지 전부 포함해서 가져오기
+        var slots = inventoryPanel.GetComponentsInChildren<InventorySlotUI>(true);
+        if (slots == null || slots.Length == 0)
+        {
+            Debug.LogWarning("[InventoryUIManager] InventorySlotUI가 자식에 없습니다.");
+            return;
+        }
 
-            ui.Setup(source, index); // 클릭 → RemoveItemAt(index)
+        for (int i = 0; i < slots.Length; i++)
+        {
+            var ui = slots[i];
+            ui.Init(i, source);   // ← 슬롯 번호 & 인벤토리 지정
             slotUIs.Add(ui);
-            index++;
         }
     }
 
-    void InitializeSlots()
-    {
-        if (source == null) return;
-        var slots = source.GetSlots();
-        for (int i = 0; i < slotUIs.Count && i < slots.Count; i++)
-            slotUIs[i].Setup(source, i);
-    }
-
-    // 슬롯 UI 아이콘 / 수량 새로고침
+    /// <summary>
+    /// 역할: DungeonInventory 현재 상태에 맞춰 모든 슬롯 UI 갱신
+    ///       (Changed 이벤트, 패널 열기, 슬롯 빌드 후에 호출)
+    /// </summary>
     public void RefreshUI()
     {
-        if (source == null || slotUIs.Count == 0) return;
+        if (source == null)
+            return;
 
-        var slots = source.GetSlots();
-        int n = Mathf.Min(slots.Count, slotUIs.Count);
-        for (int i = 0; i < n; i++)
+        if (slotUIs.Count == 0)
+            BuildSlots();
+
+        foreach (var ui in slotUIs)
         {
-            slotUIs[i].UpdateSlot(slots[i]); // 아이콘 & 수량 반영
+            if (ui != null)
+                ui.RefreshView();
         }
     }
 
-    // 인벤토리 패널 열기
+    /// <summary>
+    /// 역할: 인벤토리 패널 열기 버튼에서 호출
+    /// </summary>
     public void OpenInventoryPanel()
     {
-        if (inventoryActive != null) inventoryActive.SetActive(true);
+        if (inventoryActive != null)
+            inventoryActive.SetActive(true);
+
+        // 레이아웃 정리 후 한 프레임 뒤에 갱신
         StartCoroutine(DelayedRefresh());
     }
 
     private IEnumerator DelayedRefresh()
     {
-        yield return null; // 1프레임 뒤 레이아웃 안정화 후
+        yield return null;
         RefreshUI();
     }
-
 }

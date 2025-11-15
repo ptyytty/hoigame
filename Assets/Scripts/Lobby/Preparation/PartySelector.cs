@@ -381,10 +381,14 @@ public class PartySelector : MonoBehaviour
 
         // 리스트/아이템 쪽도 확실히 리셋
         heroListUp?.ResetHeroListState();
-        //itemList?.ResetItemListState?.Invoke(); // 없으면 생략
 
         ResetPartySlotInteractable();
         SelectionEvents.RaiseHeroSelected(null);
+    }
+
+    public void ResetSelectorStateAndInventory()
+    {
+        ResetSelectorState();
 
         if (prepInventory != null)
             prepInventory.ClearToInventory();

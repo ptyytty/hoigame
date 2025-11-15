@@ -33,6 +33,10 @@ public class DungeonInventoryBinder : MonoBehaviour
 
     void OnEnable()
     {
+        if (!dungeonInventory && DungeonManager.instance != null)
+            dungeonInventory = DungeonManager.instance.DungeonInventory;
+
+        // 2) 그래도 없으면(예: 테스트용 씬) 최후의 수단으로 씬에서 직접 탐색
         if (!dungeonInventory)
             dungeonInventory = FindObjectOfType<DungeonInventory>(true);
 

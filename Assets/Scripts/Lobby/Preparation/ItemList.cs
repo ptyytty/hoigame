@@ -22,7 +22,8 @@ public class ItemList : ListUIBase<EquipItem>
     [SerializeField] private Sprite unselectedImage;
 
     [Header("Inventory")]
-    [SerializeField] private DungeonInventory dungeonInventory;
+    [SerializeField] private DungeonInventory dungeonInventory;  // 던전 준비용 6칸 인벤토리
+
     [Header("Panel")]
     [SerializeField] private GameObject itemList;
     [SerializeField] private GameObject partyPanel;
@@ -38,7 +39,11 @@ public class ItemList : ListUIBase<EquipItem>
         {
             Destroy(this.gameObject);
         }
+
+        if (!dungeonInventory)
+            dungeonInventory = GetComponent<DungeonInventory>();
     }
+
     void Start()
     {
         toggleConsume.onValueChanged.AddListener(OnToggleChanged);
@@ -48,20 +53,52 @@ public class ItemList : ListUIBase<EquipItem>
         RefreshItemList();
     }
 
+    /// <summary>
+    /// 역할: 패널이 활성화될 때 인벤토리/이벤트를 준비하고 아이템 리스트 갱신
+    /// </summary>
     protected override void OnEnable()
     {
         base.OnEnable();
-        PlayerProgressService.InventoryApplied += RefreshItemList; // 저장/적용 신호
-                                                                   // [역할] 던전 준비 인벤토리 변경(칸 추가/제거)도 즉시 반영
-        if (!dungeonInventory)
-            dungeonInventory = FindObjectOfType<DungeonInventory>(true);
-        if (dungeonInventory != null)
-            dungeonInventory.Changed += RefreshItemList;
 
-        // [역할] 구독을 마친 직후 목록 1회 강제 갱신(패널 재입장 즉시 최신)
+        //  - InventoryRuntime / DungeonInventory가 준비될 때까지 기다렸다가
+        //    이벤트 구독 + 리스트 갱신을 한 번에 처리한다.
+        StartCoroutine(EnsureInventoryAndDungeonReady());
+    }
+
+    /// <summary>
+    /// 역할: InventoryRuntime / DungeonInventory 준비 후
+    ///       이벤트 구독 + 아이템 리스트 갱신을 안전하게 수행
+    ///       (빌드에서 실행 순서 차이 문제 방지)
+    /// </summary>
+    private IEnumerator EnsureInventoryAndDungeonReady()
+    {
+        while (InventoryRuntime.Instance == null)
+            yield return null;
+
+        if (!dungeonInventory)
+        {
+            // 혹시 Awake 이전에 호출되었으면 한 번 더 시도
+            dungeonInventory = GetComponent<DungeonInventory>();
+        }
+
+        if (!dungeonInventory)
+        {
+            Debug.LogError("[ItemList] DungeonInventory를 찾지 못했습니다. 같은 오브젝트에 컴포넌트를 붙여주세요. (던전 준비 씬)");
+            yield break;
+        }
+
+        PlayerProgressService.InventoryApplied -= RefreshItemList;
+        PlayerProgressService.InventoryApplied += RefreshItemList;
+
+        dungeonInventory.Changed -= RefreshItemList;
+        dungeonInventory.Changed += RefreshItemList;
+
         RefreshItemList();
     }
 
+    /// <summary>
+    /// 역할: 패널이 비활성화될 때 이벤트 구독 해제
+    /// </summary>
     protected void OnDisable()
     {
         PlayerProgressService.InventoryApplied -= RefreshItemList;
@@ -74,6 +111,9 @@ public class ItemList : ListUIBase<EquipItem>
         RefreshItemList();
     }
 
+    /// <summary>
+    /// 역할: 현재 탭 상태에 맞게 아이템 리스트를 다시 구성
+    /// </summary>
     protected override void LoadList()
     {
         var inv = InventoryRuntime.Instance;
@@ -110,6 +150,10 @@ public class ItemList : ListUIBase<EquipItem>
         OnEquipItemSelect?.Invoke(item);
     }
 
+    /// <summary>
+    /// 역할: 소비 아이템 탭일 때 보유 소비 아이템 목록을 출력하고
+    ///       버튼 클릭 시 던전 준비용 인벤토리에 아이템을 추가
+    /// </summary>
     void PrintConsumeItem()
     {
         foreach (Transform child in contentParent)
@@ -145,22 +189,30 @@ public class ItemList : ListUIBase<EquipItem>
             itemButton.onClick.RemoveAllListeners();
             itemButton.onClick.AddListener(() =>
             {
-                if (!dungeonInventory)
-                    dungeonInventory = FindObjectOfType<DungeonInventory>(true);
                 if (dungeonInventory == null || currentItem == null) return;
 
-                // 1) 던전 준비 인벤토리에 추가
+                Debug.Log($"[DungeonInventory] TryAdd consume item: {currentItem.name_item}");
+
+                // 🔍 AddItem의 반환값을 바로 로그로 확인
                 bool added = dungeonInventory.AddItem(currentItem);
-                // 2) 성공 시 보유 인벤토리 -1
-                if (added)
+                Debug.Log($"[DungeonInventory] AddItem 결과 = {added}");
+
+                if (!added)
                 {
-                    inv.AddConsumeItem(currentItem, -1);
-                    RefreshItemList(); // 즉시 재빌드(정렬 유지)
+                    Debug.LogWarning("[DungeonInventory] AddItem 실패 - 슬롯이 가득 찼거나, 슬롯 상태 이상");
+                    return;
                 }
+
+                // 성공 시 보유 인벤토리에서 1개 감소
+                inv.AddConsumeItem(currentItem, -1);
+                RefreshItemList();
             });
         }
     }
 
+    /// <summary>
+    /// 역할: 현재 토글 상태에 맞게 리스트를 비우고 다시 리빌드
+    /// </summary>
     public void RefreshItemList()
     {
         ClearList();
